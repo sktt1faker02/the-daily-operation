@@ -1,0 +1,464 @@
+# Automations 365 -- The Daily Operation
+
+## Milestone 1: Payroll -- Task Phases Breakdown
+
+**Project:** Central Hub 2 -- The Daily Operation\
+**Company:** Automations 365\
+**Primary Stack:** Power Apps Code Apps + Dataverse + Power Automate\
+**Documents:** SharePoint\
+**Environments:** Development and Production
+
+---
+
+## Phase 1 -- Project Foundation & Environment Setup
+
+**Goal:** Establish a secure and maintainable Power Platform foundation
+before payroll development.
+
+### Tasks
+
+- [ ] Create Development Power Platform environment (I've already a Dev environment this is a sandbox type. Environment name is The Daily Operation - Dev)
+- [ ] Create Dataverse database for each environment
+- [ ] Create solution: `A365-DailyOperations`
+- [ ] Create and initialize the Power Apps Code App
+- [ ] Connect the Code App to Dataverse
+- [ ] Configure Microsoft Entra authentication
+- [ ] Define environment variables and connection references
+- [ ] Establish naming conventions for tables, columns, flows, and
+      components
+- [ ] Document the initial application architecture
+
+### Deliverable
+
+A working Code App deployed to the Development environment and connected
+securely to Dataverse.
+
+---
+
+## Phase 2 -- Security & Access Model
+
+**Goal:** Protect payroll and financial information at the data layer.
+
+### Tasks
+
+- [ ] Define application roles
+  - Payroll Employee
+  - Payroll Admin
+  - System Administrator
+- [ ] Create/configure Dataverse security roles
+- [ ] Configure employee-level record access
+- [ ] Ensure employees can only read their own payroll records
+- [ ] Allow Payroll Admins to manage employee payroll records
+- [ ] Configure approval permissions
+- [ ] Restrict deletion of sensitive payroll records
+- [ ] Define access to SharePoint payroll documents
+- [ ] Test unauthorized record access
+- [ ] Document the payroll security model
+
+### Deliverable
+
+Role-based and record-level security enforced through Dataverse rather
+than only through the application UI.
+
+---
+
+## Phase 3 -- Employee Master Data
+
+**Goal:** Create the employee information required by payroll.
+
+### Tasks
+
+- [ ] Create Employee Dataverse table
+- [ ] Add employee identification fields
+- [ ] Link employee to Microsoft Entra user
+- [ ] Add employment information
+- [ ] Add department and position
+- [ ] Add employment status
+- [ ] Add employment type
+- [ ] Add date hired
+- [ ] Add basic monthly salary
+- [ ] Add payroll frequency
+- [ ] Add SSS information
+- [ ] Add PhilHealth information
+- [ ] Add Pag-IBIG/HDMF information
+- [ ] Add TIN information
+- [ ] Add payment/bank information if required
+- [ ] Build employee list for Payroll Admin
+- [ ] Build employee create/edit form
+- [ ] Add active/inactive employee handling
+
+### Deliverable
+
+Payroll Admin can securely maintain the employee master records required
+for payroll processing.
+
+---
+
+## Phase 4 -- Payroll Data Model
+
+**Goal:** Create the Dataverse structure for payroll transactions.
+
+### Tasks
+
+- [ ] Create Payroll Period table
+- [ ] Add period start date
+- [ ] Add period end date
+- [ ] Add pay date
+- [ ] Add payroll status
+- [ ] Add created/approved/paid metadata
+- [ ] Create Payroll Entry table
+- [ ] Relate Payroll Entry to Employee
+- [ ] Relate Payroll Entry to Payroll Period
+- [ ] Add Basic Pay
+- [ ] Add Allowances
+- [ ] Add Unpaid Leave deduction
+- [ ] Add Gross Pay
+- [ ] Add SSS deduction
+- [ ] Add PhilHealth deduction
+- [ ] Add HDMF/Pag-IBIG deduction
+- [ ] Add Withholding Tax
+- [ ] Add Other Earnings
+- [ ] Add Other Deductions
+- [ ] Add Total Deductions
+- [ ] Add Net Pay
+- [ ] Consider separate Payroll Earning and Payroll Deduction tables
+      for extensibility
+
+### Deliverable
+
+A normalized Dataverse payroll data model supporting employees, cutoff
+periods, earnings, deductions, and calculated payroll totals.
+
+---
+
+## Phase 5 -- Payroll Calculation Engine
+
+**Goal:** Automatically calculate statutory deductions, taxes, and net
+pay.
+
+### Tasks
+
+- [ ] Define Gross Pay calculation
+- [ ] Define Unpaid Leave calculation
+- [ ] Create SSS contribution configuration/table
+- [ ] Create PhilHealth contribution configuration/table
+- [ ] Create HDMF/Pag-IBIG contribution configuration/table
+- [ ] Create withholding tax configuration/table
+- [ ] Add effective-from/effective-until dates to statutory rules
+- [ ] Implement SSS automatic calculation
+- [ ] Implement PhilHealth automatic calculation
+- [ ] Implement HDMF automatic calculation
+- [ ] Implement withholding tax automatic calculation
+- [ ] Calculate Total Deductions
+- [ ] Calculate Net Pay
+- [ ] Handle rounding rules
+- [ ] Handle calculation errors and missing configuration
+- [ ] Store calculation results in the payroll record
+- [ ] Add payroll recalculation capability while payroll is in Draft
+- [ ] Unit-test calculation scenarios
+
+### Deliverable
+
+A reusable payroll calculation service that calculates payroll
+independently from the UI.
+
+---
+
+## Phase 6 -- Payroll Administration UI
+
+**Goal:** Allow Payroll Admins to create and process each payroll
+cutoff.
+
+### Tasks
+
+- [ ] Build Payroll Dashboard
+- [ ] Display current payroll period
+- [ ] Display recent payroll periods
+- [ ] Display payroll totals and status
+- [ ] Build Create Payroll Period screen
+- [ ] Build Payroll Period detail screen
+- [ ] Load active employees into a payroll period
+- [ ] Build employee payroll editing screen
+- [ ] Allow Basic Pay editing
+- [ ] Allow Allowance editing
+- [ ] Allow Unpaid Leave editing
+- [ ] Allow other adjustments if enabled
+- [ ] Add Calculate/Recalculate Payroll action
+- [ ] Display Gross Pay
+- [ ] Display individual deductions
+- [ ] Display Total Deductions
+- [ ] Display Net Pay
+- [ ] Add validation and error messages
+- [ ] Add search/filtering for employees
+- [ ] Add payroll summary totals
+
+### Deliverable
+
+Payroll Admin can create a cutoff, populate employees, enter variable
+payroll information, and calculate payroll.
+
+---
+
+## Phase 7 -- Payroll Review, Approval & Locking
+
+**Goal:** Prevent accidental changes to finalized payroll.
+
+### Recommended Status Flow
+
+`Draft → Processing → For Review → Approved → Paid → Locked`
+
+### Tasks
+
+- [ ] Implement payroll status workflow
+- [ ] Add Submit for Review action
+- [ ] Prevent unauthorized approval
+- [ ] Add Payroll Approver review screen
+- [ ] Add Approve Payroll action
+- [ ] Record approver and approval timestamp
+- [ ] Lock approved/finalized payroll records
+- [ ] Prevent normal edits after locking
+- [ ] Add Mark as Paid action
+- [ ] Record payment timestamp and user
+- [ ] Define correction/adjustment process for finalized payroll
+- [ ] Test all allowed and prohibited status transitions
+
+### Deliverable
+
+A controlled payroll lifecycle with review, approval, payment, and
+locking.
+
+---
+
+## Phase 8 -- Employee Payroll Portal
+
+**Goal:** Allow employees to securely view their own payroll
+information.
+
+### Tasks
+
+- [ ] Build My Payroll page
+- [ ] Display latest payroll
+- [ ] Display Net Pay
+- [ ] Display previous payroll periods
+- [ ] Build Payslip detail page
+- [ ] Display Basic Pay
+- [ ] Display Allowances
+- [ ] Display Gross Pay
+- [ ] Display SSS
+- [ ] Display PhilHealth
+- [ ] Display HDMF/Pag-IBIG
+- [ ] Display Withholding Tax
+- [ ] Display other deductions
+- [ ] Display Total Deductions
+- [ ] Display Net Pay
+- [ ] Ensure employees cannot access another employee's payroll by
+      changing URLs/IDs
+- [ ] Test employee record-level security
+
+### Deliverable
+
+Employees can securely view their own payslips and payroll history.
+
+---
+
+## Phase 9 -- Audit Trail & Financial Controls
+
+**Goal:** Make sensitive payroll changes traceable.
+
+### Tasks
+
+- [ ] Enable appropriate Dataverse auditing
+- [ ] Track payroll Created By / Created At
+- [ ] Track Updated By / Updated At
+- [ ] Track Calculated By / Calculated At
+- [ ] Track Submitted By / Submitted At
+- [ ] Track Approved By / Approved At
+- [ ] Track Paid By / Paid At
+- [ ] Track significant salary and deduction changes
+- [ ] Define rules for payroll deletion
+- [ ] Define adjustment/correction procedure
+- [ ] Build an Admin audit/history view if required
+
+### Deliverable
+
+Important payroll actions and financial changes have a traceable audit
+history.
+
+---
+
+## Phase 10 -- Copy Previous Cutoff
+
+**Goal:** Reduce repetitive payroll encoding.
+
+### Tasks
+
+- [ ] Add Copy Previous Cutoff action
+- [ ] Select the previous payroll period
+- [ ] Copy eligible employee payroll entries
+- [ ] Copy Basic Pay
+- [ ] Copy recurring Allowances
+- [ ] Copy recurring earnings/deductions where appropriate
+- [ ] Keep copied entries editable
+- [ ] Do not blindly copy calculated statutory deductions
+- [ ] Recalculate SSS
+- [ ] Recalculate PhilHealth
+- [ ] Recalculate HDMF
+- [ ] Recalculate Withholding Tax
+- [ ] Recalculate Net Pay
+- [ ] Handle employees hired/terminated between periods
+
+### Deliverable
+
+Payroll Admin can create a new cutoff from the previous cutoff and then
+review/edit/recalculate it.
+
+---
+
+## Phase 11 -- Payslip Documents & SharePoint
+
+**Goal:** Generate formal payslip documents and use SharePoint for
+document storage.
+
+### Tasks
+
+- [ ] Design payslip document template
+- [ ] Generate payslip PDF
+- [ ] Create SharePoint payroll/payslip document structure
+- [ ] Store generated payslips in SharePoint
+- [ ] Associate SharePoint document reference with Payroll Entry
+- [ ] Apply appropriate SharePoint permissions
+- [ ] Add View/Download Payslip action
+- [ ] Define document naming convention
+- [ ] Test document access as Employee and Admin
+
+### Deliverable
+
+Approved payroll can produce employee payslip documents stored securely
+in SharePoint.
+
+---
+
+## Phase 12 -- Testing & Quality Assurance
+
+**Goal:** Verify payroll calculations, workflows, security, and user
+experience before production.
+
+### Tasks
+
+- [ ] Unit-test payroll calculations
+- [ ] Test SSS scenarios
+- [ ] Test PhilHealth scenarios
+- [ ] Test HDMF scenarios
+- [ ] Test withholding tax scenarios
+- [ ] Test unpaid leave scenarios
+- [ ] Test allowances
+- [ ] Test payroll copying
+- [ ] Test payroll approval
+- [ ] Test payroll locking
+- [ ] Test employee-only access
+- [ ] Test Payroll Admin access
+- [ ] Test Payroll Approver access
+- [ ] Test direct URL/record access attempts
+- [ ] Test SharePoint document permissions
+- [ ] Test empty/missing payroll data
+- [ ] Test terminated/inactive employees
+- [ ] Conduct User Acceptance Testing (UAT)
+- [ ] Resolve UAT findings
+
+### Deliverable
+
+Payroll module passes calculation, workflow, security, and UAT
+requirements.
+
+---
+
+## Phase 13 -- Production Deployment
+
+**Goal:** Release the first Payroll milestone safely.
+
+### Tasks
+
+- [ ] Review production security roles
+- [ ] Review environment variables
+- [ ] Prepare production Dataverse configuration
+- [ ] Deploy solution to Production
+- [ ] Publish Code App to Production
+- [ ] Configure production connections
+- [ ] Load statutory contribution/tax configuration
+- [ ] Load employee master data
+- [ ] Perform production smoke testing
+- [ ] Validate Employee access
+- [ ] Validate Payroll Admin access
+- [ ] Validate Payroll Approver access
+- [ ] Document rollback/recovery procedure
+- [ ] Train Payroll Admin/Approver
+- [ ] Go live
+
+### Deliverable
+
+Payroll V1 is live in the Automations 365 Daily Operation production
+environment.
+
+---
+
+# Suggested Implementation Order
+
+For the initial release, prioritize:
+
+1.  **Foundation & Environments**
+2.  **Security**
+3.  **Employee Master Data**
+4.  **Payroll Data Model**
+5.  **Calculation Engine**
+6.  **Payroll Administration**
+7.  **Review / Approval / Locking**
+8.  **Employee Payroll Portal**
+9.  **Audit Trail**
+10. **Testing**
+11. **Production Deployment**
+
+After the core V1 is stable:
+
+12. **Copy Previous Cutoff**
+13. **PDF Payslips + SharePoint integration**
+
+---
+
+# Future Integration -- Leave Management
+
+The payroll architecture should anticipate Milestone 2: Leave
+Management.
+
+Future flow:
+
+`Approved Leave → Determine Paid/Unpaid Leave → Payroll Period → Unpaid Leave Deduction → Payroll Calculation`
+
+The first Payroll version may allow the Payroll Admin to manually enter
+unpaid leave deductions, but the long-term goal should be for approved
+leave records to feed payroll automatically.
+
+---
+
+# Definition of Done -- Payroll V1
+
+Payroll V1 can be considered complete when:
+
+- [ ] Payroll Admin can maintain employee payroll information
+- [ ] Payroll Admin can create a cutoff period
+- [ ] Active employees can be loaded into the cutoff
+- [ ] Basic Pay and Allowances can be recorded
+- [ ] Unpaid Leave can be recorded
+- [ ] SSS is automatically calculated
+- [ ] PhilHealth is automatically calculated
+- [ ] HDMF/Pag-IBIG is automatically calculated
+- [ ] Withholding Tax is automatically calculated
+- [ ] Gross Pay, Total Deductions, and Net Pay are automatically
+      calculated
+- [ ] Payroll can be reviewed and approved
+- [ ] Finalized payroll cannot be casually modified
+- [ ] Employees can only view their own payroll records
+- [ ] Admins can view authorized payroll records
+- [ ] Employees can view their payroll history and payslip
+- [ ] Sensitive actions are auditable
+- [ ] Development and Production environments are separated
+- [ ] Security and payroll calculation tests pass
