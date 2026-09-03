@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "appId": null,
+  "appDisplayName": "The Daily Operation",
+  "region": "prod",
+  "appType": "CodeApp",
+  "environmentId": "b58b083e-d27d-eabd-a143-2a49dcb9d89a",
+  "description": "Automations 365 operational hub — Payroll (M1), Leave, Accounting.",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "localAppUrl": "http://localhost:3000",
+  "logoPath": "Default",
+  "connectionReferences": {},
+  "databaseReferences": {}
+}

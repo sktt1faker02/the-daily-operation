@@ -17,16 +17,16 @@ before payroll development.
 
 ### Tasks
 
-- [ ] Create Development Power Platform environment (I've already a Dev environment this is a sandbox type. Environment name is The Daily Operation - Dev)
-- [ ] Create Dataverse database for each environment
-- [ ] Create solution: `A365-DailyOperations`
-- [ ] Create and initialize the Power Apps Code App
-- [ ] Connect the Code App to Dataverse
-- [ ] Configure Microsoft Entra authentication
-- [ ] Define environment variables and connection references
-- [ ] Establish naming conventions for tables, columns, flows, and
-      components
-- [ ] Document the initial application architecture
+- [x] Create Development Power Platform environment (Dev sandbox `The Daily Operation - Dev` — provided by the team)
+- [x] Create Dataverse database (Dev database provisioned; Prod deferred until Phase 13)
+- [x] Create solution: `A365-DailyOperations` (publisher `Automations 365`, prefix `a365`; source-controlled under `solution/`)
+- [x] Create and initialize the Power Apps Code App (`power.config.json` bound to Dev; `appId` populates on first `pac code push`)
+- [x] Connect the Code App to Dataverse (SDK integration layer wired in `src/lib/power/`; per-table data sources added in Phase 3+ once tables exist)
+- [x] Configure Microsoft Entra authentication (handled automatically by the Power Apps host; model documented in `docs/architecture.md` §8)
+- [~] Define environment variables and connection references (naming conventions defined; per-environment values deferred to Phase 13 — none required for a Dev-only code app yet)
+- [x] Establish naming conventions for tables, columns, flows, and
+      components (`docs/naming-conventions.md`)
+- [x] Document the initial application architecture (`docs/architecture.md`)
 
 ### Deliverable
 

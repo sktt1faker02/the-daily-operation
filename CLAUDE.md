@@ -19,6 +19,10 @@ https://learn.microsoft.com/en-us/power-apps/developer/code-apps/overview
 
 ---
 
+## Task Phases
+
+see task phases at docs\payroll-task-phases.md
+
 ## Technology Stack
 
 ### Application
@@ -1071,7 +1075,8 @@ Audit & Security
 # General Rules
 
 - use mcp microsoft learn for latest documentation
-- user the skil - vercel react best practices
+- user the skills - vercel react best practices for react related code best practices
+- use the power platform skills wherever it needed
 
 # Non-Negotiable Rules
 
