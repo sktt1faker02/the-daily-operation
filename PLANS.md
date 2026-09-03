@@ -10,19 +10,26 @@
   owner-based access, single business unit, plug-in-based immutability, no Delete.
 - **Phase 3 — Employee Master Data:** 🔄 In progress.
   - Confirmed `a365_employee` schema in `docs/data-model.md` (choices as-is).
-  - Dataverse MCP registered in `.mcp.json` (commit 7ce4dd3).
-  - **Waiting on:** tenant admin consent + enabling the Dataverse CLI client on
-    the Dev environment, then a Claude Code restart to activate the MCP tools.
+  - Installed the Microsoft **`dataverse` plugin** (claude-plugins-official) for
+    Dataverse work; removed the earlier manual `.mcp.json` (the plugin's
+    `dv-connect` skill registers the MCP itself — avoids a duplicate).
+  - **Waiting on:** a Claude Code restart so the plugin's skills/MCP load.
 
 ## Next steps (after Claude Code restart)
 
-1. Verify the `dataverse` MCP tools loaded.
-2. Create `a365_employee` (User/Team owned) with columns + global choices per
-   `docs/data-model.md` using the MCP `create_table` tool.
+1. Run the **`dv-connect`** skill — installs tools, authenticates
+   (`dataverse auth create`), registers the Dataverse MCP, writes `.env`
+   (gitignored), and enables the MCP client for
+   `https://org9a7651f0.crm5.dynamics.com`. It prints the tenant-admin-consent
+   URL if consent is still needed.
+2. Use the **`dv-metadata`** skill (and/or the MCP `create_table` tool) to create
+   `a365_employee` — **User/Team owned** — with columns + global choices per
+   `docs/data-model.md`.
 3. Add `a365_employee` as a code-app data source; build the Employee list +
    create/edit form (Payroll Admin), with loading/empty/error states.
-4. Create `A365 - Payroll Employee` / `A365 - Payroll Admin` roles and apply
-   `a365_employee` privileges (security-model §5); wire the Employee↔systemuser link.
+4. Use the **`dv-security`** skill to create `A365 - Payroll Employee` /
+   `A365 - Payroll Admin` roles and apply `a365_employee` privileges
+   (security-model §5); wire the Employee↔systemuser link.
 
 ## Requirements
 
