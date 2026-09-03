@@ -41,19 +41,19 @@ securely to Dataverse.
 
 ### Tasks
 
-- [ ] Define application roles
-  - Payroll Employee
-  - Payroll Admin
-  - System Administrator
-- [ ] Create/configure Dataverse security roles
-- [ ] Configure employee-level record access
-- [ ] Ensure employees can only read their own payroll records
-- [ ] Allow Payroll Admins to manage employee payroll records
-- [ ] Configure approval permissions
-- [ ] Restrict deletion of sensitive payroll records
-- [ ] Define access to SharePoint payroll documents
-- [ ] Test unauthorized record access
-- [ ] Document the payroll security model
+- [x] Define application roles (`docs/security-model.md` §2)
+  - Payroll Employee → `A365 - Payroll Employee`
+  - Payroll Admin → `A365 - Payroll Admin`
+  - System Administrator → built-in role (not recreated)
+- [~] Create/configure Dataverse security roles (designed §2/§5; roles created in Phase 3 as tables land)
+- [~] Configure employee-level record access (designed §3/§4; enforced in Phase 3 with the Employee↔Entra link)
+- [~] Ensure employees can only read their own payroll records (owner-based access designed §4; enforced in Phase 4/6)
+- [~] Allow Payroll Admins to manage employee payroll records (designed §5; enforced in Phase 3–4)
+- [~] Configure approval permissions (no Approver role in V1; status-transition control designed for Phase 7 §8)
+- [~] Restrict deletion of sensitive payroll records (no Delete on payroll tables, designed §7; enforced in Phase 4)
+- [~] Define access to SharePoint payroll documents (designed §9; enforced in Phase 11)
+- [ ] Test unauthorized record access (test plan defined §11; executed in Phase 12)
+- [x] Document the payroll security model (`docs/security-model.md`)
 
 ### Deliverable
 
