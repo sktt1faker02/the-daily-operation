@@ -13,7 +13,11 @@ specification** for creating tables in Dataverse (via the Dataverse MCP
 
 ## Phase 3 — `a365_employee` (Employee)
 
-- **Status:** confirmed, pending creation
+- **Status:** ✅ **created** in `The Daily Operation - Dev` (2026-09-04) and
+  exported into `solution/A365_DailyOperations`. Verified: `OwnershipType =
+  UserOwned`, primary name `a365_name`, entity set `a365_employees`, autonumber
+  `A365-EMP-{SEQNUM:0000}`, lookup `a365_systemuser` (Lookup → `systemuser`).
+  The logical names below match what was created.
 - **Ownership:** **User or Team owned** (immutable after creation — required so
   an employee can read their own record; see security-model §3)
 - **Solution:** `A365-DailyOperations`

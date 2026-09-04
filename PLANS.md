@@ -24,11 +24,12 @@
 
 1. ✅ Done — **`dv-connect`** (see above). On restart, verify with
    `claude mcp list` (server ✓ Connected) and a "list my tables" MCP call.
-2. Use the **`dv-metadata`** skill (and/or the MCP `create_table` tool) to create
-   `a365_employee` — **User/Team owned** — with columns + global choices per
-   `docs/data-model.md`.
-3. Add `a365_employee` as a code-app data source; build the Employee list +
-   create/edit form (Payroll Admin), with loading/empty/error states.
+2. ✅ **Done** — `a365_employee` created (**UserOwned**) with all columns + 4
+   global choices per `docs/data-model.md`; exported into
+   `solution/A365_DailyOperations` (commit adds the schema).
+3. 🔄 **Next** — Add `a365_employee` as a code-app data source; build the
+   Employee list + create/edit form (Payroll Admin), with loading/empty/error
+   states.
 4. Use the **`dv-security`** skill to create `A365 - Payroll Employee` /
    `A365 - Payroll Admin` roles and apply `a365_employee` privileges
    (security-model §5); wire the Employee↔systemuser link.
