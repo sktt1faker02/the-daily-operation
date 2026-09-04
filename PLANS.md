@@ -11,17 +11,19 @@
 - **Phase 3 — Employee Master Data:** 🔄 In progress.
   - Confirmed `a365_employee` schema in `docs/data-model.md` (choices as-is).
   - Installed the Microsoft **`dataverse` plugin** (claude-plugins-official) for
-    Dataverse work; removed the earlier manual `.mcp.json` (the plugin's
-    `dv-connect` skill registers the MCP itself — avoids a duplicate).
-  - **Waiting on:** a Claude Code restart so the plugin's skills/MCP load.
+    Dataverse work.
+  - ✅ **`dv-connect` complete** (commit 969da79): DV CLI + PAC + Python SDK all
+    authenticated against `The Daily Operation - Dev` (org9a7651f0) as
+    michael@automations365.com; tenant admin consent granted for the Dataverse
+    CLI app; MCP server registered in `.mcp.json` (project scope) and the MCP
+    client allowlisted; data plane verified reachable.
+  - **Waiting on:** a Claude Code restart so the `dataverse-org9a7651f0` MCP
+    tools load into the session.
 
 ## Next steps (after Claude Code restart)
 
-1. Run the **`dv-connect`** skill — installs tools, authenticates
-   (`dataverse auth create`), registers the Dataverse MCP, writes `.env`
-   (gitignored), and enables the MCP client for
-   `https://org9a7651f0.crm5.dynamics.com`. It prints the tenant-admin-consent
-   URL if consent is still needed.
+1. ✅ Done — **`dv-connect`** (see above). On restart, verify with
+   `claude mcp list` (server ✓ Connected) and a "list my tables" MCP call.
 2. Use the **`dv-metadata`** skill (and/or the MCP `create_table` tool) to create
    `a365_employee` — **User/Team owned** — with columns + global choices per
    `docs/data-model.md`.
