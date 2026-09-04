@@ -4,7 +4,8 @@
  */
 
 // Models
-export * as MicrosoftDataverseModel from './models/MicrosoftDataverseModel';
+export * as A365_employeesModel from './models/A365_employeesModel';
+export * as CommonModels from './models/CommonModels';
 
 // Services
-export * from './services/MicrosoftDataverseService';
+export * from './services/A365_employeesService';

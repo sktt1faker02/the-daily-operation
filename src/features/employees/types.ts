@@ -4,8 +4,13 @@
  * `docs/data-model.md`. Do not guess Dataverse schema names (CLAUDE.md #5).
  */
 
-/** Dataverse logical (schema) name of the Employee table. */
-export const EMPLOYEE_TABLE = "a365_employee"
+/**
+ * Registered data-source name for the Employee table. This is the entity set
+ * name (`a365_employees`) — the key under which `pac code add-data-source
+ * --apiId dataverse` registered the table in `.power/schemas` — not the logical
+ * name. The data client resolves records by this name.
+ */
+export const EMPLOYEE_TABLE = "a365_employees"
 
 // --- Global choice option sets (values follow publisher prefix 74991) --------
 
