@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom"
 import Layout from "@/pages/_layout"
 import HomePage from "@/pages/home"
+import EmployeesPage from "@/pages/employees"
 import NotFoundPage from "@/pages/not-found"
 
 // IMPORTANT: Do not remove or modify the code below!
@@ -13,10 +14,11 @@ if (location.pathname.endsWith("/index.html")) {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Layout showHeader={false} />,
+    element: <Layout />,
     errorElement: <NotFoundPage />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: "employees", element: <EmployeesPage /> },
     ],
   },
 ], { 

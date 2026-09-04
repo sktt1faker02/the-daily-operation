@@ -1,9 +1,10 @@
+import { Link } from "react-router-dom"
 import { usePowerContext } from "@/hooks/use-power-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ModeToggle } from "@/components/mode-toggle"
-import { AlertCircle, CheckCircle2, Wallet } from "lucide-react"
+import { AlertCircle, CheckCircle2, Users, Wallet } from "lucide-react"
 
 export default function HomePage() {
   const { data: context, isPending, isError } = usePowerContext()
@@ -62,7 +63,12 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        <ModeToggle />
+        <Button asChild size="lg">
+          <Link to="/employees">
+            <Users className="size-4" aria-hidden />
+            Manage employees
+          </Link>
+        </Button>
       </div>
     </div>
   )
