@@ -8,17 +8,17 @@
 - **Phase 2 — Security Model:** ✅ Design complete (commit 065ed75).
   `docs/security-model.md`. Enforcement deferred into Phases 3–4. Confirmed:
   owner-based access, single business unit, plug-in-based immutability, no Delete.
-- **Phase 3 — Employee Master Data:** 🔄 In progress.
-  - Confirmed `a365_employee` schema in `docs/data-model.md` (choices as-is).
-  - Installed the Microsoft **`dataverse` plugin** (claude-plugins-official) for
-    Dataverse work.
-  - ✅ **`dv-connect` complete** (commit 969da79): DV CLI + PAC + Python SDK all
-    authenticated against `The Daily Operation - Dev` (org9a7651f0) as
-    michael@automations365.com; tenant admin consent granted for the Dataverse
-    CLI app; MCP server registered in `.mcp.json` (project scope) and the MCP
-    client allowlisted; data plane verified reachable.
-  - **Waiting on:** a Claude Code restart so the `dataverse-org9a7651f0` MCP
-    tools load into the session.
+- **Phase 3 — Employee Master Data:** ✅ Complete.
+  - Dataverse connected via the **`dataverse` plugin** (`dv-connect`): DV CLI +
+    PAC + Python + MCP authenticated to `The Daily Operation - Dev`.
+  - `a365_employee` table created (**UserOwned**) with all columns, 4 global
+    choices, autonumber, and the `a365_systemuser` lookup; exported into
+    `solution/A365_DailyOperations`.
+  - Added as a code-app data source; built the typed employee domain layer and
+    the Employee admin UI (list + create/edit) with all four data states.
+  - Created + verified the `A365 - Payroll Employee` / `A365 - Payroll Admin`
+    security roles (security-model §13).
+  - **Open validation:** runtime test of CRUD against live Dataverse (see below).
 
 ## Next steps (after Claude Code restart)
 
@@ -34,9 +34,12 @@
    Loading/Success/Empty/Error states + active/inactive/all filter, and a
    create/edit form dialog with validation, saving state, and toast errors.
    `npm run lint` + `npm run build` pass.
-4. 🔄 **Next** — Use the **`dv-security`** skill to create `A365 - Payroll
-   Employee` / `A365 - Payroll Admin` roles and apply `a365_employee` privileges
-   (security-model §5); wire the Employee↔systemuser link.
+4. ✅ **Done** — Created `A365 - Payroll Employee` (Read/User) and `A365 -
+   Payroll Admin` (Create/Read/Write/Append/AppendTo/Assign/Share Org, no
+   Delete) roles via the Dataverse Web API, verified the granted depths, and
+   exported them into `solution/A365_DailyOperations` (see security-model §13).
+   Employee↔`systemuser` owner assignment is deferred to Phase 4/6 (needs
+   employee records + user accounts; the lookup column already exists).
 
 ## Validation still open
 

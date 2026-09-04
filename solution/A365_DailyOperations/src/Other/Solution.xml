@@ -84,6 +84,8 @@
     <RootComponents>
       <RootComponent type="1" schemaName="a365_employee" behavior="0" />
       <RootComponent type="1" schemaName="systemuser" behavior="1" />
+      <RootComponent type="20" id="{6217c17c-3ea8-f111-aaad-000d3a853079}" behavior="0" />
+      <RootComponent type="20" id="{6d654242-3ea8-f111-aaad-000d3a853079}" behavior="0" />
       <RootComponent type="9" schemaName="a365_employmentstatus" behavior="0" />
       <RootComponent type="9" schemaName="a365_employmenttype" behavior="0" />
       <RootComponent type="9" schemaName="a365_paymentmethod" behavior="0" />

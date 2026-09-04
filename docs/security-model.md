@@ -132,6 +132,13 @@ Access level shorthand: **Org** = Organization, **User** = own records only,
 corrected by an auditable adjustment process, not deleted (see §7). Grant Delete
 only to System Administrator, or via an explicit, audited exception.
 
+⁴ **Append / Append To.** The Payroll Admin role also holds **Append** and
+**Append To** at Organization on `a365_employee` (granted alongside the six
+privileges above). They are the functional companions to Create/Write — without
+them a non-System-Administrator admin cannot set the `a365_systemuser` lookup or
+relate an employee to other records. They convey no additional read access to
+employee data. The Payroll Employee role is **read-only** and holds neither.
+
 ² Read granted only if a specific UI need arises, and then limited to
 non-sensitive columns via field-level security (see §4).
 
@@ -203,7 +210,8 @@ guarantee.
 | Security work | Enforced in |
 |---|---|
 | Roles & access matrix designed; System Administrator = built-in role | **Phase 2 (this doc)** |
-| Create `A365 - Payroll Employee` / `A365 - Payroll Admin` roles; set `a365_employee` privileges; Employee↔`systemuser` link | **Phase 3** (with the Employee table) |
+| Create `A365 - Payroll Employee` / `A365 - Payroll Admin` roles; set `a365_employee` privileges | ✅ **Done in Phase 3** (2026-09-04) — see §13 |
+| Employee↔`systemuser` link + owner assignment for User-level self-read | **Phase 4 / Phase 6** (needs employee records + user accounts; the lookup column exists) |
 | Set `a365_payrollperiod` / `a365_payrollentry` privileges; owner-assignment-on-create; statutory-config read/write | **Phase 4 / Phase 6** (with those tables & the load-employees flow) |
 | Finalized-payroll immutability control | **Phase 7** |
 | SharePoint payslip permissions | **Phase 11** |
@@ -246,3 +254,25 @@ settled inputs to Phases 3–4:
 
 Related links: `docs/architecture.md` §8 (security overview),
 `docs/naming-conventions.md`, `docs/payroll-task-phases.md`.
+
+---
+
+## 13. Implementation status (Phase 3)
+
+Created in `The Daily Operation - Dev` on **2026-09-04** via the Dataverse Web
+API and exported into `solution/A365_DailyOperations` (component type Role):
+
+| Role | Dataverse role name | `a365_employee` privileges |
+|---|---|---|
+| Payroll Employee | `A365 - Payroll Employee` | **Read** at *User* |
+| Payroll Admin | `A365 - Payroll Admin` | **Create, Read, Write, Append, Append To, Assign, Share** at *Organization*; **no Delete** |
+
+Notes:
+- Roles are **additive** — each interactive user must also hold **Basic User**
+  (§2). The custom roles are **not** assigned to anyone yet; assignment happens
+  when app users are onboarded (`pac admin assign-user` / admin center), so no
+  one's access changed by creating them.
+- Payroll-table privileges (`a365_payrollperiod`, `a365_payrollentry`, statutory
+  config) and the owner-assignment-on-create rule are added in **Phase 4 / 6**
+  when those tables and the load-employees flow exist.
+- Security is enforced here at the Dataverse layer; the app UI never gates it.
