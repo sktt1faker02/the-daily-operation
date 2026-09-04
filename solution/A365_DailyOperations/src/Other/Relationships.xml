@@ -1,2 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<EntityRelationships xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+<EntityRelationships xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <EntityRelationship Name="a365_employee_systemuser" />
+  <EntityRelationship Name="business_unit_a365_employee" />
+  <EntityRelationship Name="lk_a365_employee_createdby" />
+  <EntityRelationship Name="lk_a365_employee_modifiedby" />
+  <EntityRelationship Name="owner_a365_employee" />
+  <EntityRelationship Name="team_a365_employee" />
+  <EntityRelationship Name="TransactionCurrency_a365_Employee" />
+  <EntityRelationship Name="user_a365_employee" />
+</EntityRelationships>
