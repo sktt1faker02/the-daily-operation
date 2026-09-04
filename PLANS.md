@@ -27,12 +27,23 @@
 2. ✅ **Done** — `a365_employee` created (**UserOwned**) with all columns + 4
    global choices per `docs/data-model.md`; exported into
    `solution/A365_DailyOperations` (commit adds the schema).
-3. 🔄 **Next** — Add `a365_employee` as a code-app data source; build the
-   Employee list + create/edit form (Payroll Admin), with loading/empty/error
-   states.
-4. Use the **`dv-security`** skill to create `A365 - Payroll Employee` /
-   `A365 - Payroll Admin` roles and apply `a365_employee` privileges
+3. ✅ **Done** — `a365_employee` added as a code-app data source
+   (`shared_commondataserviceforapps`, connection created in the maker portal).
+   Built the typed employee domain layer (data-client seam → types → service →
+   TanStack Query hooks) and the Employee admin UI: sortable TanStack Table with
+   Loading/Success/Empty/Error states + active/inactive/all filter, and a
+   create/edit form dialog with validation, saving state, and toast errors.
+   `npm run lint` + `npm run build` pass.
+4. 🔄 **Next** — Use the **`dv-security`** skill to create `A365 - Payroll
+   Employee` / `A365 - Payroll Admin` roles and apply `a365_employee` privileges
    (security-model §5); wire the Employee↔systemuser link.
+
+## Validation still open
+
+- **Runtime test against live Dataverse:** run the app (`npm run dev` /
+  `npx power-apps run`) and exercise list + create/edit. The build compiles and
+  types match the Power SDK, but the CRUD calls have not yet been run against the
+  live table.
 
 ## Requirements
 
