@@ -59,16 +59,20 @@ specification** for creating tables in Dataverse (via the Dataverse MCP
 | Payroll Frequency | `a365_payrollfrequency` | Monthly, Semi-monthly |
 | Payment Method | `a365_paymentmethod` | Bank Transfer, Cash, Check |
 
-### After the table exists (remainder of Phase 3)
+### After the table exists (remainder of Phase 3) — ✅ complete
 
-1. Add `a365_employee` as a code-app data source (`code-apps-preview:add-dataverse`),
-   generating typed model/service files.
-2. Build the Employee list (TanStack Table) and create/edit form for Payroll
+1. ✅ Added `a365_employee` as a code-app data source
+   (`code-apps-preview:add-dataverse`), generating typed model/service files
+   (`src/generated/`, `src/features/employees/`).
+2. ✅ Built the Employee list (TanStack Table) and create/edit form for Payroll
    Admin, with Loading/Success/Empty/Error states.
-3. Handle active/inactive employees (status filter; payroll loads Active).
-4. Create the `A365 - Payroll Employee` and `A365 - Payroll Admin` security roles
-   and apply the `a365_employee` privileges from security-model §5; wire the
-   Employee↔`systemuser` link that owner-based access depends on.
+3. ✅ Handle active/inactive employees (status filter; payroll loads Active).
+4. ✅ Created the `A365 - Payroll Employee` and `A365 - Payroll Admin` security
+   roles and applied the `a365_employee` privileges from security-model §5
+   (see security-model §13). The `a365_systemuser` lookup **column** exists, but
+   **wiring the Employee↔`systemuser` link in the UI and the owner-based access it
+   feeds is deferred to Phase 4/6** (security-model §10) — it needs real user
+   accounts and the load-employees flow before it does anything.
 
 ---
 

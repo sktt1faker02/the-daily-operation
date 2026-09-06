@@ -68,24 +68,24 @@ than only through the application UI.
 
 ### Tasks
 
-- [ ] Create Employee Dataverse table
-- [ ] Add employee identification fields
-- [ ] Link employee to Microsoft Entra user
-- [ ] Add employment information
-- [ ] Add department and position
-- [ ] Add employment status
-- [ ] Add employment type
-- [ ] Add date hired
-- [ ] Add basic monthly salary
-- [ ] Add payroll frequency
-- [ ] Add SSS information
-- [ ] Add PhilHealth information
-- [ ] Add Pag-IBIG/HDMF information
-- [ ] Add TIN information
-- [ ] Add payment/bank information if required
-- [ ] Build employee list for Payroll Admin
-- [ ] Build employee create/edit form
-- [ ] Add active/inactive employee handling
+- [x] Create Employee Dataverse table (`a365_employee`; see `docs/data-model.md`)
+- [x] Add employee identification fields
+- [~] Link employee to Microsoft Entra user (`a365_systemuser` lookup column created; form wiring + owner assignment deferred to Phase 4/6 per `docs/security-model.md` §10 — needs real user accounts and the load-employees flow)
+- [x] Add employment information
+- [x] Add department and position
+- [x] Add employment status
+- [x] Add employment type
+- [x] Add date hired
+- [x] Add basic monthly salary
+- [x] Add payroll frequency
+- [x] Add SSS information
+- [x] Add PhilHealth information
+- [x] Add Pag-IBIG/HDMF information
+- [x] Add TIN information
+- [x] Add payment/bank information if required
+- [x] Build employee list for Payroll Admin (TanStack Table: sorting, status filter, Loading/Empty/Error states)
+- [x] Build employee create/edit form (validation, save-state, toasts)
+- [x] Add active/inactive employee handling (status filter; `isActiveEmployee`)
 
 ### Deliverable
 
