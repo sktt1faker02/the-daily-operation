@@ -138,6 +138,8 @@ rendering.
 
 # UI & Design System
 
+- use this design system for branding and styles at DESIGN.md
+
 Use the components already provided by the Power Apps Code Apps starter.
 
 Prefer **shadcn/ui** components over custom recreations.
@@ -377,16 +379,17 @@ Calculate Payroll
         |
 Review
         |
-Submit
-        |
-Approve
-        |
-Finalize / Lock
+Mark Ready (Payroll Admin finalize)
         |
 Mark Paid
         |
+Lock
+        |
 Employee Payslip
 ```
+
+There is **no separate approver** and **no For Review / Approved stage** in V1.
+The Payroll Admin prepares, reviews, finalizes (Ready), marks paid, and locks.
 
 ---
 
@@ -394,13 +397,12 @@ Employee Payslip
 
 A payroll period represents one cutoff.
 
-Suggested statuses:
+Statuses (V1 — backed by the `a365_payrollstatus` global choice):
 
 ```text
 Draft
 Processing
-For Review
-Approved
+Ready
 Paid
 Locked
 ```
@@ -409,13 +411,12 @@ Do not allow arbitrary status transitions.
 
 Business rules must determine which transitions are valid.
 
-Example:
+V1 transitions (Payroll Admin only; no approver):
 
 ```text
 Draft -> Processing
-Processing -> For Review
-For Review -> Approved
-Approved -> Paid
+Processing -> Ready
+Ready -> Paid
 Paid -> Locked
 ```
 
