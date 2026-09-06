@@ -76,8 +76,25 @@ specification** for creating tables in Dataverse (via the Dataverse MCP
 
 ---
 
-## Phase 4 — Payroll tables (to be designed)
+## Phase 4 — Payroll tables
 
-`a365_payrollperiod`, `a365_payrollentry`, and statutory-configuration tables
-are specified in Phase 4. Ownership per security-model §3:
-periods/entries **User/Team owned**, statutory config **Organization owned**.
+Design spec: `docs/superpowers/specs/2026-09-06-phase-4-payroll-data-model-design.md`.
+Ownership per security-model §3: periods/entries **User/Team owned**. Statutory
+configuration tables are **Phase 5** (Organization owned), not Phase 4.
+
+### `a365_payrollstatus` (global choice)
+
+- **Status:** ✅ **created** in `The Daily Operation - Dev` (2026-09-06), added to
+  `A365_DailyOperations`. MetadataId `2f6f95ca-f6a9-f111-aaad-000d3a853079`.
+- Values below were **read back** from Dataverse (do not guess).
+
+| Label | Value | Meaning |
+|---|---|---|
+| Draft | `749910000` | Period created; entries being populated/edited |
+| Processing | `749910001` | Calculation running / inputs being finalized |
+| Ready | `749910002` | Admin reviewed & finalized; ready to pay |
+| Paid | `749910003` | Marked paid; disbursed |
+| Locked | `749910004` | Closed/immutable |
+
+> V1 flow (no For Review / Approved, no approver): `Draft → Processing → Ready →
+> Paid → Locked`. Transition rules are enforced in Phase 7, not by the choice.
