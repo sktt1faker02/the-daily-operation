@@ -98,3 +98,29 @@ configuration tables are **Phase 5** (Organization owned), not Phase 4.
 
 > V1 flow (no For Review / Approved, no approver): `Draft → Processing → Ready →
 > Paid → Locked`. Transition rules are enforced in Phase 7, not by the choice.
+
+### `a365_payrollperiod` (Payroll Period)
+
+- **Status:** ✅ **created** in `The Daily Operation - Dev` (2026-09-06), added to
+  `A365_DailyOperations`. Verified: `OwnershipType = UserOwned`, entity set
+  `a365_payrollperiods`, primary key `a365_payrollperiodid`, primary name
+  `a365_name`. Logical names below match what was created.
+- **Ownership:** **User or Team owned** (immutable) — security-model §3.
+
+| Display name | Logical name | Type | Required | Notes |
+|---|---|---|---|---|
+| Period Label | `a365_name` | Text | Yes | Primary; `YYYY-MM-DD to YYYY-MM-DD`. |
+| Period Start | `a365_periodstart` | Date only | Yes | 1st or 16th. |
+| Period End | `a365_periodend` | Date only | Yes | 15th or last day of month. |
+| Pay Date | `a365_paydate` | Date only | No | Disbursement date. |
+| Status | `a365_payrollstatus` | Choice → global `a365_payrollstatus` | Yes | Default Draft. |
+| Ready On | `a365_readyon` | Date and Time | No | Stamped on → Ready. |
+| Paid On | `a365_paidon` | Date and Time | No | Stamped on → Paid. |
+| Locked On | `a365_lockedon` | Date and Time | No | Stamped on → Locked. |
+| Ready By | `a365_readyby` | Lookup → `systemuser` | No | Read `_a365_readyby_value`. |
+| Paid By | `a365_paidby` | Lookup → `systemuser` | No | Read `_a365_paidby_value`. |
+| Locked By | `a365_lockedby` | Lookup → `systemuser` | No | Read `_a365_lockedby_value`. |
+
+Relationships (systemuser → period): `a365_payrollperiod_readyby`,
+`a365_payrollperiod_paidby`, `a365_payrollperiod_lockedby`. Created/Modified use
+standard Dataverse stamps. No stored rollup totals (computed on demand, Phase 6).
