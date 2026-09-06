@@ -19,6 +19,20 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "a365_payrollentries": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_payrollentryid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_payrollperiods": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_payrollperiodid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "a365_philhealthcontributions": {
     "tableId": "",
     "version": "",

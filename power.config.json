@@ -33,6 +33,14 @@
         "taxbrackets": {
           "entitySetName": "a365_taxbrackets",
           "logicalName": "a365_taxbracket"
+        },
+        "payrollperiods": {
+          "entitySetName": "a365_payrollperiods",
+          "logicalName": "a365_payrollperiod"
+        },
+        "payrollentries": {
+          "entitySetName": "a365_payrollentries",
+          "logicalName": "a365_payrollentry"
         }
       },
       "environmentVariableName": ""
