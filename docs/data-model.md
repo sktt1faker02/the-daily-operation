@@ -124,3 +124,39 @@ configuration tables are **Phase 5** (Organization owned), not Phase 4.
 Relationships (systemuser → period): `a365_payrollperiod_readyby`,
 `a365_payrollperiod_paidby`, `a365_payrollperiod_lockedby`. Created/Modified use
 standard Dataverse stamps. No stored rollup totals (computed on demand, Phase 6).
+
+### `a365_payrollentry` (Payroll Entry)
+
+- **Status:** ✅ **created** in `The Daily Operation - Dev` (2026-09-06), added to
+  `A365_DailyOperations`. Verified: `OwnershipType = UserOwned`, entity set
+  `a365_payrollentries`, primary key `a365_payrollentryid`, primary name
+  `a365_name`. Logical names below match what was created.
+- **Ownership:** **User or Team owned** (immutable) — the privacy pivot of
+  security-model §4 (Phase 6 assigns each entry's owner to the employee's
+  `systemuser`).
+
+| Display name | Logical name | Type | Required | Notes |
+|---|---|---|---|---|
+| Entry Label | `a365_name` | Text | Yes | Primary; composed `Employee — Period`. |
+| Included | `a365_isincluded` | Yes/No | Yes | Default Yes; hold without deleting. |
+| Basic Pay | `a365_basicpay` | Currency | No | ½ monthly salary; salary-basis snapshot. |
+| Allowances | `a365_allowances` | Currency | No | Lump sum. |
+| Other Earnings | `a365_otherearnings` | Currency | No | Lump sum. |
+| Gross Pay | `a365_grosspay` | Currency | No | Computed (Phase 5). |
+| Unpaid Leave Days | `a365_unpaidleavedays` | Decimal | No | Input; Leave Mgmt feeds later. |
+| Unpaid Leave | `a365_unpaidleave` | Currency | No | Computed from days. |
+| SSS | `a365_sss` | Currency | No | Computed. |
+| PhilHealth | `a365_philhealth` | Currency | No | Computed. |
+| HDMF / Pag-IBIG | `a365_hdmf` | Currency | No | Computed. |
+| Withholding Tax | `a365_withholdingtax` | Currency | No | Computed. |
+| Other Deductions | `a365_otherdeductions` | Currency | No | Lump sum. |
+| Total Deductions | `a365_totaldeductions` | Currency | No | Computed. |
+| Net Pay | `a365_netpay` | Currency | No | Computed. |
+| Calculated On | `a365_calculatedon` | Date and Time | No | Set on calculate. |
+| Calculated By | `a365_calculatedby` | Lookup → `systemuser` | No | Read `_a365_calculatedby_value`. |
+
+Each Currency column has an auto `_base` companion and the table carries the
+standard `transactioncurrencyid` / `exchangerate` columns (Dataverse money
+behavior). Lookups to `a365_payrollperiod` and `a365_employee` are added in the
+next subsection (relationships). Rel `a365_payrollentry_calculatedby`
+(systemuser → entry).
