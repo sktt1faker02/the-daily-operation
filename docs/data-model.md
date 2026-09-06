@@ -227,5 +227,17 @@ BIR semi-monthly bracket table.
 | `a365_basetax` | Currency |
 | `a365_marginalrate` | Decimal |
 
-Seed data (verified 2025 rates + BIR semi-monthly brackets) is loaded in Task 2 —
-see the seed summary below once seeded.
+### Seed data (Dev, effective 2025-01-01)
+
+Loaded by `scripts/seed_statutory_config.py` (idempotent; the reproducible source
+of the config — production load is Phase 13). Verified against the client payslip
++ official 2025 sources:
+
+- **SSS** — 61 bracket rows, MSC 5,000–35,000 in ₱500 steps; employee = 5% × MSC,
+  employer = 10% × MSC, EC 10 (<15k) / 30 (≥15k). Anchor confirmed: monthly
+  43,000 → MSC 35,000 → employee 1,750.00 (→ 875.00/cutoff). Employer/EC amounts
+  follow the 2025 structure and should be spot-checked vs the official SSS PDF
+  before any remittance feature; the **employee** amount (all V1 net-pay needs) is exact.
+- **PhilHealth** — 1 row: premium 0.05, employee share 0.5, floor 10,000, ceiling 100,000.
+- **HDMF** — 1 row: employee 0.02, employer 0.02, cap 10,000.
+- **Tax** — 6 semi-monthly BIR brackets (0/15/20/25/30/35%).
