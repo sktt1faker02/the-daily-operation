@@ -5,7 +5,15 @@
 
 // Models
 export * as A365_employeesModel from './models/A365_employeesModel';
+export * as A365_hdmfcontributionsModel from './models/A365_hdmfcontributionsModel';
+export * as A365_philhealthcontributionsModel from './models/A365_philhealthcontributionsModel';
+export * as A365_ssscontributionsModel from './models/A365_ssscontributionsModel';
+export * as A365_taxbracketsModel from './models/A365_taxbracketsModel';
 export * as CommonModels from './models/CommonModels';
 
 // Services
 export * from './services/A365_employeesService';
+export * from './services/A365_hdmfcontributionsService';
+export * from './services/A365_philhealthcontributionsService';
+export * from './services/A365_ssscontributionsService';
+export * from './services/A365_taxbracketsService';

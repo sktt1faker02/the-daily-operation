@@ -11,5 +11,33 @@ export const dataSourcesInfo = {
     "primaryKey": "a365_employeeid",
     "dataSourceType": "Dataverse",
     "apis": {}
+  },
+  "a365_hdmfcontributions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_hdmfcontributionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_philhealthcontributions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_philhealthcontributionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_ssscontributions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_ssscontributionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_taxbrackets": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_taxbracketid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
   }
 };

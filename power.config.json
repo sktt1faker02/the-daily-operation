@@ -17,6 +17,22 @@
         "employees": {
           "entitySetName": "a365_employees",
           "logicalName": "a365_employee"
+        },
+        "ssscontributions": {
+          "entitySetName": "a365_ssscontributions",
+          "logicalName": "a365_ssscontribution"
+        },
+        "philhealthcontributions": {
+          "entitySetName": "a365_philhealthcontributions",
+          "logicalName": "a365_philhealthcontribution"
+        },
+        "hdmfcontributions": {
+          "entitySetName": "a365_hdmfcontributions",
+          "logicalName": "a365_hdmfcontribution"
+        },
+        "taxbrackets": {
+          "entitySetName": "a365_taxbrackets",
+          "logicalName": "a365_taxbracket"
         }
       },
       "environmentVariableName": ""
