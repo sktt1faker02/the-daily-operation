@@ -100,29 +100,30 @@ for payroll processing.
 
 ### Tasks
 
-- [ ] Create Payroll Period table
-- [ ] Add period start date
-- [ ] Add period end date
-- [ ] Add pay date
-- [ ] Add payroll status
-- [ ] Add created/approved/paid metadata
-- [ ] Create Payroll Entry table
-- [ ] Relate Payroll Entry to Employee
-- [ ] Relate Payroll Entry to Payroll Period
-- [ ] Add Basic Pay
-- [ ] Add Allowances
-- [ ] Add Unpaid Leave deduction
-- [ ] Add Gross Pay
-- [ ] Add SSS deduction
-- [ ] Add PhilHealth deduction
-- [ ] Add HDMF/Pag-IBIG deduction
-- [ ] Add Withholding Tax
-- [ ] Add Other Earnings
-- [ ] Add Other Deductions
-- [ ] Add Total Deductions
-- [ ] Add Net Pay
-- [ ] Consider separate Payroll Earning and Payroll Deduction tables
-      for extensibility
+- [x] Create Payroll Period table (`a365_payrollperiod`, User owned)
+- [x] Add period start date (`a365_periodstart`)
+- [x] Add period end date (`a365_periodend`)
+- [x] Add pay date (`a365_paydate`)
+- [x] Add payroll status (`a365_payrollstatus` global choice; Ready/Paid/Locked stamps)
+- [x] Add created/ready/paid/locked metadata (standard stamps + `a365_readyby/on`, `a365_paidby/on`, `a365_lockedby/on`)
+- [x] Create Payroll Entry table (`a365_payrollentry`, User owned)
+- [x] Relate Payroll Entry to Employee (`a365_employee_payrollentry`, required, Restrict)
+- [x] Relate Payroll Entry to Payroll Period (`a365_payrollperiod_payrollentry`, required, Restrict)
+- [x] Add Basic Pay (`a365_basicpay`)
+- [x] Add Allowances (`a365_allowances`)
+- [x] Add Unpaid Leave deduction (`a365_unpaidleavedays` input + `a365_unpaidleave` computed)
+- [x] Add Gross Pay (`a365_grosspay`)
+- [x] Add SSS deduction (`a365_sss`)
+- [x] Add PhilHealth deduction (`a365_philhealth`)
+- [x] Add HDMF/Pag-IBIG deduction (`a365_hdmf`)
+- [x] Add Withholding Tax (`a365_withholdingtax`)
+- [x] Add Other Earnings (`a365_otherearnings`)
+- [x] Add Other Deductions (`a365_otherdeductions`)
+- [x] Add Total Deductions (`a365_totaldeductions`)
+- [x] Add Net Pay (`a365_netpay`)
+- [~] Consider separate Payroll Earning and Payroll Deduction tables — **decided
+      against for V1**: variable pay is lump-sum columns on the entry
+      (spec §2.5). Revisit only if itemized lines are needed later.
 
 ### Deliverable
 
@@ -199,33 +200,36 @@ payroll information, and calculate payroll.
 
 ---
 
-## Phase 7 -- Payroll Review, Approval & Locking
+## Phase 7 -- Payroll Review, Finalization & Locking
 
 **Goal:** Prevent accidental changes to finalized payroll.
 
-### Recommended Status Flow
+> **V1 decision:** there is **no separate Payroll Approver role** and **no
+> For Review / Approved stage**. The Payroll Admin prepares, reviews, finalizes,
+> and marks payroll paid. "Ready" is the Admin's finalize state before payment.
+> See `docs/superpowers/specs/2026-09-06-phase-4-payroll-data-model-design.md` §2.
 
-`Draft → Processing → For Review → Approved → Paid → Locked`
+### Status Flow (V1)
+
+`Draft → Processing → Ready → Paid → Locked`
+
+(Backed by the `a365_payrollstatus` global choice — see `docs/data-model.md`.)
 
 ### Tasks
 
-- [ ] Implement payroll status workflow
-- [ ] Add Submit for Review action
-- [ ] Prevent unauthorized approval
-- [ ] Add Payroll Approver review screen
-- [ ] Add Approve Payroll action
-- [ ] Record approver and approval timestamp
-- [ ] Lock approved/finalized payroll records
-- [ ] Prevent normal edits after locking
-- [ ] Add Mark as Paid action
-- [ ] Record payment timestamp and user
+- [ ] Implement payroll status workflow (centralized transition rules)
+- [ ] Add Mark Ready action (Admin finalize) and record Ready By / Ready At
+- [ ] Restrict status transitions to Payroll Admin (Dataverse-enforced)
+- [ ] Lock finalized payroll records
+- [ ] Prevent normal edits after locking (data-layer control — security-model §8)
+- [ ] Add Mark as Paid action and record Paid By / Paid At
 - [ ] Define correction/adjustment process for finalized payroll
 - [ ] Test all allowed and prohibited status transitions
 
 ### Deliverable
 
-A controlled payroll lifecycle with review, approval, payment, and
-locking.
+A controlled payroll lifecycle with review, finalization (Ready), payment, and
+locking — all performed by the Payroll Admin, with no approver role.
 
 ---
 

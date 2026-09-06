@@ -46,7 +46,7 @@ casing and let Dataverse derive the logical name; then verify it.
 ### Choices (option sets)
 
 - **Global choices** for values reused across tables — e.g.
-  `a365_payrollstatus` (Draft, Processing, For Review, Approved, Paid, Locked),
+  `a365_payrollstatus` (Draft, Processing, Ready, Paid, Locked),
   `a365_employmentstatus`, `a365_employmenttype`, `a365_payrollfrequency`.
 - Prefer global choices over local ones when a value set is shared.
 - Confirm the integer values of choice options before encoding them in code.
