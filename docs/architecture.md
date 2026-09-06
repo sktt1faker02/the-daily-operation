@@ -110,6 +110,16 @@ later, and must accept unpaid-leave input that Leave Management can eventually
 feed automatically. Module boundaries are not crossed by reaching into another
 module's internals — only through its service interface.
 
+**Phase 5 (calculation engine) — implemented under `features/payroll/`:**
+`services/payroll-calculation.ts` is a **pure, UI-free, Dataverse-free** function
+(`calculatePayroll`) plus `round2`; `services/statutory-config-service.ts` +
+`hooks/use-statutory-config.ts` load the effective-dated statutory rules from
+Dataverse and map them to the engine's `StatutoryConfig`;
+`services/payroll-service.ts` (`calculateAndPersistEntry`) combines the two and
+writes results to the entry. Statutory rules are configuration-driven
+(`a365_ssscontribution`, etc.), never hardcoded. The withholding-tax taxable-base
+rule is an isolated TBD seam pending client-accountant confirmation.
+
 ---
 
 ## 5. Providers and composition

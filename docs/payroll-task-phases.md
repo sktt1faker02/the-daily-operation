@@ -139,24 +139,24 @@ pay.
 
 ### Tasks
 
-- [ ] Define Gross Pay calculation
-- [ ] Define Unpaid Leave calculation
-- [ ] Create SSS contribution configuration/table
-- [ ] Create PhilHealth contribution configuration/table
-- [ ] Create HDMF/Pag-IBIG contribution configuration/table
-- [ ] Create withholding tax configuration/table
-- [ ] Add effective-from/effective-until dates to statutory rules
-- [ ] Implement SSS automatic calculation
-- [ ] Implement PhilHealth automatic calculation
-- [ ] Implement HDMF automatic calculation
-- [ ] Implement withholding tax automatic calculation
-- [ ] Calculate Total Deductions
-- [ ] Calculate Net Pay
-- [ ] Handle rounding rules
-- [ ] Handle calculation errors and missing configuration
-- [ ] Store calculation results in the payroll record
-- [ ] Add payroll recalculation capability while payroll is in Draft
-- [ ] Unit-test calculation scenarios
+- [x] Define Gross Pay calculation (basic + allowances + other − unpaid leave)
+- [x] Define Unpaid Leave calculation (days × daily rate; daily = monthly ÷ 22)
+- [x] Create SSS contribution configuration/table (`a365_ssscontribution`, 61 brackets)
+- [x] Create PhilHealth contribution configuration/table (`a365_philhealthcontribution`)
+- [x] Create HDMF/Pag-IBIG contribution configuration/table (`a365_hdmfcontribution`)
+- [x] Create withholding tax configuration/table (`a365_taxbracket`, BIR semi-monthly)
+- [x] Add effective-from/effective-until dates to statutory rules
+- [x] Implement SSS automatic calculation (verified 875/cutoff)
+- [x] Implement PhilHealth automatic calculation (verified 537.50/cutoff)
+- [x] Implement HDMF automatic calculation (verified 100/cutoff)
+- [~] Implement withholding tax automatic calculation — bracket table + calc ship; **taxable-base rule TBD (accountant)**, isolated to `computeTaxableBase` (spec §7)
+- [x] Calculate Total Deductions
+- [x] Calculate Net Pay
+- [x] Handle rounding rules (`round2`, half-up 2dp)
+- [x] Handle calculation errors and missing configuration (typed throw, not silent 0)
+- [x] Store calculation results in the payroll record (`calculateAndPersistEntry`)
+- [x] Add payroll recalculation capability while payroll is in Draft (service ready; status guard is Phase 7)
+- [x] Unit-test calculation scenarios (Vitest; payslip golden fixture + edges)
 
 ### Deliverable
 
