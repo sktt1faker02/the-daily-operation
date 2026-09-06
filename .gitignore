@@ -27,6 +27,9 @@ dist-ssr
 # Claude Code
 .claude/settings.local.json
 
+# Personal / PII documents — never commit (e.g. sample payslips)
+docs/Payslip*.pdf
+
 # Dataverse tooling
 .token_cache.bin
 .dataverse/
