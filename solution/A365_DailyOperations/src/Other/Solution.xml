@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ImportExportXml version="9.2.26082.148" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26082.148" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26082.00148">
+<ImportExportXml version="9.2.26083.157" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26083.157" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26083.00157">
   <SolutionManifest>
     <UniqueName>A365_DailyOperations</UniqueName>
     <LocalizedNames>
@@ -83,6 +83,8 @@
     </Publisher>
     <RootComponents>
       <RootComponent type="1" schemaName="a365_employee" behavior="0" />
+      <RootComponent type="1" schemaName="a365_payrollentry" behavior="0" />
+      <RootComponent type="1" schemaName="a365_payrollperiod" behavior="0" />
       <RootComponent type="1" schemaName="systemuser" behavior="1" />
       <RootComponent type="20" id="{6217c17c-3ea8-f111-aaad-000d3a853079}" behavior="0" />
       <RootComponent type="20" id="{6d654242-3ea8-f111-aaad-000d3a853079}" behavior="0" />
@@ -90,6 +92,7 @@
       <RootComponent type="9" schemaName="a365_employmenttype" behavior="0" />
       <RootComponent type="9" schemaName="a365_paymentmethod" behavior="0" />
       <RootComponent type="9" schemaName="a365_payrollfrequency" behavior="0" />
+      <RootComponent type="9" schemaName="a365_payrollstatus" behavior="0" />
     </RootComponents>
     <MissingDependencies>
       <MissingDependency>

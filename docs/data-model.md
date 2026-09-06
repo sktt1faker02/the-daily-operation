@@ -157,6 +157,15 @@ standard Dataverse stamps. No stored rollup totals (computed on demand, Phase 6)
 
 Each Currency column has an auto `_base` companion and the table carries the
 standard `transactioncurrencyid` / `exchangerate` columns (Dataverse money
-behavior). Lookups to `a365_payrollperiod` and `a365_employee` are added in the
-next subsection (relationships). Rel `a365_payrollentry_calculatedby`
-(systemuser → entry).
+behavior). Rel `a365_payrollentry_calculatedby` (systemuser → entry).
+
+### Payroll Entry relationships (Phase 4)
+
+Both **created + verified** (2026-09-06): required lookups on `a365_payrollentry`
+with **Restrict** delete (payroll/employee records are not deleted to fix
+mistakes — security-model §7).
+
+| Relationship schema | Type | Parent | Lookup on entry | Read form | Required | Delete |
+|---|---|---|---|---|---|---|
+| `a365_payrollperiod_payrollentry` | 1:N | `a365_payrollperiod` | `a365_payrollperiod` | `_a365_payrollperiod_value` | Yes | Restrict |
+| `a365_employee_payrollentry` | 1:N | `a365_employee` | `a365_employee` | `_a365_employee_value` | Yes | Restrict |
