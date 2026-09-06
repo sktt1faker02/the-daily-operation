@@ -83,8 +83,12 @@
     </Publisher>
     <RootComponents>
       <RootComponent type="1" schemaName="a365_employee" behavior="0" />
+      <RootComponent type="1" schemaName="a365_hdmfcontribution" behavior="0" />
       <RootComponent type="1" schemaName="a365_payrollentry" behavior="0" />
       <RootComponent type="1" schemaName="a365_payrollperiod" behavior="0" />
+      <RootComponent type="1" schemaName="a365_philhealthcontribution" behavior="0" />
+      <RootComponent type="1" schemaName="a365_ssscontribution" behavior="0" />
+      <RootComponent type="1" schemaName="a365_taxbracket" behavior="0" />
       <RootComponent type="1" schemaName="systemuser" behavior="1" />
       <RootComponent type="20" id="{6217c17c-3ea8-f111-aaad-000d3a853079}" behavior="0" />
       <RootComponent type="20" id="{6d654242-3ea8-f111-aaad-000d3a853079}" behavior="0" />

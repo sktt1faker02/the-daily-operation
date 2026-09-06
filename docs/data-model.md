@@ -169,3 +169,63 @@ mistakes — security-model §7).
 |---|---|---|---|---|---|---|
 | `a365_payrollperiod_payrollentry` | 1:N | `a365_payrollperiod` | `a365_payrollperiod` | `_a365_payrollperiod_value` | Yes | Restrict |
 | `a365_employee_payrollentry` | 1:N | `a365_employee` | `a365_employee` | `_a365_employee_value` | Yes | Restrict |
+
+---
+
+## Phase 5 — statutory configuration tables
+
+Design spec: `docs/superpowers/specs/2026-09-06-phase-5-payroll-calculation-engine-design.md`.
+All four are **Organization owned** (global reference data — security-model §3),
+**effective-dated**, in `A365_DailyOperations`. **Created + verified** in
+`The Daily Operation - Dev` (2026-09-07); logical names below read back from
+Dataverse. Rates are stored as decimal **fractions** (e.g. `0.05` = 5%). Every
+Currency column has an auto `_base` companion + the standard
+`transactioncurrencyid` (omitted below).
+
+Common to all four: `a365_name` (Text, primary), `a365_effectivefrom` (Date only,
+required), `a365_effectiveuntil` (Date only), `a365_version` (Text).
+
+### `a365_ssscontribution` — set `a365_ssscontributions`, PK `a365_ssscontributionid`
+Bracket table (one row per MSC bracket; looked up by monthly salary).
+
+| Logical name | Type |
+|---|---|
+| `a365_compensationfrom` | Currency |
+| `a365_compensationto` | Currency |
+| `a365_msc` | Currency |
+| `a365_employeeamount` | Currency |
+| `a365_employeramount` | Currency |
+| `a365_ecamount` | Currency |
+
+### `a365_philhealthcontribution` — set `a365_philhealthcontributions`, PK `a365_philhealthcontributionid`
+Parameter row.
+
+| Logical name | Type | Value |
+|---|---|---|
+| `a365_premiumrate` | Decimal | 0.05 |
+| `a365_employeeshare` | Decimal | 0.5 |
+| `a365_incomefloor` | Currency | 10000 |
+| `a365_incomeceiling` | Currency | 100000 |
+
+### `a365_hdmfcontribution` — set `a365_hdmfcontributions`, PK `a365_hdmfcontributionid`
+Parameter row.
+
+| Logical name | Type | Value |
+|---|---|---|
+| `a365_employeerate` | Decimal | 0.02 |
+| `a365_employerrate` | Decimal | 0.02 |
+| `a365_compensationcap` | Currency | 10000 |
+
+### `a365_taxbracket` — set `a365_taxbrackets`, PK `a365_taxbracketid`
+BIR semi-monthly bracket table.
+
+| Logical name | Type |
+|---|---|
+| `a365_sequence` | Whole Number |
+| `a365_incomefrom` | Currency |
+| `a365_incometo` | Currency |
+| `a365_basetax` | Currency |
+| `a365_marginalrate` | Decimal |
+
+Seed data (verified 2025 rates + BIR semi-monthly brackets) is loaded in Task 2 —
+see the seed summary below once seeded.
