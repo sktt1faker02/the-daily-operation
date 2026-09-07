@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom"
 import Layout from "@/pages/_layout"
 import HomePage from "@/pages/home"
 import EmployeesPage from "@/pages/employees"
+import PayrollDashboardPage from "@/pages/payroll"
 import NotFoundPage from "@/pages/not-found"
 
 // IMPORTANT: Do not remove or modify the code below!
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "employees", element: <EmployeesPage /> },
+      { path: "payroll", element: <PayrollDashboardPage /> },
     ],
   },
 ], { 
