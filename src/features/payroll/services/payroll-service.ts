@@ -8,6 +8,8 @@ import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput } from "./payroll-calculation"
+import type { PayrollEntryInputValues } from "../types"
+import { payrollPeriodService } from "./payroll-period-service"
 
 const ENTRY_TABLE = "a365_payrollentries"
 
@@ -77,4 +79,54 @@ export async function calculateAndPersistEntry(
     payload,
   )
   if (!update.success) throw update.error ?? new Error("Unable to save the calculation results.")
+}
+
+/** Parse a controlled numeric input to a number; blank → 0. */
+function toAmount(value: string): number {
+  const trimmed = value.trim()
+  if (trimmed === "") return 0
+  const n = Number(trimmed)
+  return Number.isFinite(n) ? n : 0
+}
+
+/**
+ * Persist the editable input columns of a payroll entry. Does NOT touch
+ * calculated columns — those change only through calculation.
+ */
+export async function updateEntryInputs(
+  entryId: string,
+  values: PayrollEntryInputValues,
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    a365_basicpay: toAmount(values.a365_basicpay),
+    a365_allowances: toAmount(values.a365_allowances),
+    a365_otherearnings: toAmount(values.a365_otherearnings),
+    a365_otherdeductions: toAmount(values.a365_otherdeductions),
+    a365_unpaidleavedays: toAmount(values.a365_unpaidleavedays),
+  }
+  const result = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
+    ENTRY_TABLE,
+    entryId,
+    payload,
+  )
+  if (!result.success) throw result.error ?? new Error("Unable to save the payroll entry.")
+}
+
+/**
+ * Calculate every included entry in a period. Aggregates failures rather than
+ * failing silently: the first entry error stops the run and is surfaced.
+ */
+export async function calculatePeriod(
+  periodId: string,
+  periodEndDate: string,
+  calculatedByUserId: string,
+): Promise<{ calculated: number }> {
+  const entries = await payrollPeriodService.listEntries(periodId)
+  const included = entries.filter((e) => e.a365_isincluded)
+  let calculated = 0
+  for (const entry of included) {
+    await calculateAndPersistEntry(entry.a365_payrollentryid, periodEndDate, calculatedByUserId)
+    calculated += 1
+  }
+  return { calculated }
 }
