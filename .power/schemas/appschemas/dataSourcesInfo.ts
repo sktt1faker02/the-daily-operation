@@ -5,6 +5,13 @@
  */
 
 export const dataSourcesInfo = {
+  "a365_departments": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_departmentid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "a365_employees": {
     "tableId": "",
     "version": "",
@@ -37,6 +44,13 @@ export const dataSourcesInfo = {
     "tableId": "",
     "version": "",
     "primaryKey": "a365_philhealthcontributionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_positions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_positionid",
     "dataSourceType": "Dataverse",
     "apis": {}
   },

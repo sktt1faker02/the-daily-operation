@@ -109,8 +109,10 @@ export interface Employee {
   a365_lastname: string | null
   a365_middlename: string | null
   a365_workemail: string | null
-  a365_department: string | null
-  a365_position: string | null
+  /** Lookup → a365_department (read as the `_value` form). */
+  _a365_department_value: string | null
+  /** Lookup → a365_position (read as the `_value` form). */
+  _a365_position_value: string | null
   a365_employmentstatus: EmploymentStatus | null
   a365_employmenttype: EmploymentType | null
   a365_datehired: string | null
@@ -135,8 +137,10 @@ export interface EmployeeFormValues {
   a365_lastname: string
   a365_middlename: string
   a365_workemail: string
-  a365_department: string
-  a365_position: string
+  /** Selected a365_department record id (lookup). */
+  a365_departmentid: string
+  /** Selected a365_position record id (lookup). */
+  a365_positionid: string
   a365_employmentstatus: EmploymentStatus | ""
   a365_employmenttype: EmploymentType | ""
   a365_datehired: string
@@ -157,8 +161,8 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   a365_lastname: "",
   a365_middlename: "",
   a365_workemail: "",
-  a365_department: "",
-  a365_position: "",
+  a365_departmentid: "",
+  a365_positionid: "",
   a365_employmentstatus: EmploymentStatus.Active,
   a365_employmenttype: "",
   a365_datehired: "",
@@ -181,8 +185,8 @@ export function toFormValues(employee: Employee): EmployeeFormValues {
     a365_lastname: employee.a365_lastname ?? "",
     a365_middlename: employee.a365_middlename ?? "",
     a365_workemail: employee.a365_workemail ?? "",
-    a365_department: employee.a365_department ?? "",
-    a365_position: employee.a365_position ?? "",
+    a365_departmentid: employee._a365_department_value ?? "",
+    a365_positionid: employee._a365_position_value ?? "",
     a365_employmentstatus: employee.a365_employmentstatus ?? "",
     a365_employmenttype: employee.a365_employmenttype ?? "",
     a365_datehired: employee.a365_datehired ?? "",

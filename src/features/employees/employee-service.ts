@@ -18,8 +18,8 @@ const SELECT_COLUMNS: (keyof Employee)[] = [
   "a365_lastname",
   "a365_middlename",
   "a365_workemail",
-  "a365_department",
-  "a365_position",
+  "_a365_department_value",
+  "_a365_position_value",
   "a365_employmentstatus",
   "a365_employmenttype",
   "a365_datehired",
@@ -55,14 +55,12 @@ function fullName(values: EmployeeFormValues): string {
 
 /** Map controlled form values to the Dataverse write payload. */
 function toWritePayload(values: EmployeeFormValues): Record<string, unknown> {
-  return {
+  const payload: Record<string, unknown> = {
     a365_name: fullName(values),
     a365_firstname: trimmedOrNull(values.a365_firstname),
     a365_lastname: trimmedOrNull(values.a365_lastname),
     a365_middlename: trimmedOrNull(values.a365_middlename),
     a365_workemail: trimmedOrNull(values.a365_workemail),
-    a365_department: trimmedOrNull(values.a365_department),
-    a365_position: trimmedOrNull(values.a365_position),
     a365_employmentstatus: values.a365_employmentstatus === "" ? null : values.a365_employmentstatus,
     a365_employmenttype: values.a365_employmenttype === "" ? null : values.a365_employmenttype,
     a365_datehired: values.a365_datehired || null,
@@ -80,6 +78,15 @@ function toWritePayload(values: EmployeeFormValues): Record<string, unknown> {
     a365_bankname: trimmedOrNull(values.a365_bankname),
     a365_bankaccountnumber: trimmedOrNull(values.a365_bankaccountnumber),
   }
+  // Lookups are written via @odata.bind. Only set when chosen; omitting on update
+  // leaves the existing value unchanged.
+  if (values.a365_departmentid) {
+    payload["a365_Department@odata.bind"] = `/a365_departments(${values.a365_departmentid})`
+  }
+  if (values.a365_positionid) {
+    payload["a365_Position@odata.bind"] = `/a365_positions(${values.a365_positionid})`
+  }
+  return payload
 }
 
 export const employeeService = {

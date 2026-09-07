@@ -64,9 +64,15 @@ function SortableHeader({
 export function EmployeeTable({
   employees,
   onEdit,
+  departmentNames,
+  positionNames,
 }: {
   employees: Employee[]
   onEdit: (employee: Employee) => void
+  /** Map of a365_department id → name, for resolving the lookup. */
+  departmentNames: Map<string, string>
+  /** Map of a365_position id → name, for resolving the lookup. */
+  positionNames: Map<string, string>
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -106,14 +112,20 @@ export function EmployeeTable({
         ),
       },
       {
-        accessorKey: "a365_department",
+        id: "department",
         header: "Department",
-        cell: ({ row }) => row.original.a365_department ?? "—",
+        cell: ({ row }) => {
+          const id = row.original._a365_department_value
+          return (id && departmentNames.get(id)) || "—"
+        },
       },
       {
-        accessorKey: "a365_position",
+        id: "position",
         header: "Position",
-        cell: ({ row }) => row.original.a365_position ?? "—",
+        cell: ({ row }) => {
+          const id = row.original._a365_position_value
+          return (id && positionNames.get(id)) || "—"
+        },
       },
       {
         accessorKey: "a365_employmentstatus",
@@ -152,7 +164,7 @@ export function EmployeeTable({
         ),
       },
     ],
-    [onEdit],
+    [onEdit, departmentNames, positionNames],
   )
 
   const table = useReactTable({

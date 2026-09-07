@@ -53,9 +53,17 @@
           "type": "string",
           "title": "Department",
           "x-ms-dataverse-attribute": "a365_department",
+          "x-ms-dataverse-type": "LookupType",
+          "x-ms-schema-name": "a365_Department"
+        },
+        "a365_departmentname": {
+          "type": "string",
+          "title": "a365_departmentname",
+          "x-ms-dataverse-attribute": "a365_departmentname",
           "x-ms-dataverse-type": "StringType",
-          "x-ms-schema-name": "a365_Department",
-          "maxLength": 100
+          "x-ms-schema-name": "a365_DepartmentName",
+          "x-ms-read-only": true,
+          "maxLength": 200
         },
         "a365_employeeid": {
           "type": "string",
@@ -288,9 +296,17 @@
           "type": "string",
           "title": "Position",
           "x-ms-dataverse-attribute": "a365_position",
+          "x-ms-dataverse-type": "LookupType",
+          "x-ms-schema-name": "a365_Position"
+        },
+        "a365_positionname": {
+          "type": "string",
+          "title": "a365_positionname",
+          "x-ms-dataverse-attribute": "a365_positionname",
           "x-ms-dataverse-type": "StringType",
-          "x-ms-schema-name": "a365_Position",
-          "maxLength": 100
+          "x-ms-schema-name": "a365_PositionName",
+          "x-ms-read-only": true,
+          "maxLength": 200
         },
         "a365_sssnumber": {
           "type": "string",

@@ -46,7 +46,7 @@ export interface A365_employeesBase {
   a365_bankname?: string;
   a365_basicmonthlysalary?: number;
   a365_datehired: string;
-  a365_department?: string;
+  "a365_Department@odata.bind"?: string;
   a365_employeeid: string;
   a365_employeenumber?: string;
   a365_employmentstatus: A365_employeesa365_employmentstatus;
@@ -60,7 +60,7 @@ export interface A365_employeesBase {
   a365_paymentmethod?: A365_employeesa365_paymentmethod;
   a365_payrollfrequency?: A365_employeesa365_payrollfrequency;
   a365_philhealthnumber?: string;
-  a365_position?: string;
+  "a365_Position@odata.bind"?: string;
   a365_sssnumber?: string;
   "a365_SystemUser@odata.bind"?: string;
   a365_tin?: string;
@@ -78,10 +78,12 @@ export interface A365_employeesBase {
 
 export interface A365_employees extends A365_employeesBase {
   a365_basicmonthlysalary_base?: number;
+  a365_departmentname?: string;
   a365_employmentstatusname?: string;
   a365_employmenttypename?: string;
   a365_paymentmethodname?: string;
   a365_payrollfrequencyname?: string;
+  a365_positionname?: string;
   a365_systemusername?: string;
   a365_systemuseryominame?: string;
   createdbyname?: string;
@@ -102,6 +104,10 @@ export interface A365_employees extends A365_employeesBase {
   statuscodename?: string;
   transactioncurrencyidname?: string;
   versionnumber?: number;
+  a365_department?: object;
+  _a365_department_value?: string;
+  a365_position?: object;
+  _a365_position_value?: string;
   a365_systemuser?: object;
   _a365_systemuser_value?: string;
   createdby?: object;

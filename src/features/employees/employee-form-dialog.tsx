@@ -37,6 +37,7 @@ import {
   emptyEmployeeForm,
   toFormValues,
 } from "./types"
+import { useDepartments, usePositions } from "./use-reference-data"
 
 const NONE = "__none__"
 
@@ -145,6 +146,40 @@ function ChoiceField<T extends number>({
   )
 }
 
+function LookupField({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+  placeholder,
+}: {
+  id: string
+  label: string
+  value: string
+  options: { id: string; name: string }[]
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value || undefined} onValueChange={onChange}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue placeholder={placeholder ?? "Select…"} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>
+              {o.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="text-sm font-medium text-muted-foreground">{children}</h3>
@@ -169,6 +204,9 @@ export function EmployeeFormDialog({
   const [values, setValues] = useState<EmployeeFormValues>(initialValues)
   const [errors, setErrors] = useState<FormErrors>({})
 
+  const { data: departments } = useDepartments()
+  const { data: positions } = usePositions()
+
   // Reset the form whenever the dialog opens for a different record.
   useEffect(() => {
     if (open) {
@@ -176,6 +214,31 @@ export function EmployeeFormDialog({
       setErrors({})
     }
   }, [open, initialValues])
+
+  // For a new employee, default Department → IT and Position → Power Apps Developer
+  // once the reference lists load (record ids are environment-specific, so match by name).
+  useEffect(() => {
+    if (!open || isEdit) return
+    setValues((prev) => {
+      let changed = false
+      const next = { ...prev }
+      if (!next.a365_departmentid && departments) {
+        const it = departments.find((d) => d.a365_name === "IT")
+        if (it) {
+          next.a365_departmentid = it.a365_departmentid
+          changed = true
+        }
+      }
+      if (!next.a365_positionid && positions) {
+        const dev = positions.find((p) => p.a365_name === "Power Apps Developer")
+        if (dev) {
+          next.a365_positionid = dev.a365_positionid
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [open, isEdit, departments, positions])
 
   const createEmployee = useCreateEmployee()
   const updateEmployee = useUpdateEmployee()
@@ -251,12 +314,14 @@ export function EmployeeFormDialog({
           <div className="space-y-3">
             <SectionTitle>Employment</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField id="a365_department" label="Department"
-                value={values.a365_department}
-                onChange={(v) => set("a365_department", v)} />
-              <TextField id="a365_position" label="Position"
-                value={values.a365_position}
-                onChange={(v) => set("a365_position", v)} />
+              <LookupField id="a365_departmentid" label="Department"
+                value={values.a365_departmentid}
+                options={(departments ?? []).map((d) => ({ id: d.a365_departmentid, name: d.a365_name }))}
+                onChange={(v) => set("a365_departmentid", v)} />
+              <LookupField id="a365_positionid" label="Position"
+                value={values.a365_positionid}
+                options={(positions ?? []).map((p) => ({ id: p.a365_positionid, name: p.a365_name }))}
+                onChange={(v) => set("a365_positionid", v)} />
               <ChoiceField id="a365_employmentstatus" label="Employment status" required
                 value={values.a365_employmentstatus} options={EMPLOYMENT_STATUS_OPTIONS}
                 error={errors.a365_employmentstatus}

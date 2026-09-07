@@ -3,7 +3,7 @@
  * states, a status filter, and the create/edit form. Authorization is enforced
  * in Dataverse (security roles), not by this UI (CLAUDE.md "Security").
  */
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { AlertCircle, Plus, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -14,6 +14,10 @@ import {
   useEmployees,
   type EmployeeStatusFilter,
 } from "@/features/employees/use-employees"
+import {
+  useDepartments,
+  usePositions,
+} from "@/features/employees/use-reference-data"
 import type { Employee } from "@/features/employees/types"
 
 export default function EmployeesPage() {
@@ -23,6 +27,17 @@ export default function EmployeesPage() {
 
   const { data: employees, isPending, isError, error, refetch, isFetching } =
     useEmployees(filter)
+  const { data: departments } = useDepartments()
+  const { data: positions } = usePositions()
+
+  const departmentNames = useMemo(
+    () => new Map((departments ?? []).map((d) => [d.a365_departmentid, d.a365_name])),
+    [departments],
+  )
+  const positionNames = useMemo(
+    () => new Map((positions ?? []).map((p) => [p.a365_positionid, p.a365_name])),
+    [positions],
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -103,7 +118,12 @@ export default function EmployeesPage() {
           </Button>
         </div>
       ) : (
-        <EmployeeTable employees={employees} onEdit={openEdit} />
+        <EmployeeTable
+          employees={employees}
+          onEdit={openEdit}
+          departmentNames={departmentNames}
+          positionNames={positionNames}
+        />
       )}
 
       <EmployeeFormDialog

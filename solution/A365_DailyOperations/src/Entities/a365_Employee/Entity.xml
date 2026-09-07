@@ -205,17 +205,16 @@
           </displaynames>
         </attribute>
         <attribute PhysicalName="a365_Department">
-          <Type>nvarchar</Type>
+          <Type>lookup</Type>
           <Name>a365_department</Name>
           <LogicalName>a365_department</LogicalName>
           <RequiredLevel>none</RequiredLevel>
           <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
-          <ImeMode>auto</ImeMode>
           <ValidForUpdateApi>1</ValidForUpdateApi>
           <ValidForReadApi>1</ValidForReadApi>
           <ValidForCreateApi>1</ValidForCreateApi>
           <IsCustomField>1</IsCustomField>
-          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsAuditEnabled>0</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <IntroducedVersion>1.0</IntroducedVersion>
           <IsCustomizable>1</IsCustomizable>
@@ -234,9 +233,8 @@
           <IsFilterable>0</IsFilterable>
           <IsRetrievable>0</IsRetrievable>
           <IsLocalizable>0</IsLocalizable>
-          <Format>text</Format>
-          <MaxLength>100</MaxLength>
-          <Length>200</Length>
+          <LookupStyle>single</LookupStyle>
+          <LookupTypes />
           <displaynames>
             <displayname description="Department" languagecode="1033" />
           </displaynames>
@@ -715,17 +713,16 @@
           </displaynames>
         </attribute>
         <attribute PhysicalName="a365_Position">
-          <Type>nvarchar</Type>
+          <Type>lookup</Type>
           <Name>a365_position</Name>
           <LogicalName>a365_position</LogicalName>
           <RequiredLevel>none</RequiredLevel>
           <DisplayMask>ValidForAdvancedFind|ValidForForm|ValidForGrid</DisplayMask>
-          <ImeMode>auto</ImeMode>
           <ValidForUpdateApi>1</ValidForUpdateApi>
           <ValidForReadApi>1</ValidForReadApi>
           <ValidForCreateApi>1</ValidForCreateApi>
           <IsCustomField>1</IsCustomField>
-          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsAuditEnabled>0</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <IntroducedVersion>1.0</IntroducedVersion>
           <IsCustomizable>1</IsCustomizable>
@@ -744,9 +741,8 @@
           <IsFilterable>0</IsFilterable>
           <IsRetrievable>0</IsRetrievable>
           <IsLocalizable>0</IsLocalizable>
-          <Format>text</Format>
-          <MaxLength>100</MaxLength>
-          <Length>200</Length>
+          <LookupStyle>single</LookupStyle>
+          <LookupTypes />
           <displaynames>
             <displayname description="Position" languagecode="1033" />
           </displaynames>

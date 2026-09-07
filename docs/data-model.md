@@ -34,8 +34,8 @@ specification** for creating tables in Dataverse (via the Dataverse MCP
 | Middle Name | `a365_middlename` | Text | No | |
 | Work Email | `a365_workemail` | Text (email format) | No | |
 | Entra User | `a365_systemuser` | Lookup → `systemuser` | No | **Security link** for owner-based access |
-| Department | `a365_department` | Text | No | Text for V1; may become a lookup later |
-| Position | `a365_position` | Text | No | Job title |
+| Department | `a365_department` | Lookup → `a365_department` | No | Admin-managed reference table (read `_a365_department_value`) |
+| Position | `a365_position` | Lookup → `a365_position` | No | Admin-managed reference table (read `_a365_position_value`) |
 | Employment Status | `a365_employmentstatus` | Choice (global) | Yes | see below |
 | Employment Type | `a365_employmenttype` | Choice (global) | Yes | see below |
 | Date Hired | `a365_datehired` | Date only | Yes | |
@@ -73,6 +73,25 @@ specification** for creating tables in Dataverse (via the Dataverse MCP
    **wiring the Employee↔`systemuser` link in the UI and the owner-based access it
    feeds is deferred to Phase 4/6** (security-model §10) — it needs real user
    accounts and the load-employees flow before it does anything.
+
+---
+
+## Reference tables — `a365_department`, `a365_position`
+
+Admin-managed reference data (the Payroll Admin can add/edit values at runtime),
+so modelled as **Organization-owned** lookup tables rather than choices (see the
+`admin-managed-reference-data-as-lookup-tables` decision). Created 2026-09-07.
+
+| Table | Set | PK | Primary name | Seed |
+|---|---|---|---|---|
+| `a365_department` | `a365_departments` | `a365_departmentid` | `a365_name` | IT |
+| `a365_position` | `a365_positions` | `a365_positionid` | `a365_name` | Power Apps Developer; Senior Power Apps Developer |
+
+Employee lookups: `a365_department_employee` and `a365_position_employee` (1:N,
+reference → `a365_employee`). The employee's former free-text `a365_department` /
+`a365_position` columns were dropped and re-created as these lookups (same logical
+names). The employee form defaults Department → IT and Position → Power Apps
+Developer for new records (matched by name).
 
 ---
 

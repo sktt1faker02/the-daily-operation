@@ -41,6 +41,14 @@
         "payrollentries": {
           "entitySetName": "a365_payrollentries",
           "logicalName": "a365_payrollentry"
+        },
+        "departments": {
+          "entitySetName": "a365_departments",
+          "logicalName": "a365_department"
+        },
+        "positions": {
+          "entitySetName": "a365_positions",
+          "logicalName": "a365_position"
         }
       },
       "environmentVariableName": ""
