@@ -35,11 +35,13 @@ export function PayrollEntryTable({
   onEdit,
   onRecalculate,
   calculatingId,
+  editable,
 }: {
   entries: PayrollEntry[]
   onEdit: (entry: PayrollEntry) => void
   onRecalculate: (entry: PayrollEntry) => void
   calculatingId: string | null
+  editable: boolean
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -93,6 +95,7 @@ export function PayrollEntryTable({
         cell: ({ row }) => {
           const entry = row.original
           const isCalculating = calculatingId === entry.a365_payrollentryid
+          if (!editable) return null
           return (
             <div className="flex justify-end gap-1">
               <Button
@@ -123,7 +126,7 @@ export function PayrollEntryTable({
         },
       },
     ],
-    [onEdit, onRecalculate, calculatingId],
+    [onEdit, onRecalculate, calculatingId, editable],
   )
 
   const table = useReactTable({

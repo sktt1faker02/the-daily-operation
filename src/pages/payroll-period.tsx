@@ -253,6 +253,7 @@ export default function PayrollPeriodPage() {
             onEdit={openEditor}
             onRecalculate={handleRecalculateEntry}
             calculatingId={calculatingId}
+            editable={editable}
           />
           <p className="text-xs text-muted-foreground">
             Withholding tax is provisional pending accountant confirmation of the taxable-base rule.
