@@ -1,18 +1,17 @@
 import * as React from "react"
 import { Toaster } from "sonner"
-import { useTheme } from "@/hooks/use-theme"
 
 type SonnerProviderProps = { children: React.ReactNode }
 
+// The app is light-only (theme toggle removed); Sonner is pinned to the
+// light theme regardless of OS/browser color-scheme preference.
 export function SonnerProvider({ children }: SonnerProviderProps) {
-  const { theme } = useTheme();
-
   return (
     <>
       {children}
       <Toaster
         position="top-center"
-        theme={theme}
+        theme="light"
         richColors
         expand
         duration={3000}

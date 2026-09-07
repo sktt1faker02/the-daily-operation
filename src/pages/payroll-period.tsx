@@ -50,7 +50,7 @@ export default function PayrollPeriodPage() {
   const calcPeriod = useCalculatePeriod(periodId)
 
   const totals = useMemo(
-    () => sumEntryTotals(entries.data ?? []),
+    () => sumEntryTotals((entries.data ?? []).filter((e) => e.a365_isincluded)),
     [entries.data],
   )
   const filtered = useMemo(() => {

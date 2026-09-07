@@ -7,7 +7,7 @@
 import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
-import { calculatePayroll, type PayrollInput } from "./payroll-calculation"
+import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
 import type { PayrollEntryInputValues } from "../types"
 import { payrollPeriodService } from "./payroll-period-service"
 
@@ -30,11 +30,15 @@ interface EntryReadModel {
  * @param entryId            the `a365_payrollentry` id
  * @param periodEndDate      ISO yyyy-mm-dd; resolves the statutory rules in force then
  * @param calculatedByUserId the acting user's `systemuser` id (audit stamp)
+ * @param preloadedConfig    optional `StatutoryConfig` already resolved for `periodEndDate`
+ *                           (e.g. by `calculatePeriod`), so it isn't re-fetched from Dataverse
+ *                           per entry. When omitted, it is loaded here as before.
  */
 export async function calculateAndPersistEntry(
   entryId: string,
   periodEndDate: string,
   calculatedByUserId: string,
+  preloadedConfig?: StatutoryConfig,
 ): Promise<void> {
   const read = await dataClient.retrieveRecordAsync<EntryReadModel>(ENTRY_TABLE, entryId, {
     select: [
@@ -58,7 +62,7 @@ export async function calculateAndPersistEntry(
     unpaidLeaveDays: entry.a365_unpaidleavedays ?? 0,
   }
 
-  const config = await getStatutoryConfig(periodEndDate)
+  const config = preloadedConfig ?? (await getStatutoryConfig(periodEndDate))
   const result = calculatePayroll(input, config)
 
   const payload: Record<string, unknown> = {
@@ -115,6 +119,10 @@ export async function updateEntryInputs(
 /**
  * Calculate every included entry in a period. Aggregates failures rather than
  * failing silently: the first entry error stops the run and is surfaced.
+ *
+ * The statutory config for `periodEndDate` is resolved once and reused across
+ * all entries (CLAUDE.md "Performance") instead of being re-fetched from
+ * Dataverse on every iteration.
  */
 export async function calculatePeriod(
   periodId: string,
@@ -123,9 +131,10 @@ export async function calculatePeriod(
 ): Promise<{ calculated: number }> {
   const entries = await payrollPeriodService.listEntries(periodId)
   const included = entries.filter((e) => e.a365_isincluded)
+  const config = await getStatutoryConfig(periodEndDate)
   let calculated = 0
   for (const entry of included) {
-    await calculateAndPersistEntry(entry.a365_payrollentryid, periodEndDate, calculatedByUserId)
+    await calculateAndPersistEntry(entry.a365_payrollentryid, periodEndDate, calculatedByUserId, config)
     calculated += 1
   }
   return { calculated }

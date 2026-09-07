@@ -3,7 +3,7 @@
  * fully editable. Validates dates; submit disabled while saving; the form is
  * not cleared until the mutation succeeds (CLAUDE.md "Forms").
  */
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,18 @@ export function CreatePeriodDialog({
   const [error, setError] = useState<string | null>(null)
 
   const createPeriod = useCreatePayrollPeriod()
+
+  // Reopening the dialog should show a fresh suggestion, not the last one left
+  // behind by a prior open/cancel (CLAUDE.md "Forms").
+  useEffect(() => {
+    if (open) {
+      const fresh = suggestSemiMonthlyPeriod(todayISO())
+      setStart(fresh.start)
+      setEnd(fresh.end)
+      setPayDate(fresh.payDate)
+      setError(null)
+    }
+  }, [open])
 
   // Derive the display name during render (no useEffect for derivable state).
   const name = start && end ? formatPeriodName(start, end) : ""
