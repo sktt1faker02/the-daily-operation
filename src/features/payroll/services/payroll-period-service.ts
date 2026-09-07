@@ -113,7 +113,7 @@ export const payrollPeriodService = {
   ): Promise<{ created: number; skipped: number }> {
     const [active, existing] = await Promise.all([
       employeeService.list({ filter: `a365_employmentstatus eq ${EmploymentStatus.Active}` }),
-      this.listEntries(periodId),
+      payrollPeriodService.listEntries(periodId),
     ])
     const existingIds = new Set(
       existing.map((e) => e._a365_employee_value).filter((v): v is string => Boolean(v)),
