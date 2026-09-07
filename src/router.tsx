@@ -3,6 +3,7 @@ import Layout from "@/pages/_layout"
 import HomePage from "@/pages/home"
 import EmployeesPage from "@/pages/employees"
 import PayrollDashboardPage from "@/pages/payroll"
+import PayrollPeriodPage from "@/pages/payroll-period"
 import NotFoundPage from "@/pages/not-found"
 
 // IMPORTANT: Do not remove or modify the code below!
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "employees", element: <EmployeesPage /> },
       { path: "payroll", element: <PayrollDashboardPage /> },
+      { path: "payroll/:periodId", element: <PayrollPeriodPage /> },
     ],
   },
 ], { 
