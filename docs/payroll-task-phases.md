@@ -172,26 +172,26 @@ cutoff.
 
 ### Tasks
 
-- [ ] Build Payroll Dashboard
-- [ ] Display current payroll period
-- [ ] Display recent payroll periods
-- [ ] Display payroll totals and status
-- [ ] Build Create Payroll Period screen
-- [ ] Build Payroll Period detail screen
-- [ ] Load active employees into a payroll period
-- [ ] Build employee payroll editing screen
-- [ ] Allow Basic Pay editing
-- [ ] Allow Allowance editing
-- [ ] Allow Unpaid Leave editing
-- [ ] Allow other adjustments if enabled
-- [ ] Add Calculate/Recalculate Payroll action
-- [ ] Display Gross Pay
-- [ ] Display individual deductions
-- [ ] Display Total Deductions
-- [ ] Display Net Pay
-- [ ] Add validation and error messages
-- [ ] Add search/filtering for employees
-- [ ] Add payroll summary totals
+- [x] Build Payroll Dashboard
+- [x] Display current payroll period
+- [x] Display recent payroll periods
+- [x] Display payroll totals and status
+- [x] Build Create Payroll Period screen
+- [x] Build Payroll Period detail screen
+- [x] Load active employees into a payroll period
+- [x] Build employee payroll editing screen
+- [x] Allow Basic Pay editing
+- [x] Allow Allowance editing
+- [x] Allow Unpaid Leave editing
+- [x] Allow other adjustments if enabled
+- [x] Add Calculate/Recalculate Payroll action
+- [x] Display Gross Pay
+- [x] Display individual deductions
+- [x] Display Total Deductions
+- [x] Display Net Pay
+- [x] Add validation and error messages
+- [x] Add search/filtering for employees
+- [x] Add payroll summary totals
 
 ### Deliverable
 
