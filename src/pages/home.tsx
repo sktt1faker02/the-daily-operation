@@ -10,7 +10,7 @@ export default function HomePage() {
   const { data: context, isPending, isError } = usePowerContext()
 
   return (
-    <div className="h-full grid place-items-center p-6">
+    <div className="grid min-h-[calc(100dvh-0px)] place-items-center p-6">
       <div className="w-full max-w-xl flex flex-col items-center space-y-8">
         <div className="flex flex-col items-center space-y-3 text-center">
           <span className="grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
