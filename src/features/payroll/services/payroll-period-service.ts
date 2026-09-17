@@ -7,10 +7,12 @@ import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { EmploymentStatus } from "@/features/employees/types"
 import { planLoadEntries } from "../period-utils"
+import { canTransition } from "../payroll-status-machine"
 import {
   PAYROLL_PERIOD_TABLE,
   PAYROLL_ENTRY_TABLE,
   PayrollStatus,
+  payrollStatusLabel,
   type PayrollPeriod,
   type PayrollEntry,
 } from "../types"
@@ -64,6 +66,45 @@ export const payrollPeriodService = {
     )
     if (!result.success) throw result.error ?? new Error("Unable to load the payroll period.")
     return result.data
+  },
+
+  /**
+   * Move a period to `to`, validated against the centralized state machine, and
+   * stamp the matching audit columns. Unlock (→ Processing) clears the lock date.
+   * The plug-in enforces entry immutability; this writes the period lifecycle.
+   */
+  async transitionStatus(
+    periodId: string,
+    to: PayrollStatus,
+    actingUserId: string,
+  ): Promise<void> {
+    const period = await payrollPeriodService.getPeriod(periodId)
+    const from = period.a365_payrollstatus
+    if (!canTransition(from, to)) {
+      throw new Error(
+        `Cannot change payroll from ${payrollStatusLabel(from)} to ${payrollStatusLabel(to)}.`,
+      )
+    }
+    const now = new Date().toISOString()
+    const payload: Record<string, unknown> = { a365_payrollstatus: to }
+    if (to === PayrollStatus.Ready) {
+      payload.a365_readyon = now
+      payload["a365_ReadyBy@odata.bind"] = `/systemusers(${actingUserId})`
+    } else if (to === PayrollStatus.Paid) {
+      payload.a365_paidon = now
+      payload["a365_PaidBy@odata.bind"] = `/systemusers(${actingUserId})`
+    } else if (to === PayrollStatus.Locked) {
+      payload.a365_lockedon = now
+      payload["a365_LockedBy@odata.bind"] = `/systemusers(${actingUserId})`
+    } else if (to === PayrollStatus.Processing) {
+      payload.a365_lockedon = null // Unlock: no longer locked; status is the source of truth
+    }
+    const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollPeriod>(
+      PAYROLL_PERIOD_TABLE,
+      periodId,
+      payload,
+    )
+    if (!result.success) throw result.error ?? new Error("Unable to update payroll status.")
   },
 
   async createPeriod(input: {
