@@ -217,14 +217,14 @@ payroll information, and calculate payroll.
 
 ### Tasks
 
-- [ ] Implement payroll status workflow (centralized transition rules)
-- [ ] Add Mark Ready action (Admin finalize) and record Ready By / Ready At
-- [ ] Restrict status transitions to Payroll Admin (Dataverse-enforced)
-- [ ] Lock finalized payroll records
-- [ ] Prevent normal edits after locking (data-layer control — security-model §8)
-- [ ] Add Mark as Paid action and record Paid By / Paid At
-- [ ] Define correction/adjustment process for finalized payroll
-- [ ] Test all allowed and prohibited status transitions
+- [x] Implement payroll status workflow (centralized transition rules)
+- [x] Add Mark Ready action (Admin finalize) and record Ready By / Ready At
+- [x] Restrict status transitions to Payroll Admin (Dataverse-enforced)
+- [x] Lock finalized payroll records
+- [x] Prevent normal edits after locking (data-layer control — security-model §8)
+- [x] Add Mark as Paid action and record Paid By / Paid At
+- [x] Define correction/adjustment process for finalized payroll (audited Unlock → Processing)
+- [x] Test all allowed and prohibited status transitions
 
 ### Deliverable
 
