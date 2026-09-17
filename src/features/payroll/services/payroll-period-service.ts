@@ -24,6 +24,7 @@ const PERIOD_SELECT: (keyof PayrollPeriod)[] = [
   "a365_periodend",
   "a365_paydate",
   "a365_payrollstatus",
+  "a365_lockedon",
   "createdon",
 ]
 

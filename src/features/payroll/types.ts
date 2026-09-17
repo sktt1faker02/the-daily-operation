@@ -73,6 +73,7 @@ export interface PayrollPeriod {
   a365_periodend: string
   a365_paydate: string | null
   a365_payrollstatus: PayrollStatus
+  a365_lockedon?: string | null
   createdon?: string
 }
 

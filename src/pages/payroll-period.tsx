@@ -1,7 +1,8 @@
 /**
  * Payroll period detail (Payroll Admin). Load active employees, edit variable
- * inputs, and calculate. Status transitions (Ready/Paid/Lock) are Phase 7 and
- * are not performed here. Loading / Empty / Error / Success states throughout.
+ * inputs, calculate, and drive status transitions (Mark Ready / Mark Paid /
+ * Lock / Unlock) via the centralized status machine. Loading / Empty / Error
+ * / Success states throughout.
  */
 import { useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
@@ -32,7 +33,9 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { PayrollEntryTable } from "@/features/payroll/payroll-entry-table"
 import { PayrollEntryDialog } from "@/features/payroll/payroll-entry-dialog"
 import { sumEntryTotals } from "@/features/payroll/period-utils"
-import { isPeriodEditable, type PayrollEntry } from "@/features/payroll/types"
+import { isPeriodEditable, PayrollStatus, payrollStatusLabel, type PayrollEntry } from "@/features/payroll/types"
+import { nextActions, ACTION_TARGET, type PayrollAction } from "@/features/payroll/payroll-status-machine"
+import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll-status"
 
 export default function PayrollPeriodPage() {
   const { periodId = "" } = useParams()
@@ -41,6 +44,7 @@ export default function PayrollPeriodPage() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false)
   const [calculatingId, setCalculatingId] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
 
   const period = usePayrollPeriod(periodId)
   const entries = usePayrollEntries(periodId)
@@ -48,6 +52,51 @@ export default function PayrollPeriodPage() {
   const loadEmployees = useLoadActiveEmployees(periodId)
   const calcEntry = useCalculateEntry(periodId)
   const calcPeriod = useCalculatePeriod(periodId)
+  const statusTransition = usePayrollStatusTransition(periodId)
+
+  const ACTION_META: Record<
+    PayrollAction,
+    { label: string; title: string; description: string; variant?: "default" | "destructive" }
+  > = {
+    markReady: {
+      label: "Mark Ready",
+      title: "Mark this payroll Ready?",
+      description: "Finalizes inputs for review. Entries become read-only and can only be changed after an Unlock.",
+    },
+    markPaid: {
+      label: "Mark Paid",
+      title: "Mark this payroll Paid?",
+      description: "Records that this cutoff has been paid out. Entries remain locked.",
+    },
+    lock: {
+      label: "Lock",
+      title: "Lock this payroll?",
+      description: "Closes the cutoff as an immutable financial snapshot. Corrections require an Unlock.",
+    },
+    unlock: {
+      label: "Unlock",
+      title: "Unlock this payroll?",
+      description: "Reopens the cutoff for corrections (returns it to Processing). This is an audited action.",
+      variant: "destructive",
+    },
+  }
+
+  const runAction = (action: PayrollAction) => {
+    const userId = requireSystemUser()
+    if (!userId) return
+    statusTransition.mutate(
+      { to: ACTION_TARGET[action], userId },
+      {
+        onSuccess: () => {
+          toast.success(`${ACTION_META[action].label} done.`)
+          setPendingAction(null)
+        },
+        onError: (err) => toast.error(`Unable to ${ACTION_META[action].label.toLowerCase()}.`, { description: err.message }),
+      },
+    )
+  }
+
+  const actions = nextActions(period.data?.a365_payrollstatus ?? PayrollStatus.Draft)
 
   const totals = useMemo(
     () => sumEntryTotals((entries.data ?? []).filter((e) => e.a365_isincluded)),
@@ -189,6 +238,16 @@ export default function PayrollPeriodPage() {
                 Calculate all
               </Button>
             )}
+            {actions.map((action) => (
+              <Button
+                key={action}
+                variant={ACTION_META[action].variant === "destructive" ? "destructive" : action === "unlock" ? "outline" : "default"}
+                onClick={() => setPendingAction(action)}
+                disabled={statusTransition.isPending}
+              >
+                {ACTION_META[action].label}
+              </Button>
+            ))}
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -199,9 +258,11 @@ export default function PayrollPeriodPage() {
 
       <PayrollSummaryCards gross={totals.gross} deductions={totals.deductions} net={totals.net} />
 
-      {!editable && (
+      {!editable && period.data && (
         <p className="rounded-md border border-border bg-surface-subtle px-3 py-2 text-sm text-muted-foreground">
-          This period is no longer editable in payroll administration.
+          {period.data.a365_payrollstatus === PayrollStatus.Locked
+            ? `Locked on ${formatDate(period.data.a365_lockedon)}. Unlock to make corrections.`
+            : `This period is ${payrollStatusLabel(period.data.a365_payrollstatus)} and is no longer editable in payroll administration.`}
         </p>
       )}
 
@@ -289,6 +350,28 @@ export default function PayrollPeriodPage() {
             <Button onClick={handleLoadEmployees} disabled={loadEmployees.isPending}>
               {loadEmployees.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Load employees
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pendingAction !== null} onOpenChange={(o) => !o && setPendingAction(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{pendingAction && ACTION_META[pendingAction].title}</DialogTitle>
+            <DialogDescription>{pendingAction && ACTION_META[pendingAction].description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingAction(null)} disabled={statusTransition.isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant={pendingAction === "unlock" ? "destructive" : "default"}
+              onClick={() => pendingAction && runAction(pendingAction)}
+              disabled={statusTransition.isPending}
+            >
+              {statusTransition.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              {pendingAction && ACTION_META[pendingAction].label}
             </Button>
           </DialogFooter>
         </DialogContent>
