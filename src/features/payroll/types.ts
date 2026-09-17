@@ -111,6 +111,7 @@ export interface PayrollEntryInputValues {
   a365_otherearnings: string
   a365_otherdeductions: string
   a365_unpaidleavedays: string
+  a365_withholdingtax: string
 }
 
 export const emptyEntryInputValues: PayrollEntryInputValues = {
@@ -119,6 +120,7 @@ export const emptyEntryInputValues: PayrollEntryInputValues = {
   a365_otherearnings: "",
   a365_otherdeductions: "",
   a365_unpaidleavedays: "",
+  a365_withholdingtax: "",
 }
 
 function numToInput(value: number | null | undefined): string {
@@ -132,5 +134,6 @@ export function toEntryInputValues(entry: PayrollEntry): PayrollEntryInputValues
     a365_otherearnings: numToInput(entry.a365_otherearnings),
     a365_otherdeductions: numToInput(entry.a365_otherdeductions),
     a365_unpaidleavedays: numToInput(entry.a365_unpaidleavedays),
+    a365_withholdingtax: numToInput(entry.a365_withholdingtax),
   }
 }

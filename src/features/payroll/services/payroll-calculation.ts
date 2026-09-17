@@ -53,6 +53,7 @@ export interface PayrollInput {
   otherEarnings: number // per-cutoff
   otherDeductions: number // per-cutoff
   unpaidLeaveDays: number // per-cutoff input
+  withholdingTax: number // per-cutoff MANUAL admin input (accountant decision — not computed)
 }
 
 export interface PayrollResult {
@@ -62,11 +63,9 @@ export interface PayrollResult {
   philhealth: number
   hdmf: number
   grossPay: number
-  taxableBase: number
-  withholdingTax: number
+  withholdingTax: number // echoes the manual input, for a consistent result shape
   totalDeductions: number
   netPay: number
-  warnings: string[]
 }
 
 // --- Money -------------------------------------------------------------------
@@ -98,30 +97,13 @@ export function hdmfEmployeeMonthly(monthlySalary: number, cfg: HdmfConfig): num
   return round2(base * cfg.employeeRate)
 }
 
-/**
- * TBD (spec §7): the confirmed taxable-base rule is pending the client accountant.
- * Placeholder = legally standard method: (basic + allowances) - mandatory EE contributions.
- * Known to NOT reproduce the payslip's sample WHT of 1,325 — do not treat WHT output as final.
- */
-export function computeTaxableBase(
-  input: PayrollInput,
-  contributions: { sss: number; philhealth: number; hdmf: number },
-): number {
-  return round2(input.basicPay + input.allowances - (contributions.sss + contributions.philhealth + contributions.hdmf))
-}
-
-export function withholdingTax(taxableBase: number, brackets: TaxBracket[]): number {
-  if (brackets.length === 0) throw new Error("Missing withholding-tax bracket configuration.")
-  const b =
-    brackets.find((x) => taxableBase >= x.incomeFrom && (x.incomeTo === null || taxableBase <= x.incomeTo)) ??
-    brackets[brackets.length - 1]
-  return round2(b.baseTax + b.marginalRate * (taxableBase - b.incomeFrom))
-}
+// Withholding tax is entered manually by the Payroll Admin (accountant decision);
+// the engine no longer computes it, so there is no taxable-base rule here. The
+// `taxBrackets` config is retained on StatutoryConfig for now but is unused.
 
 // --- The engine --------------------------------------------------------------
 
 export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): PayrollResult {
-  const warnings: string[] = []
   const dailyRate = round2(input.monthlyBasicSalary / 22)
   const unpaidLeave = round2(input.unpaidLeaveDays * dailyRate)
 
@@ -131,11 +113,9 @@ export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): 
 
   const grossPay = round2(input.basicPay + input.allowances + input.otherEarnings - unpaidLeave)
 
-  const taxableBase = computeTaxableBase(input, { sss, philhealth, hdmf })
-  warnings.push("Withholding-tax taxable base is provisional (spec §7): pending accountant confirmation.")
-  const wht = withholdingTax(taxableBase, config.taxBrackets)
+  const withholdingTax = round2(input.withholdingTax) // manual admin input, used as-is
 
-  const totalDeductions = round2(sss + philhealth + hdmf + wht + input.otherDeductions)
+  const totalDeductions = round2(sss + philhealth + hdmf + withholdingTax + input.otherDeductions)
   const netPay = round2(grossPay - totalDeductions)
 
   return {
@@ -145,10 +125,8 @@ export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): 
     philhealth,
     hdmf,
     grossPay,
-    taxableBase,
-    withholdingTax: wht,
+    withholdingTax,
     totalDeductions,
     netPay,
-    warnings,
   }
 }

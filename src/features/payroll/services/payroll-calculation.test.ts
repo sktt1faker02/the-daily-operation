@@ -39,6 +39,7 @@ const payslip: PayrollInput = {
   otherEarnings: 0,
   otherDeductions: 0,
   unpaidLeaveDays: 0,
+  withholdingTax: 1325, // manual admin input (accountant decision)
 }
 
 describe("calculatePayroll — client payslip golden fixture", () => {
@@ -47,21 +48,22 @@ describe("calculatePayroll — client payslip golden fixture", () => {
   it("PhilHealth = 537.50 (half of 2.5% of 43,000)", () => expect(r.philhealth).toBe(537.5))
   it("HDMF = 100.00 (half of 2% of 10,000 cap)", () => expect(r.hdmf).toBe(100))
   it("Gross Pay = 22,500.00", () => expect(r.grossPay).toBe(22500))
-  it("Net = Gross - Total Deductions", () => expect(r.netPay).toBe(round2(r.grossPay - r.totalDeductions)))
+  it("WHT passes through the manual input, not computed", () => expect(r.withholdingTax).toBe(1325))
+  it("Total Deductions = SSS+PhilHealth+HDMF+WHT+other = 2,837.50", () =>
+    expect(r.totalDeductions).toBe(2837.5))
+  it("Net = 19,662.50 (Gross - Total Deductions)", () => expect(r.netPay).toBe(19662.5))
 })
 
-describe("net arithmetic with the sample withholding tax (pending spec §7)", () => {
-  it("net = 19,662.50 when total deductions include WHT 1,325", () => {
-    // The payslip WHT (1,325) is a sample; the taxable-base rule is TBD (spec §7).
-    // This checks the NET formula independently of the unconfirmed WHT computation.
-    const gross = 22500,
-      sss = 875,
-      philhealth = 537.5,
-      hdmf = 100,
-      wht = 1325
-    const total = round2(sss + philhealth + hdmf + wht)
-    expect(total).toBe(2837.5)
-    expect(round2(gross - total)).toBe(19662.5)
+describe("manual withholding tax", () => {
+  it("uses the entered WHT verbatim regardless of income", () => {
+    const r = calculatePayroll({ ...payslip, withholdingTax: 500 }, config)
+    expect(r.withholdingTax).toBe(500)
+    expect(r.totalDeductions).toBe(round2(875 + 537.5 + 100 + 500))
+    expect(r.netPay).toBe(round2(r.grossPay - r.totalDeductions))
+  })
+  it("zero WHT is honored (no auto-computation)", () => {
+    const r = calculatePayroll({ ...payslip, withholdingTax: 0 }, config)
+    expect(r.withholdingTax).toBe(0)
   })
 })
 

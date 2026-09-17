@@ -317,7 +317,7 @@ export default function PayrollPeriodPage() {
             editable={editable}
           />
           <p className="text-xs text-muted-foreground">
-            Withholding tax is provisional pending accountant confirmation of the taxable-base rule.
+            Withholding tax is entered manually per employee in Edit; other deductions are calculated.
           </p>
         </div>
       )}

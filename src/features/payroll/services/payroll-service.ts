@@ -21,6 +21,7 @@ interface EntryReadModel {
   a365_otherearnings?: number
   a365_otherdeductions?: number
   a365_unpaidleavedays?: number
+  a365_withholdingtax?: number
   _a365_employee_value?: string
 }
 
@@ -44,7 +45,7 @@ export async function calculateAndPersistEntry(
   const read = await dataClient.retrieveRecordAsync<EntryReadModel>(ENTRY_TABLE, entryId, {
     select: [
       "a365_payrollentryid", "a365_basicpay", "a365_allowances", "a365_otherearnings",
-      "a365_otherdeductions", "a365_unpaidleavedays", "_a365_employee_value",
+      "a365_otherdeductions", "a365_unpaidleavedays", "a365_withholdingtax", "_a365_employee_value",
     ],
   })
   if (!read.success) throw read.error ?? new Error("Unable to load the payroll entry.")
@@ -61,18 +62,20 @@ export async function calculateAndPersistEntry(
     otherEarnings: entry.a365_otherearnings ?? 0,
     otherDeductions: entry.a365_otherdeductions ?? 0,
     unpaidLeaveDays: entry.a365_unpaidleavedays ?? 0,
+    withholdingTax: entry.a365_withholdingtax ?? 0, // manual admin input, used as-is
   }
 
   const config = preloadedConfig ?? (await getStatutoryConfig(periodEndDate))
   const result = calculatePayroll(input, config)
 
+  // a365_withholdingtax is NOT written here — it is a manual input, not a
+  // calculated result, so calculate/recalculate must not overwrite it.
   const payload: Record<string, unknown> = {
     a365_grosspay: result.grossPay,
     a365_sss: result.sss,
     a365_philhealth: result.philhealth,
     a365_hdmf: result.hdmf,
     a365_unpaidleave: result.unpaidLeave,
-    a365_withholdingtax: result.withholdingTax,
     a365_totaldeductions: result.totalDeductions,
     a365_netpay: result.netPay,
     a365_calculatedon: new Date().toISOString(),
@@ -108,6 +111,7 @@ export async function updateEntryInputs(
     a365_otherearnings: toAmount(values.a365_otherearnings),
     a365_otherdeductions: toAmount(values.a365_otherdeductions),
     a365_unpaidleavedays: toAmount(values.a365_unpaidleavedays),
+    a365_withholdingtax: toAmount(values.a365_withholdingtax),
   }
   const result = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
     ENTRY_TABLE,

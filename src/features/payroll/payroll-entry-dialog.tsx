@@ -1,8 +1,9 @@
 /**
  * Editor for a single payroll entry's variable inputs (Basic Pay, Allowances,
- * Unpaid Leave days, Other Earnings, Other Deductions). Calculated values are
- * shown read-only for context. Save disabled while pending; form not cleared
- * until success (CLAUDE.md "Forms").
+ * Other Earnings, Withholding Tax, Other Deductions, Unpaid Leave days).
+ * Withholding tax is a manual admin input (not computed). Calculated values
+ * (Gross, SSS/PhilHealth/HDMF, Net) are shown read-only for context. Save
+ * disabled while pending; form not cleared until success (CLAUDE.md "Forms").
  */
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -31,6 +32,7 @@ const FIELDS: { id: keyof PayrollEntryInputValues; label: string }[] = [
   { id: "a365_basicpay", label: "Basic Pay" },
   { id: "a365_allowances", label: "Allowances" },
   { id: "a365_otherearnings", label: "Other Earnings" },
+  { id: "a365_withholdingtax", label: "Withholding Tax" },
   { id: "a365_otherdeductions", label: "Other Deductions" },
   { id: "a365_unpaidleavedays", label: "Unpaid Leave (days)" },
 ]
