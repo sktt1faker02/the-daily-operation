@@ -44,7 +44,6 @@ const ENTRY_SELECT = [
   "a365_netpay",
   "a365_calculatedon",
   "_a365_employee_value",
-  "a365_employeename",
 ]
 
 export const payrollPeriodService = {
@@ -94,11 +93,31 @@ export const payrollPeriodService = {
       {
         select: ENTRY_SELECT,
         filter: `_a365_payrollperiod_value eq ${periodId}`,
-        orderBy: ["a365_employeename asc"],
+        // Order by the entry name (`{Employee full name} — {Period}`); the entry
+        // table has no lookup-name column to sort employees by directly.
+        orderBy: ["a365_name asc"],
       },
     )
     if (!result.success) throw result.error ?? new Error("Unable to load payroll entries.")
-    return result.data ?? []
+    const entries = result.data ?? []
+
+    // The entry table exposes only the employee lookup (`_a365_employee_value`),
+    // not a display-name column, so resolve names from the employee records and
+    // attach them for the UI. One extra query, bounded by employees in the period.
+    const employeeIds = [
+      ...new Set(entries.map((e) => e._a365_employee_value).filter((v): v is string => Boolean(v))),
+    ]
+    if (employeeIds.length > 0) {
+      const filter = employeeIds.map((id) => `a365_employeeid eq ${id}`).join(" or ")
+      const employees = await employeeService.list({ filter })
+      const nameById = new Map(employees.map((e) => [e.a365_employeeid, e.a365_name]))
+      for (const entry of entries) {
+        entry.a365_employeename = entry._a365_employee_value
+          ? nameById.get(entry._a365_employee_value) ?? undefined
+          : undefined
+      }
+    }
+    return entries
   },
 
   /**
