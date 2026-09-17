@@ -2,6 +2,11 @@
  * Single source of truth for payroll period status transitions (V1). Pure —
  * no Dataverse, no UI — so it is unit-testable and every service/component
  * asks it rather than scattering status checks (CLAUDE.md).
+ *
+ * This is a client-side convenience, not a security boundary: a direct Web API
+ * PATCH to a period's `a365_payrollstatus` bypasses `canTransition`. Finalized
+ * *entry* immutability is enforced server-side by the ProtectFinalizedPayroll
+ * plug-in; period-status writes are gated only by Dataverse role privileges.
  */
 import { PayrollStatus } from "./types"
 

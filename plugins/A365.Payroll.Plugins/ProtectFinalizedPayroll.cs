@@ -10,6 +10,12 @@ namespace A365.Payroll.Plugins
     /// PreValidation, synchronous, with a pre-image "PreImage" containing
     /// a365_payrollperiod. This is the data-layer immutability guarantee;
     /// the app's edit-blocking UI is a convenience on top of it.
+    ///
+    /// V1 scope: Update only (see the design spec §5). Create/Delete of a
+    /// finalized period's entries are not guarded here — Delete is role-blocked
+    /// to System Administrator, and Create is admin-only (who can Unlock anyway).
+    /// To harden, register this same type on Create (period from Target) and
+    /// Delete (period from a Pre Image).
     /// </summary>
     public sealed class ProtectFinalizedPayroll : IPlugin
     {

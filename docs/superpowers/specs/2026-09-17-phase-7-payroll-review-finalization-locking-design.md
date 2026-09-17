@@ -5,9 +5,11 @@
 ## 1. Goal
 
 Give the Payroll Admin a controlled payroll lifecycle — review, finalize
-(Ready), mark paid, lock — and make finalized payroll **immutable against any
-write, including a direct Web API request**, with an explicit audited correction
-path. There is no separate approver role and no For Review / Approved stage
+(Ready), mark paid, lock — and make finalized payroll entries **immutable
+against edits (Update), including a direct Web API request**, with an explicit
+audited correction path. (V1 delivers Update-only enforcement; the Create/Delete
+scope decision is recorded in §5.) There is no separate approver role and no For
+Review / Approved stage
 (V1 decision, `CLAUDE.md` / `security-model.md` §12).
 
 Status flow (backed by the `a365_payrollstatus` global choice):
@@ -104,9 +106,11 @@ synchronous plug-in can.
 
 - **Project:** `plugins/A365.Payroll.Plugins` — C# class library, .NET Framework
   4.6.2, referencing `Microsoft.CrmSdk.CoreAssemblies`. Signed with a strong-name
-  key. Built and registered into the `A365_DailyOperations` solution via the PAC
-  CLI plug-in tooling (`pac plugin`; exact commands pinned in the plan). This is its own build/register step (separate toolchain from the
-  Code App) and is documented as such in the implementation plan.
+  key. Built with `dotnet build -c Release`, then registered with the **Plugin
+  Registration Tool** (`pac tool prt` → Register New Assembly + step + image).
+  Note: `pac plugin push` is update-only (requires an existing plug-in id), so
+  it cannot do the first-time registration — PRT is the documented first-time
+  path. This is its own build/register step, separate from the Code App toolchain.
 - **Registration:** step on **`Update`** of **`a365_payrollentry`**, **PreValidation**
   stage, **synchronous**. PreValidation throws before the database transaction, so
   a rejected edit costs no rollback (MS Learn, "Handle exceptions in plug-ins").
@@ -125,6 +129,20 @@ synchronous plug-in can.
   the *period's* status (the Admin holds Write on the period by design). The
   guarantee is against silent edits to frozen entries, not against a sanctioned
   reopen.
+
+**V1 scope — Update only (accepted 2026-09-17).** The step is registered on
+`Update` only. `Create` and `Delete` of a finalized period's entries are not
+plug-in-guarded. This is accepted for V1 because: (1) **Delete** is already
+withheld from both payroll roles by Dataverse privileges — only System
+Administrator can delete (`security-model.md` §5/§7); and (2) **Create** into a
+finalized period is possible only for a Payroll Admin, who can Unlock (audited)
+anyway, so it is not a privilege escalation, only an audit-trail bypass. With a
+small org (a single Payroll Admin, ~6 employees) this residual is negligible.
+**Follow-up (revisit when the org grows or a second admin is added):** register
+the same plug-in type on `Create` (resolve the period from the Target) and
+`Delete` (resolve from a Pre Image) to fully deliver "immutable against any
+write". The plug-in class already resolves the period generically, so this is a
+registration-plus-small-code change, not a redesign.
 
 ## 6. UI
 
