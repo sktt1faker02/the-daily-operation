@@ -9,6 +9,7 @@ import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
 import type { PayrollEntryInputValues } from "../types"
+import { PayrollStatus } from "../types"
 import { payrollPeriodService } from "./payroll-period-service"
 
 const ENTRY_TABLE = "a365_payrollentries"
@@ -136,6 +137,11 @@ export async function calculatePeriod(
   for (const entry of included) {
     await calculateAndPersistEntry(entry.a365_payrollentryid, periodEndDate, calculatedByUserId, config)
     calculated += 1
+  }
+  // First calculation advances the period Draft → Processing (centralized rule).
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (period.a365_payrollstatus === PayrollStatus.Draft) {
+    await payrollPeriodService.transitionStatus(periodId, PayrollStatus.Processing, calculatedByUserId)
   }
   return { calculated }
 }

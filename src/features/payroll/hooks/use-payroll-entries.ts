@@ -68,6 +68,7 @@ export function useCalculatePeriod(periodId: string) {
     }) => calculatePeriod(periodId, periodEndDate, calculatedByUserId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.period(periodId) })
     },
   })
 }
