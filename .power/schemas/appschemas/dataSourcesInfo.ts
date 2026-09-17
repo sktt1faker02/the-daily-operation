@@ -67,5 +67,23 @@ export const dataSourcesInfo = {
     "primaryKey": "a365_taxbracketid",
     "dataSourceType": "Dataverse",
     "apis": {}
+  },
+  "whoami": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "",
+    "dataSourceType": "Dataverse",
+    "apis": {
+      "WhoAmI": {
+        "path": "/api/data/v9.2/WhoAmI",
+        "method": "GET",
+        "parameters": [],
+        "responseInfo": {
+          "200": {
+            "type": "object"
+          }
+        }
+      }
+    }
   }
 };

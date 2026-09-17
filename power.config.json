@@ -49,6 +49,11 @@
         "positions": {
           "entitySetName": "a365_positions",
           "logicalName": "a365_position"
+        },
+        "environment_39a902ba": {
+          "entitySetName": "Environment",
+          "logicalName": "environment_39a902ba",
+          "isHidden": false
         }
       },
       "environmentVariableName": ""
