@@ -54,6 +54,14 @@
           "entitySetName": "Environment",
           "logicalName": "environment_39a902ba",
           "isHidden": false
+        },
+        "securityroles": {
+          "entitySetName": "roles",
+          "logicalName": "role"
+        },
+        "users": {
+          "entitySetName": "systemusers",
+          "logicalName": "systemuser"
         }
       },
       "environmentVariableName": ""

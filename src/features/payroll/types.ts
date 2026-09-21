@@ -97,8 +97,12 @@ export interface PayrollEntry {
   a365_totaldeductions: number | null
   a365_netpay: number | null
   a365_calculatedon: string | null
+  /** Free-text admin note on the entry (optional). */
+  a365_comment: string | null
   /** Lookup → a365_employee (read as `_value`). */
   _a365_employee_value: string | null
+  /** Lookup → a365_payrollperiod (read as `_value`). Used to join period status. */
+  _a365_payrollperiod_value?: string | null
   /** Formatted lookup name of the linked employee. */
   a365_employeename?: string
 }
@@ -112,6 +116,7 @@ export interface PayrollEntryInputValues {
   a365_otherdeductions: string
   a365_unpaidleavedays: string
   a365_withholdingtax: string
+  a365_comment: string
 }
 
 export const emptyEntryInputValues: PayrollEntryInputValues = {
@@ -121,6 +126,7 @@ export const emptyEntryInputValues: PayrollEntryInputValues = {
   a365_otherdeductions: "",
   a365_unpaidleavedays: "",
   a365_withholdingtax: "",
+  a365_comment: "",
 }
 
 function numToInput(value: number | null | undefined): string {
@@ -135,5 +141,6 @@ export function toEntryInputValues(entry: PayrollEntry): PayrollEntryInputValues
     a365_otherdeductions: numToInput(entry.a365_otherdeductions),
     a365_unpaidleavedays: numToInput(entry.a365_unpaidleavedays),
     a365_withholdingtax: numToInput(entry.a365_withholdingtax),
+    a365_comment: entry.a365_comment ?? "",
   }
 }

@@ -14,6 +14,8 @@ export * as A365_positionsModel from './models/A365_positionsModel';
 export * as A365_ssscontributionsModel from './models/A365_ssscontributionsModel';
 export * as A365_taxbracketsModel from './models/A365_taxbracketsModel';
 export * as CommonModels from './models/CommonModels';
+export * as RolesModel from './models/RolesModel';
+export * as SystemusersModel from './models/SystemusersModel';
 export * as WhoAmIModel from './models/WhoAmIModel';
 
 // Services
@@ -26,4 +28,6 @@ export * from './services/A365_philhealthcontributionsService';
 export * from './services/A365_positionsService';
 export * from './services/A365_ssscontributionsService';
 export * from './services/A365_taxbracketsService';
+export * from './services/RolesService';
+export * from './services/SystemusersService';
 export * from './services/WhoAmIService';

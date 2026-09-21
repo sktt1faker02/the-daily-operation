@@ -5,9 +5,9 @@
  * / Success states throughout.
  */
 import { useMemo, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, ArrowLeft, Calculator, Loader2, Search, UserPlus } from "lucide-react"
+import { AlertCircle, Archive, ArrowLeft, Calculator, Loader2, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { formatDate } from "@/lib/format"
-import { usePayrollPeriod } from "@/features/payroll/hooks/use-payroll-periods"
+import { usePayrollPeriod, useArchivePeriod } from "@/features/payroll/hooks/use-payroll-periods"
 import {
   usePayrollEntries,
   useLoadActiveEmployees,
@@ -39,18 +39,21 @@ import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll
 
 export default function PayrollPeriodPage() {
   const { periodId = "" } = useParams()
+  const navigate = useNavigate()
   const [search, setSearch] = useState("")
   const [editing, setEditing] = useState<PayrollEntry | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false)
+  const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false)
   const [calculatingId, setCalculatingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
+  const archive = useArchivePeriod()
 
   const period = usePayrollPeriod(periodId)
   const entries = usePayrollEntries(periodId)
   const systemUser = useCurrentSystemUserId()
   const loadEmployees = useLoadActiveEmployees(periodId)
-  const calcEntry = useCalculateEntry(periodId)
+  const calcEntry = useCalculateEntry()
   const calcPeriod = useCalculatePeriod(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
 
@@ -169,6 +172,17 @@ export default function PayrollPeriodPage() {
     setEditorOpen(true)
   }
 
+  const handleArchive = () => {
+    archive.mutate(periodId, {
+      onSuccess: () => {
+        toast.success(`Archived ${period.data?.a365_name ?? "payroll period"}.`)
+        setConfirmArchiveOpen(false)
+        navigate("/payroll")
+      },
+      onError: (err) => toast.error("Unable to archive.", { description: err.message }),
+    })
+  }
+
   if (period.isPending) {
     return (
       <div className="mx-auto w-full max-w-7xl space-y-6 p-6" aria-busy>
@@ -248,6 +262,10 @@ export default function PayrollPeriodPage() {
                 {ACTION_META[action].label}
               </Button>
             ))}
+            <Button variant="outline" onClick={() => setConfirmArchiveOpen(true)} disabled={archive.isPending}>
+              <Archive className="size-4" aria-hidden />
+              Archive
+            </Button>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -372,6 +390,27 @@ export default function PayrollPeriodPage() {
             >
               {statusTransition.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               {pendingAction && ACTION_META[pendingAction].label}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmArchiveOpen} onOpenChange={(o) => !o && setConfirmArchiveOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Archive this payroll period?</DialogTitle>
+            <DialogDescription>
+              {period.data?.a365_name} will be hidden from the payroll lists and dashboard, and
+              becomes read-only. This can only be reversed by an administrator in Dataverse.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmArchiveOpen(false)} disabled={archive.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleArchive} disabled={archive.isPending}>
+              {archive.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Archive
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -22,7 +22,7 @@ export function useLoadActiveEmployees(periodId: string) {
     mutationFn: (periodName: string) =>
       payrollPeriodService.loadActiveEmployees(periodId, periodName),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.all })
     },
   })
 }
@@ -38,7 +38,7 @@ export function useUpdateEntryInputs(periodId: string) {
   })
 }
 
-export function useCalculateEntry(periodId: string) {
+export function useCalculateEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
@@ -51,7 +51,7 @@ export function useCalculateEntry(periodId: string) {
       calculatedByUserId: string
     }) => calculateAndPersistEntry(id, periodEndDate, calculatedByUserId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.all })
     },
   })
 }
@@ -67,8 +67,7 @@ export function useCalculatePeriod(periodId: string) {
       calculatedByUserId: string
     }) => calculatePeriod(periodId, periodEndDate, calculatedByUserId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
-      queryClient.invalidateQueries({ queryKey: payrollKeys.period(periodId) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.all })
     },
   })
 }

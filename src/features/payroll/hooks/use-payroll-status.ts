@@ -10,8 +10,10 @@ export function usePayrollStatusTransition(periodId: string) {
     mutationFn: ({ to, userId }: { to: PayrollStatus; userId: string }) =>
       payrollPeriodService.transitionStatus(periodId, to, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.period(periodId) })
-      queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
+      // A status change ripples into the periods list and the Overview cards, so
+      // invalidate the whole payroll namespace (["payroll", ...]) rather than a
+      // couple of narrow keys. Cheap for this org's data size.
+      queryClient.invalidateQueries({ queryKey: payrollKeys.all })
     },
   })
 }

@@ -2,9 +2,13 @@ import { createBrowserRouter } from "react-router-dom"
 import Layout from "@/pages/_layout"
 import HomePage from "@/pages/home"
 import EmployeesPage from "@/pages/employees"
+import OverviewPage from "@/pages/overview"
 import PayrollDashboardPage from "@/pages/payroll"
 import PayrollPeriodPage from "@/pages/payroll-period"
+import MyPayrollPage from "@/pages/my-payroll"
+import PayslipPage from "@/pages/payslip"
 import NotFoundPage from "@/pages/not-found"
+import { AdminOnly } from "@/features/payroll/role-gate"
 
 // IMPORTANT: Do not remove or modify the code below!
 // Normalize basename when hosted in Power Apps
@@ -20,9 +24,12 @@ export const router = createBrowserRouter([
     errorElement: <NotFoundPage />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: "employees", element: <EmployeesPage /> },
-      { path: "payroll", element: <PayrollDashboardPage /> },
-      { path: "payroll/:periodId", element: <PayrollPeriodPage /> },
+      { path: "overview", element: <AdminOnly><OverviewPage /></AdminOnly> },
+      { path: "employees", element: <AdminOnly><EmployeesPage /></AdminOnly> },
+      { path: "payroll", element: <AdminOnly><PayrollDashboardPage /></AdminOnly> },
+      { path: "payroll/:periodId", element: <AdminOnly><PayrollPeriodPage /></AdminOnly> },
+      { path: "my-payroll", element: <MyPayrollPage /> },
+      { path: "my-payroll/:entryId", element: <PayslipPage /> },
     ],
   },
 ], { 

@@ -59,6 +59,9 @@ export interface NewEntryPlan {
   otherEarnings: number
   otherDeductions: number
   unpaidLeaveDays: number
+  /** The employee's linked Entra user, so the new entry can be owned by them
+   *  (ownership-based access — security-model §4). Null when not linked. */
+  systemUserId: string | null
 }
 
 /**
@@ -83,6 +86,7 @@ export function planLoadEntries(
       otherEarnings: 0,
       otherDeductions: 0,
       unpaidLeaveDays: 0,
+      systemUserId: e._a365_systemuser_value,
     }))
 }
 

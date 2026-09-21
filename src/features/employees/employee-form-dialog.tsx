@@ -26,6 +26,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useCreateEmployee, useUpdateEmployee } from "./use-employees"
+import { useEnvironmentUsers } from "./use-users"
+import { UserPicker } from "./user-picker"
+import { userToIdentityPrefill, type EnvironmentUser } from "./user-service"
 import {
   EMPLOYMENT_STATUS_OPTIONS,
   EMPLOYMENT_TYPE_OPTIONS,
@@ -206,6 +209,17 @@ export function EmployeeFormDialog({
 
   const { data: departments } = useDepartments()
   const { data: positions } = usePositions()
+  const { data: users, isLoading: usersLoading } = useEnvironmentUsers()
+
+  // Picking an environment user links the employee and prefills their identity
+  // fields (still editable). Clearing unlinks without wiping the typed values.
+  const handleUserSelect = (user: EnvironmentUser | null) => {
+    setValues((prev) =>
+      user
+        ? { ...prev, a365_systemuserid: user.systemuserid, ...userToIdentityPrefill(user) }
+        : { ...prev, a365_systemuserid: "" },
+    )
+  }
 
   // Reset the form whenever the dialog opens for a different record.
   useEffect(() => {
@@ -293,6 +307,19 @@ export function EmployeeFormDialog({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-3">
             <SectionTitle>Personal</SectionTitle>
+            <div className="space-y-1.5">
+              <Label htmlFor="a365_systemuserid">Entra User</Label>
+              <UserPicker
+                users={users ?? []}
+                value={values.a365_systemuserid}
+                onSelect={handleUserSelect}
+                isLoading={usersLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Link this employee to their sign-in account. Picking a user fills in the name and
+                work email below (you can still edit them), so their payslip portal works.
+              </p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField id="a365_firstname" label="First name" required
                 value={values.a365_firstname} error={errors.a365_firstname}

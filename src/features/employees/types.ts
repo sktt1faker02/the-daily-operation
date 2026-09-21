@@ -133,6 +133,8 @@ export interface Employee {
 // --- Form model (controlled string state for the create/edit form) -----------
 
 export interface EmployeeFormValues {
+  /** Linked Entra `systemuser` id (the "Entra User" lookup); "" when unlinked. */
+  a365_systemuserid: string
   a365_firstname: string
   a365_lastname: string
   a365_middlename: string
@@ -157,6 +159,7 @@ export interface EmployeeFormValues {
 }
 
 export const emptyEmployeeForm: EmployeeFormValues = {
+  a365_systemuserid: "",
   a365_firstname: "",
   a365_lastname: "",
   a365_middlename: "",
@@ -181,6 +184,7 @@ export const emptyEmployeeForm: EmployeeFormValues = {
 /** Build the editable form values from an existing employee record. */
 export function toFormValues(employee: Employee): EmployeeFormValues {
   return {
+    a365_systemuserid: employee._a365_systemuser_value ?? "",
     a365_firstname: employee.a365_firstname ?? "",
     a365_lastname: employee.a365_lastname ?? "",
     a365_middlename: employee.a365_middlename ?? "",

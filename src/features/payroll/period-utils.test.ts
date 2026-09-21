@@ -125,6 +125,12 @@ describe("planLoadEntries", () => {
     const active = [emp("A", 25000)]
     expect(planLoadEntries(active, new Set(["A"]), period)).toEqual([])
   })
+  it("carries the employee's linked user (for entry ownership), null when unlinked", () => {
+    const linked = { ...emp("A", 25000), _a365_systemuser_value: "user-1" }
+    const [plan] = planLoadEntries([linked, emp("B", 30000)], new Set<string>(), period)
+    expect(plan.systemUserId).toBe("user-1")
+    expect(planLoadEntries([emp("B", 30000)], new Set<string>(), period)[0].systemUserId).toBeNull()
+  })
 })
 
 describe("sumEntryTotals", () => {

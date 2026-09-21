@@ -86,6 +86,16 @@ function toWritePayload(values: EmployeeFormValues): Record<string, unknown> {
   if (values.a365_positionid) {
     payload["a365_Position@odata.bind"] = `/a365_positions(${values.a365_positionid})`
   }
+  // Entra User link: bind when chosen, explicitly null to unlink. This is the
+  // identity link the app uses to tie a login to its payroll (see security-model §4).
+  payload["a365_SystemUser@odata.bind"] = values.a365_systemuserid
+    ? `/systemusers(${values.a365_systemuserid})`
+    : null
+  // Own the employee record as its linked user so the person can read their own
+  // record at User level (ownership-based access). Only when a user is linked.
+  if (values.a365_systemuserid) {
+    payload["ownerid@odata.bind"] = `/systemusers(${values.a365_systemuserid})`
+  }
   return payload
 }
 
@@ -100,6 +110,21 @@ export const employeeService = {
       throw result.error ?? new Error("Unable to load employees.")
     }
     return result.data ?? []
+  },
+
+  /**
+   * The Employee record linked to a signed-in user's Entra `systemuser`, or null
+   * if none. Drives the employee portal and the employee/admin nav gate. Read
+   * access is still Dataverse-enforced; this only resolves the current person's
+   * own record.
+   */
+  async getBySystemUserId(systemUserId: string): Promise<Employee | null> {
+    const result = await dataClient.retrieveMultipleRecordsAsync<Employee>(EMPLOYEE_TABLE, {
+      select: SELECT_COLUMNS as string[],
+      filter: `_a365_systemuser_value eq ${systemUserId}`,
+    })
+    if (!result.success) throw result.error ?? new Error("Unable to resolve your employee record.")
+    return result.data?.[0] ?? null
   },
 
   async get(id: string): Promise<Employee> {

@@ -5,9 +5,18 @@
  */
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { AlertCircle, Plus, Wallet } from "lucide-react"
+import { toast } from "sonner"
+import { AlertCircle, Archive, ArchiveRestore, Loader2, Plus, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -17,14 +26,49 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatDate } from "@/lib/format"
-import { usePayrollPeriods } from "@/features/payroll/hooks/use-payroll-periods"
+import {
+  usePayrollPeriods,
+  useArchivedPeriods,
+  useArchivePeriod,
+  useUnarchivePeriod,
+} from "@/features/payroll/hooks/use-payroll-periods"
 import { CreatePeriodDialog } from "@/features/payroll/create-period-dialog"
 import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
+import type { PayrollPeriod } from "@/features/payroll/types"
 
 export default function PayrollDashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [pendingArchive, setPendingArchive] = useState<PayrollPeriod | null>(null)
   const navigate = useNavigate()
   const { data: periods, isPending, isError, error, refetch } = usePayrollPeriods()
+  const archivedQuery = useArchivedPeriods()
+  const archive = useArchivePeriod()
+  const unarchive = useUnarchivePeriod()
+  const [pendingUnarchive, setPendingUnarchive] = useState<PayrollPeriod | null>(null)
+
+  const handleArchive = () => {
+    if (!pendingArchive) return
+    archive.mutate(pendingArchive.a365_payrollperiodid, {
+      onSuccess: () => {
+        toast.success(`Archived ${pendingArchive.a365_name}.`)
+        setPendingArchive(null)
+      },
+      onError: (err) => toast.error("Unable to archive.", { description: err.message }),
+    })
+  }
+
+  const handleUnarchive = () => {
+    if (!pendingUnarchive) return
+    unarchive.mutate(pendingUnarchive.a365_payrollperiodid, {
+      onSuccess: () => {
+        toast.success(`Restored ${pendingUnarchive.a365_name}.`)
+        setPendingUnarchive(null)
+      },
+      onError: (err) => toast.error("Unable to unarchive.", { description: err.message }),
+    })
+  }
+
+  const archived = archivedQuery.data ?? []
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-6">
@@ -89,6 +133,9 @@ export default function PayrollDashboardPage() {
                 <TableHead>End</TableHead>
                 <TableHead>Pay date</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -113,6 +160,20 @@ export default function PayrollDashboardPage() {
                   <TableCell>
                     <PayrollStatusBadge status={p.a365_payrollstatus} />
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPendingArchive(p)
+                      }}
+                      aria-label={`Archive ${p.a365_name}`}
+                    >
+                      <Archive className="size-3.5" aria-hidden />
+                      Archive
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -120,11 +181,104 @@ export default function PayrollDashboardPage() {
         </div>
       )}
 
+      {archived.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-sm font-medium text-muted-foreground">Archived</h2>
+            <p className="text-xs text-muted-foreground">
+              Hidden from the active lists and read-only. Unarchive to restore.
+            </p>
+          </div>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>End</TableHead>
+                  <TableHead>Pay date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {archived.map((p) => (
+                  <TableRow key={p.a365_payrollperiodid} className="text-muted-foreground">
+                    <TableCell className="font-medium text-foreground">{p.a365_name}</TableCell>
+                    <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
+                    <TableCell>{formatDate(p.a365_periodend)}</TableCell>
+                    <TableCell>{formatDate(p.a365_paydate)}</TableCell>
+                    <TableCell>
+                      <PayrollStatusBadge status={p.a365_payrollstatus} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPendingUnarchive(p)}
+                        aria-label={`Unarchive ${p.a365_name}`}
+                      >
+                        <ArchiveRestore className="size-3.5" aria-hidden />
+                        Unarchive
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </section>
+      )}
+
       <CreatePeriodDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onCreated={(id) => navigate(`/payroll/${id}`)}
       />
+
+      <Dialog open={pendingArchive !== null} onOpenChange={(o) => !o && setPendingArchive(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Archive this payroll period?</DialogTitle>
+            <DialogDescription>
+              {pendingArchive?.a365_name} will be hidden from the payroll lists and dashboard, and
+              becomes read-only. This can only be reversed by an administrator in Dataverse.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingArchive(null)} disabled={archive.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleArchive} disabled={archive.isPending}>
+              {archive.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Archive
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pendingUnarchive !== null} onOpenChange={(o) => !o && setPendingUnarchive(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Unarchive this payroll period?</DialogTitle>
+            <DialogDescription>
+              {pendingUnarchive?.a365_name} will be restored to Active and reappear in the payroll
+              lists and dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingUnarchive(null)} disabled={unarchive.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleUnarchive} disabled={unarchive.isPending}>
+              {unarchive.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Unarchive
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { formatCurrency } from "@/lib/format"
+import { Textarea } from "@/components/ui/textarea"
+import { PayslipBreakdown } from "./payslip-breakdown"
 import {
   toEntryInputValues,
   emptyEntryInputValues,
@@ -98,7 +99,7 @@ export function PayrollEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{entry.a365_employeename ?? "Payroll entry"}</DialogTitle>
           <DialogDescription>
@@ -123,20 +124,22 @@ export function PayrollEntryDialog({
             ))}
           </div>
 
-          <div className="rounded-md border bg-surface-subtle p-3 text-sm">
+          <div className="space-y-1.5">
+            <Label htmlFor="a365_comment">Comment</Label>
+            <Textarea
+              id="a365_comment"
+              rows={3}
+              value={values.a365_comment}
+              onChange={(e) => set("a365_comment", e.target.value)}
+              placeholder="Optional note about this entry…"
+            />
+          </div>
+
+          <div className="rounded-md border bg-surface-subtle p-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Calculated (Auto)
             </p>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 tabular-nums">
-              <dt className="text-muted-foreground">Gross Pay</dt>
-              <dd className="text-right">{formatCurrency(entry.a365_grosspay)}</dd>
-              <dt className="text-muted-foreground">Total Deductions</dt>
-              <dd className="text-right">{formatCurrency(entry.a365_totaldeductions)}</dd>
-              <dt className="text-muted-foreground">Net Pay</dt>
-              <dd className="text-right font-medium text-foreground">
-                {formatCurrency(entry.a365_netpay)}
-              </dd>
-            </dl>
+            <PayslipBreakdown entry={entry} />
           </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}

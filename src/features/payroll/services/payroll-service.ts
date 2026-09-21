@@ -112,6 +112,7 @@ export async function updateEntryInputs(
     a365_otherdeductions: toAmount(values.a365_otherdeductions),
     a365_unpaidleavedays: toAmount(values.a365_unpaidleavedays),
     a365_withholdingtax: toAmount(values.a365_withholdingtax),
+    a365_comment: values.a365_comment.trim() || null,
   }
   const result = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
     ENTRY_TABLE,

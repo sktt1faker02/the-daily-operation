@@ -902,23 +902,6 @@ Never implement destructive payroll actions casually.
 
 ---
 
-# Testing
-
-At minimum test:
-
-## Calculation
-
-- Gross Pay
-- allowances
-- unpaid leave
-- SSS
-- PhilHealth
-- HDMF
-- withholding tax
-- total deductions
-- Net Pay
-- rounding
-
 ## Workflow
 
 - payroll creation
@@ -948,15 +931,36 @@ only hidden buttons.
 
 ---
 
+# Testing
+
+- Vitest and React Testing Library for unit/integration tests
+- Use Vitest and React Testing Library for pure functions, components, Server
+  Action contracts, and regression tests.
+- Colocate test files with the source file being tested.
+- Avoid querying by CSS class, DOM structure, or test IDs unless there is no better accessible query.
+- For a bug fix, first add a test that reproduces the failure when practical.
+- Prefer `userEvent` over `fireEvent`.
+- Use `findBy*` or `waitFor` for asynchronous UI updates.
+- Mock external dependencies only when necessary.
+- Do not mock the component being tested.
+- Each test should be independent and should not rely on another test's state.
+- Test important user flows, edge cases, loading states, error states, and empty states where applicable.
+- Mock external boundaries, not the business rule being tested.
+- Run proportionate checks: targeted tests while iterating, then `npm test`,
+  `npm run lint`, `npm run build`, and relevant Playwright tests before handoff.
+- Documentation-only edits require link/path checks, contradiction scans, and
+  `git diff --check`; they do not require the runtime test suite.
+
 # Development Commands
 
 Use the scripts provided by the starter project.
 
 ```bash
-npm run dev
+pa app run
 npm run build
 npm run lint
 npm run preview
+
 ```
 
 Before considering implementation complete:

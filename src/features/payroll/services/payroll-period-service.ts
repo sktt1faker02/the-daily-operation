@@ -46,14 +46,23 @@ const ENTRY_SELECT = [
   "a365_totaldeductions",
   "a365_netpay",
   "a365_calculatedon",
+  "a365_comment",
   "_a365_employee_value",
+  "_a365_payrollperiod_value",
 ]
 
 export const payrollPeriodService = {
   async listPeriods(): Promise<PayrollPeriod[]> {
     const result = await dataClient.retrieveMultipleRecordsAsync<PayrollPeriod>(
       PAYROLL_PERIOD_TABLE,
-      { select: PERIOD_SELECT as string[], orderBy: ["a365_periodstart desc"] },
+      {
+        select: PERIOD_SELECT as string[],
+        // Only active periods; archived (deactivated) periods are hidden.
+        filter: "statecode eq 0",
+        // Tie-break by creation time so "latest cutoff" is deterministic when two
+        // periods share a start date (e.g. duplicate cutoffs created during testing).
+        orderBy: ["a365_periodstart desc", "createdon desc"],
+      },
     )
     if (!result.success) throw result.error ?? new Error("Unable to load payroll periods.")
     return result.data ?? []
@@ -106,6 +115,43 @@ export const payrollPeriodService = {
       payload,
     )
     if (!result.success) throw result.error ?? new Error("Unable to update payroll status.")
+  },
+
+  /** Archived (deactivated) periods, newest first — for the admin Archived table. */
+  async listArchivedPeriods(): Promise<PayrollPeriod[]> {
+    const result = await dataClient.retrieveMultipleRecordsAsync<PayrollPeriod>(
+      PAYROLL_PERIOD_TABLE,
+      {
+        select: PERIOD_SELECT as string[],
+        filter: "statecode eq 1",
+        orderBy: ["a365_periodstart desc", "createdon desc"],
+      },
+    )
+    if (!result.success) throw result.error ?? new Error("Unable to load archived periods.")
+    return result.data ?? []
+  },
+
+  /**
+   * Archive a period by deactivating the record (statecode Inactive). It drops
+   * out of the active period lists and becomes read-only in Dataverse.
+   */
+  async archivePeriod(periodId: string): Promise<void> {
+    const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollPeriod>(
+      PAYROLL_PERIOD_TABLE,
+      periodId,
+      { statecode: 1, statuscode: 2 },
+    )
+    if (!result.success) throw result.error ?? new Error("Unable to archive the payroll period.")
+  },
+
+  /** Reactivate an archived period (statecode/statuscode back to Active). */
+  async unarchivePeriod(periodId: string): Promise<void> {
+    const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollPeriod>(
+      PAYROLL_PERIOD_TABLE,
+      periodId,
+      { statecode: 0, statuscode: 1 },
+    )
+    if (!result.success) throw result.error ?? new Error("Unable to unarchive the payroll period.")
   },
 
   async createPeriod(input: {
@@ -163,6 +209,36 @@ export const payrollPeriodService = {
   },
 
   /**
+   * All payroll entries across every period, with a lean select for roll-ups
+   * (no employee-name resolution). Used by the Overview dashboard, which groups
+   * them by period client-side. Fine for this org's small data volume.
+   */
+  async listAllEntries(): Promise<PayrollEntry[]> {
+    const result = await dataClient.retrieveMultipleRecordsAsync<PayrollEntry>(PAYROLL_ENTRY_TABLE, {
+      select: [
+        "a365_payrollentryid",
+        "a365_isincluded",
+        "a365_grosspay",
+        "a365_totaldeductions",
+        "a365_netpay",
+        "_a365_payrollperiod_value",
+      ],
+    })
+    if (!result.success) throw result.error ?? new Error("Unable to load payroll entries.")
+    return result.data ?? []
+  },
+
+  /** Every payroll entry belonging to one employee (across all periods). */
+  async listEntriesForEmployee(employeeId: string): Promise<PayrollEntry[]> {
+    const result = await dataClient.retrieveMultipleRecordsAsync<PayrollEntry>(
+      PAYROLL_ENTRY_TABLE,
+      { select: ENTRY_SELECT, filter: `_a365_employee_value eq ${employeeId}` },
+    )
+    if (!result.success) throw result.error ?? new Error("Unable to load your payroll entries.")
+    return result.data ?? []
+  },
+
+  /**
    * Create one payroll entry per active employee not already in the period.
    * Idempotent: employees already present are skipped. Returns a summary for
    * toast messaging. Business decisions (basic-pay default, naming) come from
@@ -193,6 +269,12 @@ export const payrollPeriodService = {
         a365_otherearnings: plan.otherEarnings,
         a365_otherdeductions: plan.otherDeductions,
         a365_unpaidleavedays: plan.unpaidLeaveDays,
+      }
+      // Own the entry as the employee's linked user so they can read their own
+      // payslip at User level (security-model §4). Set at creation, while the
+      // period is editable — a locked entry's owner can no longer be changed.
+      if (plan.systemUserId) {
+        payload["ownerid@odata.bind"] = `/systemusers(${plan.systemUserId})`
       }
       const result = await dataClient.createRecordAsync<Record<string, unknown>, PayrollEntry>(
         PAYROLL_ENTRY_TABLE,

@@ -240,24 +240,27 @@ information.
 
 ### Tasks
 
-- [ ] Build My Payroll page
-- [ ] Display latest payroll
-- [ ] Display Net Pay
-- [ ] Display previous payroll periods
-- [ ] Build Payslip detail page
-- [ ] Display Basic Pay
-- [ ] Display Allowances
-- [ ] Display Gross Pay
-- [ ] Display SSS
-- [ ] Display PhilHealth
-- [ ] Display HDMF/Pag-IBIG
-- [ ] Display Withholding Tax
-- [ ] Display other deductions
-- [ ] Display Total Deductions
-- [ ] Display Net Pay
-- [ ] Ensure employees cannot access another employee's payroll by
-      changing URLs/IDs
-- [ ] Test employee record-level security
+- [x] Build My Payroll page (`src/pages/my-payroll.tsx`; role-gated nav via `useCurrentEmployee`, Paid/Locked payslips only)
+- [x] Display latest payroll (latest cutoff totals card)
+- [x] Display Net Pay (summary card + history table)
+- [x] Display previous payroll periods (payroll history table)
+- [x] Build Payslip detail page (`src/pages/payslip.tsx`)
+- [x] Display Basic Pay (shared `PayslipBreakdown`)
+- [x] Display Allowances
+- [x] Display Gross Pay
+- [x] Display SSS (itemized employee-share line)
+- [x] Display PhilHealth (itemized employee-share line)
+- [x] Display HDMF/Pag-IBIG (itemized employee-share line)
+- [x] Display Withholding Tax (itemized employee-share line)
+- [x] Display other deductions
+- [x] Display Total Deductions
+- [x] Display Net Pay
+- [x] Ensure employees cannot access another employee's payroll by
+      changing URLs/IDs (payslip resolved only from the caller's own visible
+      payslips; unknown/foreign id → "not available")
+- [~] Test employee record-level security (visibility rule unit-tested in
+      `my-payroll.test.ts`; direct Dataverse record-access testing stays in
+      Phase 12 §11, as it is data-layer enforced)
 
 ### Deliverable
 
