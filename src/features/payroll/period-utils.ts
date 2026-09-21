@@ -90,6 +90,33 @@ export function planLoadEntries(
     }))
 }
 
+/** Recurring inputs carried forward when copying a previous cutoff. */
+export interface RecurringInputs {
+  basicPay: number
+  allowances: number
+}
+
+/**
+ * Plan the entries to create when copying the previous cutoff. Same eligibility
+ * as `planLoadEntries` (active employees not already in the period), but each
+ * employee present in the source period keeps their recurring inputs (Basic Pay
+ * and Allowances) instead of the defaults. Employees hired since the source
+ * period fall back to the normal defaults; one-time inputs (unpaid leave, other
+ * earnings/deductions, withholding tax) and calculated results are never copied
+ * — the caller recalculates afterward. Pure.
+ */
+export function planCopyEntries(
+  activeEmployees: Employee[],
+  existingEmployeeIds: Set<string>,
+  period: { id: string; name: string },
+  sourceByEmployee: Map<string, RecurringInputs>,
+): NewEntryPlan[] {
+  return planLoadEntries(activeEmployees, existingEmployeeIds, period).map((plan) => {
+    const source = sourceByEmployee.get(plan.employeeId)
+    return source ? { ...plan, basicPay: source.basicPay, allowances: source.allowances } : plan
+  })
+}
+
 /** Roll up period totals from entries, treating nulls as 0. */
 export function sumEntryTotals(entries: PayrollEntry[]): {
   gross: number

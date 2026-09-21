@@ -305,20 +305,29 @@ history.
 
 ### Tasks
 
-- [ ] Add Copy Previous Cutoff action
-- [ ] Select the previous payroll period
-- [ ] Copy eligible employee payroll entries
-- [ ] Copy Basic Pay
-- [ ] Copy recurring Allowances
-- [ ] Copy recurring earnings/deductions where appropriate
-- [ ] Keep copied entries editable
-- [ ] Do not blindly copy calculated statutory deductions
-- [ ] Recalculate SSS
-- [ ] Recalculate PhilHealth
-- [ ] Recalculate HDMF
-- [ ] Recalculate Withholding Tax
-- [ ] Recalculate Net Pay
-- [ ] Handle employees hired/terminated between periods
+- [x] Add Copy Previous Cutoff action (period detail page — header + empty state;
+      `copyFromPreviousCutoff` service, `useCopyPreviousCutoff` hook)
+- [x] Select the previous payroll period (auto: most recent other active period — no
+      chooser needed for a one-cutoff-at-a-time, small-org workflow)
+- [x] Copy eligible employee payroll entries (active employees not already present;
+      pure `planCopyEntries`)
+- [x] Copy Basic Pay
+- [x] Copy recurring Allowances
+- [~] Copy recurring earnings/deductions where appropriate — **only Basic Pay +
+      Allowances are treated as recurring in V1**. Other Earnings / Other Deductions,
+      unpaid leave, and manual withholding tax are per-cutoff and reset to blank
+      (CLAUDE.md "do not blindly copy one-time adjustments")
+- [x] Keep copied entries editable (created into the Draft/Processing period)
+- [x] Do not blindly copy calculated statutory deductions (calculated columns left blank)
+- [x] Recalculate SSS
+- [x] Recalculate PhilHealth
+- [x] Recalculate HDMF
+- [x] Recalculate Withholding Tax
+- [x] Recalculate Net Pay
+      *(copy auto-recalculates the period after creating entries, so it lands with statutory
+      deductions and net pay computed; the Admin can still edit and re-run "Calculate all")*
+- [x] Handle employees hired/terminated between periods (new hires get default basic pay;
+      terminated/now-inactive employees are excluded; re-runs skip employees already present)
 
 ### Deliverable
 

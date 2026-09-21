@@ -27,6 +27,34 @@ export function useLoadActiveEmployees(periodId: string) {
   })
 }
 
+export function useCopyPreviousCutoff(periodId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    // Copy recurring inputs from the previous cutoff, then recalculate so the
+    // new period lands with statutory deductions and net pay already computed.
+    // Composed here (not in the service) to keep the copy service free of a
+    // circular dependency on the calculation service.
+    mutationFn: async ({
+      periodName,
+      periodEndDate,
+      calculatedByUserId,
+    }: {
+      periodName: string
+      periodEndDate: string
+      calculatedByUserId: string
+    }) => {
+      const result = await payrollPeriodService.copyFromPreviousCutoff(periodId, periodName)
+      if (result.created > 0) {
+        await calculatePeriod(periodId, periodEndDate, calculatedByUserId)
+      }
+      return result
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.all })
+    },
+  })
+}
+
 export function useUpdateEntryInputs(periodId: string) {
   const queryClient = useQueryClient()
   return useMutation({

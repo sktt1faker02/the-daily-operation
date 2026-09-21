@@ -5,7 +5,9 @@ import {
   suggestSemiMonthlyPeriod,
   formatPeriodName,
   planLoadEntries,
+  planCopyEntries,
   sumEntryTotals,
+  type RecurringInputs,
 } from "./period-utils"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import type { PayrollEntry } from "./types"
@@ -35,7 +37,7 @@ describe("payrollStatusBadgeTone", () => {
   })
 })
 
-function emp(id: string, salary: number | null, status = EmploymentStatus.Active): Employee {
+function emp(id: string, salary: number | null, status: EmploymentStatus = EmploymentStatus.Active): Employee {
   return {
     a365_employeeid: id,
     a365_employeenumber: null,
@@ -130,6 +132,33 @@ describe("planLoadEntries", () => {
     const [plan] = planLoadEntries([linked, emp("B", 30000)], new Set<string>(), period)
     expect(plan.systemUserId).toBe("user-1")
     expect(planLoadEntries([emp("B", 30000)], new Set<string>(), period)[0].systemUserId).toBeNull()
+  })
+})
+
+describe("planCopyEntries", () => {
+  const period = { id: "P2", name: "Sep 16–30, 2026" }
+  const source = new Map<string, RecurringInputs>([["A", { basicPay: 13000, allowances: 2000 }]])
+
+  it("carries the source cutoff's Basic Pay and Allowances for a returning employee", () => {
+    const [plan] = planCopyEntries([emp("A", 25000)], new Set<string>(), period, source)
+    expect(plan).toMatchObject({ employeeId: "A", basicPay: 13000, allowances: 2000 })
+  })
+
+  it("uses the default basic pay for an employee hired since the source period", () => {
+    // "B" isn't in the source map → falls back to salary/2, allowances 0.
+    const [plan] = planCopyEntries([emp("B", 30000)], new Set<string>(), period, source)
+    expect(plan).toMatchObject({ employeeId: "B", basicPay: 15000, allowances: 0 })
+  })
+
+  it("never copies one-time inputs (they reset to 0)", () => {
+    const [plan] = planCopyEntries([emp("A", 25000)], new Set<string>(), period, source)
+    expect(plan).toMatchObject({ otherEarnings: 0, otherDeductions: 0, unpaidLeaveDays: 0 })
+  })
+
+  it("excludes terminated employees and skips those already present", () => {
+    const active = [emp("A", 25000), emp("B", 30000), emp("C", 20000, EmploymentStatus.Inactive)]
+    const plans = planCopyEntries(active, new Set(["B"]), period, source)
+    expect(plans.map((p) => p.employeeId)).toEqual(["A"]) // C inactive, B already present
   })
 })
 

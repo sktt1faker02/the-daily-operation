@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, Archive, ArrowLeft, Calculator, Loader2, Search, UserPlus } from "lucide-react"
+import { AlertCircle, Archive, ArrowLeft, Calculator, Copy, Loader2, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,6 +24,7 @@ import { usePayrollPeriod, useArchivePeriod } from "@/features/payroll/hooks/use
 import {
   usePayrollEntries,
   useLoadActiveEmployees,
+  useCopyPreviousCutoff,
   useCalculateEntry,
   useCalculatePeriod,
 } from "@/features/payroll/hooks/use-payroll-entries"
@@ -45,6 +46,7 @@ export default function PayrollPeriodPage() {
   const [editing, setEditing] = useState<PayrollEntry | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false)
+  const [confirmCopyOpen, setConfirmCopyOpen] = useState(false)
   const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false)
   const [calculatingId, setCalculatingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
@@ -54,6 +56,7 @@ export default function PayrollPeriodPage() {
   const entries = usePayrollEntries(periodId)
   const systemUser = useCurrentSystemUserId()
   const loadEmployees = useLoadActiveEmployees(periodId)
+  const copyPrevious = useCopyPreviousCutoff(periodId)
   const calcEntry = useCalculateEntry()
   const calcPeriod = useCalculatePeriod(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
@@ -136,6 +139,31 @@ export default function PayrollPeriodPage() {
       },
       onError: (err) => toast.error("Unable to load employees.", { description: err.message }),
     })
+  }
+
+  const handleCopyPrevious = () => {
+    const userId = requireSystemUser()
+    if (!userId || !period.data) return
+    copyPrevious.mutate(
+      {
+        periodName: period.data.a365_name,
+        periodEndDate: period.data.a365_periodend,
+        calculatedByUserId: userId,
+      },
+      {
+        onSuccess: ({ created, copiedFrom, skipped }) => {
+          if (!copiedFrom) {
+            toast.info("No previous cutoff to copy from.")
+          } else {
+            toast.success(
+              `Copied from ${copiedFrom}: ${created} added${skipped ? `, ${skipped} already present` : ""} and recalculated.`,
+            )
+          }
+          setConfirmCopyOpen(false)
+        },
+        onError: (err) => toast.error("Unable to copy previous cutoff.", { description: err.message }),
+      },
+    )
   }
 
   const handleRecalculateEntry = (entry: PayrollEntry) => {
@@ -244,6 +272,16 @@ export default function PayrollPeriodPage() {
               </Button>
             )}
             {hasEntries && editable && (
+              <Button
+                variant="outline"
+                onClick={() => setConfirmCopyOpen(true)}
+                disabled={copyPrevious.isPending}
+              >
+                <Copy className="size-4" aria-hidden />
+                Copy previous cutoff
+              </Button>
+            )}
+            {hasEntries && editable && (
               <Button onClick={handleCalculateAll} disabled={calcPeriod.isPending}>
                 {calcPeriod.isPending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -307,14 +345,28 @@ export default function PayrollPeriodPage() {
               Load active employees to populate this cutoff, then enter inputs and calculate.
             </p>
           </div>
-          <Button onClick={() => setConfirmLoadOpen(true)} disabled={!editable || loadEmployees.isPending}>
-            {loadEmployees.isPending ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <UserPlus className="size-4" aria-hidden />
-            )}
-            Load active employees
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button onClick={() => setConfirmLoadOpen(true)} disabled={!editable || loadEmployees.isPending}>
+              {loadEmployees.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <UserPlus className="size-4" aria-hidden />
+              )}
+              Load active employees
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmCopyOpen(true)}
+              disabled={!editable || copyPrevious.isPending}
+            >
+              {copyPrevious.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Copy className="size-4" aria-hidden />
+              )}
+              Copy previous cutoff
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -371,6 +423,29 @@ export default function PayrollPeriodPage() {
             <Button onClick={handleLoadEmployees} disabled={loadEmployees.isPending}>
               {loadEmployees.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Load employees
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmCopyOpen} onOpenChange={setConfirmCopyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Copy from the previous cutoff?</DialogTitle>
+            <DialogDescription>
+              Adds a payroll entry for every active employee not already in this period, carrying
+              forward each returning employee's Basic Pay and Allowances from the most recent
+              previous cutoff. Newly hired employees use the default basic pay. One-time inputs are
+              not copied; statutory deductions and net pay are recalculated automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmCopyOpen(false)} disabled={copyPrevious.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleCopyPrevious} disabled={copyPrevious.isPending}>
+              {copyPrevious.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Copy previous cutoff
             </Button>
           </DialogFooter>
         </DialogContent>

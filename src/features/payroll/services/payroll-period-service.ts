@@ -7,7 +7,7 @@ import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus } from "@/features/employees/types"
-import { planLoadEntries } from "../period-utils"
+import { planLoadEntries, planCopyEntries, type NewEntryPlan, type RecurringInputs } from "../period-utils"
 import { canTransition } from "../payroll-status-machine"
 import {
   PAYROLL_PERIOD_TABLE,
@@ -285,36 +285,84 @@ export const payrollPeriodService = {
       existing.map((e) => e._a365_employee_value).filter((v): v is string => Boolean(v)),
     )
     const plans = planLoadEntries(active, existingIds, { id: periodId, name: periodName })
-
-    let created = 0
-    for (const plan of plans) {
-      const payload: Record<string, unknown> = {
-        "a365_Employee@odata.bind": `/a365_employees(${plan.employeeId})`,
-        "a365_PayrollPeriod@odata.bind": `/a365_payrollperiods(${periodId})`,
-        a365_isincluded: true,
-        a365_name: plan.name,
-        a365_basicpay: plan.basicPay,
-        a365_allowances: plan.allowances,
-        a365_otherearnings: plan.otherEarnings,
-        a365_otherdeductions: plan.otherDeductions,
-        a365_unpaidleavedays: plan.unpaidLeaveDays,
-      }
-      // Own the entry as the employee's linked user so they can read their own
-      // payslip at User level (security-model §4). Set at creation, while the
-      // period is editable — a locked entry's owner can no longer be changed.
-      if (plan.systemUserId) {
-        payload["ownerid@odata.bind"] = `/systemusers(${plan.systemUserId})`
-      }
-      const result = await dataClient.createRecordAsync<Record<string, unknown>, PayrollEntry>(
-        PAYROLL_ENTRY_TABLE,
-        payload,
-      )
-      if (!result.success) {
-        throw result.error ??
-          new Error(`Unable to add ${plan.name}. ${created} of ${plans.length} added before this error.`)
-      }
-      created += 1
-    }
+    const created = await createPlannedEntries(periodId, plans)
     return { created, skipped: active.length - plans.length }
   },
+
+  /**
+   * Populate a period by copying the previous cutoff. Source = the most recent
+   * *other* active period. Returning employees keep their recurring inputs
+   * (Basic Pay + Allowances); one-time inputs and calculated results are not
+   * copied — the caller recalculates afterward. Idempotent: employees already
+   * in the target period are skipped. Returns a summary for toast messaging;
+   * `copiedFrom` is null when there is no previous period to copy from.
+   */
+  async copyFromPreviousCutoff(
+    periodId: string,
+    periodName: string,
+  ): Promise<{ created: number; copiedFrom: string | null; skipped: number }> {
+    const periods = await payrollPeriodService.listPeriods()
+    const source = periods.find((p) => p.a365_payrollperiodid !== periodId)
+    if (!source) return { created: 0, copiedFrom: null, skipped: 0 }
+
+    const [sourceEntries, active, existing] = await Promise.all([
+      payrollPeriodService.listEntries(source.a365_payrollperiodid),
+      employeeService.list({ filter: `a365_employmentstatus eq ${EmploymentStatus.Active}` }),
+      payrollPeriodService.listEntries(periodId),
+    ])
+
+    const sourceByEmployee = new Map<string, RecurringInputs>()
+    for (const entry of sourceEntries) {
+      if (entry._a365_employee_value) {
+        sourceByEmployee.set(entry._a365_employee_value, {
+          basicPay: entry.a365_basicpay ?? 0,
+          allowances: entry.a365_allowances ?? 0,
+        })
+      }
+    }
+    const existingIds = new Set(
+      existing.map((e) => e._a365_employee_value).filter((v): v is string => Boolean(v)),
+    )
+    const plans = planCopyEntries(active, existingIds, { id: periodId, name: periodName }, sourceByEmployee)
+    const created = await createPlannedEntries(periodId, plans)
+    return { created, copiedFrom: source.a365_name, skipped: active.length - plans.length }
+  },
+}
+
+/**
+ * Create one payroll entry per plan. Shared by loadActiveEmployees and
+ * copyFromPreviousCutoff. Stops on the first failure and reports how many were
+ * added before it (partial-write visibility). Returns the created count.
+ */
+async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Promise<number> {
+  let created = 0
+  for (const plan of plans) {
+    const payload: Record<string, unknown> = {
+      "a365_Employee@odata.bind": `/a365_employees(${plan.employeeId})`,
+      "a365_PayrollPeriod@odata.bind": `/a365_payrollperiods(${periodId})`,
+      a365_isincluded: true,
+      a365_name: plan.name,
+      a365_basicpay: plan.basicPay,
+      a365_allowances: plan.allowances,
+      a365_otherearnings: plan.otherEarnings,
+      a365_otherdeductions: plan.otherDeductions,
+      a365_unpaidleavedays: plan.unpaidLeaveDays,
+    }
+    // Own the entry as the employee's linked user so they can read their own
+    // payslip at User level (security-model §4). Set at creation, while the
+    // period is editable — a locked entry's owner can no longer be changed.
+    if (plan.systemUserId) {
+      payload["ownerid@odata.bind"] = `/systemusers(${plan.systemUserId})`
+    }
+    const result = await dataClient.createRecordAsync<Record<string, unknown>, PayrollEntry>(
+      PAYROLL_ENTRY_TABLE,
+      payload,
+    )
+    if (!result.success) {
+      throw result.error ??
+        new Error(`Unable to add ${plan.name}. ${created} of ${plans.length} added before this error.`)
+    }
+    created += 1
+  }
+  return created
 }
