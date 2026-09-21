@@ -24,3 +24,13 @@ export function formatDate(value: string | null | undefined): string {
     return value
   }
 }
+
+/** Format a Dataverse UTC timestamp as `MMM d, yyyy · h:mm a` (audit stamps). */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—"
+  try {
+    return format(parseISO(value), "MMM d, yyyy · h:mm a")
+  } catch {
+    return value
+  }
+}

@@ -274,17 +274,23 @@ Employees can securely view their own payslips and payroll history.
 
 ### Tasks
 
-- [ ] Enable appropriate Dataverse auditing
-- [ ] Track payroll Created By / Created At
-- [ ] Track Updated By / Updated At
-- [ ] Track Calculated By / Calculated At
-- [ ] Track Submitted By / Submitted At
-- [ ] Track Approved By / Approved At
-- [ ] Track Paid By / Paid At
-- [ ] Track significant salary and deduction changes
-- [ ] Define rules for payroll deletion
-- [ ] Define adjustment/correction procedure
-- [ ] Build an Admin audit/history view if required
+- [~] Enable appropriate Dataverse auditing (native table/column auditing is an
+      environment config step — enable on the payroll tables in Dev/Prod; the app
+      does not rebuild it)
+- [x] Track payroll Created By / Created At (standard `createdby`/`createdon`)
+- [x] Track Updated By / Updated At (standard `modifiedby`/`modifiedon`)
+- [x] Track Calculated By / Calculated At (`a365_CalculatedBy`/`a365_calculatedon`, Phase 5)
+- [x] Track Submitted By / Submitted At (V1 "Ready" is the finalize state — `a365_readyby`/`a365_readyon`, Phase 7)
+- [~] Track Approved By / Approved At — **N/A in V1**: one admin, no approval stage (PLANS.md)
+- [x] Track Paid By / Paid At (`a365_paidby`/`a365_paidon`, Phase 7)
+- [~] Track significant salary and deduction changes (delegated to Dataverse
+      native column auditing rather than an in-app field-diff log — YAGNI for a
+      one-admin org)
+- [x] Define rules for payroll deletion (periods archive/deactivate, never hard delete;
+      entries are Restrict-protected — security-model §7)
+- [x] Define adjustment/correction procedure (audited Unlock → Processing, Phase 7)
+- [x] Build an Admin audit/history view (`PayrollAuditTrail` on the period detail page:
+      Created / Ready / Paid / Locked, by whom and when, plus last-modified)
 
 ### Deliverable
 

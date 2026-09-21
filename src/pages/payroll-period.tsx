@@ -31,6 +31,7 @@ import { useCurrentSystemUserId } from "@/features/payroll/hooks/use-current-sys
 import { PayrollSummaryCards } from "@/features/payroll/payroll-summary-cards"
 import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { PayrollEntryTable } from "@/features/payroll/payroll-entry-table"
+import { PayrollAuditTrail } from "@/features/payroll/payroll-audit-trail"
 import { PayrollEntryDialog } from "@/features/payroll/payroll-entry-dialog"
 import { sumEntryTotals } from "@/features/payroll/period-utils"
 import { isPeriodEditable, PayrollStatus, payrollStatusLabel, type PayrollEntry } from "@/features/payroll/types"
@@ -339,6 +340,8 @@ export default function PayrollPeriodPage() {
           </p>
         </div>
       )}
+
+      <PayrollAuditTrail period={period.data} />
 
       <PayrollEntryDialog
         open={editorOpen}

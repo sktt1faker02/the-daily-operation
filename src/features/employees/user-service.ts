@@ -39,6 +39,24 @@ export const userService = {
     if (!result.success) throw result.error ?? new Error("Unable to load environment users.")
     return result.data ?? []
   },
+
+  /**
+   * Resolve `systemuser` display names by id → Map(id → fullname). Used to put
+   * actor names on audit stamps, since the Code Apps data client can't `$expand`
+   * lookups or return formatted-value annotations (only the `_value` GUID). One
+   * bounded query; blank/duplicate ids are dropped.
+   */
+  async getNamesByIds(ids: (string | null | undefined)[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))]
+    if (unique.length === 0) return new Map()
+    const filter = unique.map((id) => `systemuserid eq ${id}`).join(" or ")
+    const result = await dataClient.retrieveMultipleRecordsAsync<EnvironmentUser>(SYSTEMUSER_TABLE, {
+      select: ["systemuserid", "fullname"],
+      filter,
+    })
+    if (!result.success) throw result.error ?? new Error("Unable to load user names.")
+    return new Map((result.data ?? []).map((u) => [u.systemuserid, u.fullname ?? ""]))
+  },
 }
 
 /** The identity fields prefilled onto the employee form when a user is picked. */

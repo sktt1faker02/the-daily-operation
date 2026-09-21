@@ -2,5 +2,5 @@
 
 # Requirements
 
-- Implement Phase 8
-- Also breakdown to include the details of government benefits in payroll details for both admin and employee portal
+- Implement Phase 9 what enough need to be audited, no need track approval
+- No need for approval for now because there's only 1 admin so there's no approval for the payroll on this project

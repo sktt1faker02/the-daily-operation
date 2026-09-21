@@ -5,6 +5,7 @@
  */
 import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
+import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus } from "@/features/employees/types"
 import { planLoadEntries } from "../period-utils"
 import { canTransition } from "../payroll-status-machine"
@@ -26,6 +27,17 @@ const PERIOD_SELECT: (keyof PayrollPeriod)[] = [
   "a365_payrollstatus",
   "a365_lockedon",
   "createdon",
+  // Audit trail (Phase 9): lifecycle date stamps + actor lookup GUIDs. Actor
+  // display names are resolved from these `_value`s in getPeriod — the `...name`
+  // columns are not valid Web API `$select` properties.
+  "modifiedon",
+  "a365_readyon",
+  "a365_paidon",
+  "_createdby_value",
+  "_modifiedby_value",
+  "_a365_readyby_value",
+  "_a365_paidby_value",
+  "_a365_lockedby_value",
 ]
 
 const ENTRY_SELECT = [
@@ -75,7 +87,24 @@ export const payrollPeriodService = {
       { select: PERIOD_SELECT as string[] },
     )
     if (!result.success) throw result.error ?? new Error("Unable to load the payroll period.")
-    return result.data
+    const period = result.data
+
+    // Resolve audit actor names for the detail page's audit trail. One bounded
+    // query; the list/dashboard don't show actors so they skip this.
+    const names = await userService.getNamesByIds([
+      period._createdby_value,
+      period._modifiedby_value,
+      period._a365_readyby_value,
+      period._a365_paidby_value,
+      period._a365_lockedby_value,
+    ])
+    const nameOf = (value: string | null | undefined) => (value ? names.get(value) : undefined)
+    period.createdbyname = nameOf(period._createdby_value)
+    period.modifiedbyname = nameOf(period._modifiedby_value)
+    period.a365_readybyname = nameOf(period._a365_readyby_value)
+    period.a365_paidbyname = nameOf(period._a365_paidby_value)
+    period.a365_lockedbyname = nameOf(period._a365_lockedby_value)
+    return period
   },
 
   /**

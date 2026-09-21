@@ -75,6 +75,23 @@ export interface PayrollPeriod {
   a365_payrollstatus: PayrollStatus
   a365_lockedon?: string | null
   createdon?: string
+  modifiedon?: string
+  // Audit stamps (Phase 9): actor lookups. The Web API exposes only the `_value`
+  // GUID here — the `...name` columns are NOT valid `$select` properties, so
+  // display names are resolved separately (see payrollPeriodService.getPeriod).
+  a365_readyon?: string | null
+  a365_paidon?: string | null
+  _createdby_value?: string | null
+  _modifiedby_value?: string | null
+  _a365_readyby_value?: string | null
+  _a365_paidby_value?: string | null
+  _a365_lockedby_value?: string | null
+  // Resolved actor display names (attached by the service, not selected).
+  createdbyname?: string
+  modifiedbyname?: string
+  a365_readybyname?: string
+  a365_paidbyname?: string
+  a365_lockedbyname?: string
 }
 
 export interface PayrollEntry {
