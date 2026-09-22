@@ -421,8 +421,9 @@ requirements. Automated suite green; security and UAT execution tracked in
 - [~] Prepare production Dataverse configuration (runbook §3/§5 — awaiting Prod env)
 - [~] Deploy solution to Production (managed export ready; import steps in runbook §2/§4 —
       awaiting Prod env)
-- [ ] **Add the Code App to the solution** (the gap — solution has the 10 tables / 5 choices /
-      2 roles but not the app; `pa app push --solution-id 498e4ec8-…` or portal, runbook §1)
+- [x] **Add the Code App to the solution** (done via portal — solution now holds the 10 tables /
+      5 choices / 2 roles + the Code App `d4f0731a-…`; the `0x80048105` share error was on the
+      app-sharing step, not solution membership, so the component landed)
 - [ ] Configure production connections (runbook §6)
 - [ ] Load statutory contribution/tax configuration (Config Migration tool — **schema doesn't
       carry rows**, runbook §5)
