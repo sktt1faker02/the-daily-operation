@@ -3,10 +3,26 @@
  * links into each period's detail. Loading / Empty / Error / Success states.
  * Authorization is enforced in Dataverse, not this UI (CLAUDE.md "Security").
  */
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, Archive, ArchiveRestore, Loader2, Plus, Wallet } from "lucide-react"
+import {
+  type ColumnDef,
+  type Table as TableInstance,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import {
+  AlertCircle,
+  Archive,
+  ArchiveRestore,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Wallet,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -35,6 +51,40 @@ import {
 import { CreatePeriodDialog } from "@/features/payroll/create-period-dialog"
 import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import type { PayrollPeriod } from "@/features/payroll/types"
+
+/** Prev/Next page controls, shown only when the table has more than one page. */
+function TablePagination({ table }: { table: TableInstance<PayrollPeriod> }) {
+  if (table.getPageCount() <= 1) return null
+  return (
+    <div className="flex items-center justify-end gap-4">
+      <p className="text-sm text-muted-foreground">
+        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+      </p>
+      <div className="flex gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="size-4" aria-hidden />
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+          aria-label="Next page"
+        >
+          Next
+          <ChevronRight className="size-4" aria-hidden />
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 export default function PayrollDashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -69,6 +119,24 @@ export default function PayrollDashboardPage() {
   }
 
   const archived = archivedQuery.data ?? []
+
+  // Client-side pagination for the active periods list (10 rows/page). Columns are
+  // a stub — rows render with custom markup below; the table only drives paging.
+  const columns = useMemo<ColumnDef<PayrollPeriod>[]>(() => [{ id: "period" }], [])
+  const table = useReactTable({
+    data: periods ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
+  })
+  const archivedTable = useReactTable({
+    data: archived,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
+  })
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-6">
@@ -124,60 +192,67 @@ export default function PayrollDashboardPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Period</TableHead>
-                <TableHead>Start</TableHead>
-                <TableHead>End</TableHead>
-                <TableHead>Pay date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {periods.map((p) => (
-                <TableRow
-                  key={p.a365_payrollperiodid}
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/payroll/${p.a365_payrollperiodid}`)}
-                >
-                  <TableCell className="font-medium">
-                    <Link
-                      to={`/payroll/${p.a365_payrollperiodid}`}
-                      className="text-primary hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {p.a365_name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
-                  <TableCell>{formatDate(p.a365_periodend)}</TableCell>
-                  <TableCell>{formatDate(p.a365_paydate)}</TableCell>
-                  <TableCell>
-                    <PayrollStatusBadge status={p.a365_payrollstatus} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setPendingArchive(p)
-                      }}
-                      aria-label={`Archive ${p.a365_name}`}
-                    >
-                      <Archive className="size-3.5" aria-hidden />
-                      Archive
-                    </Button>
-                  </TableCell>
+        <div className="space-y-3">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>End</TableHead>
+                  <TableHead>Pay date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => {
+                  const p = row.original
+                  return (
+                    <TableRow
+                      key={p.a365_payrollperiodid}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/payroll/${p.a365_payrollperiodid}`)}
+                    >
+                      <TableCell className="font-medium">
+                        <Link
+                          to={`/payroll/${p.a365_payrollperiodid}`}
+                          className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {p.a365_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
+                      <TableCell>{formatDate(p.a365_periodend)}</TableCell>
+                      <TableCell>{formatDate(p.a365_paydate)}</TableCell>
+                      <TableCell>
+                        <PayrollStatusBadge status={p.a365_payrollstatus} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPendingArchive(p)
+                          }}
+                          aria-label={`Archive ${p.a365_name}`}
+                        >
+                          <Archive className="size-3.5" aria-hidden />
+                          Archive
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <TablePagination table={table} />
         </div>
       )}
 
@@ -204,31 +279,35 @@ export default function PayrollDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {archived.map((p) => (
-                  <TableRow key={p.a365_payrollperiodid} className="text-muted-foreground">
-                    <TableCell className="font-medium text-foreground">{p.a365_name}</TableCell>
-                    <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
-                    <TableCell>{formatDate(p.a365_periodend)}</TableCell>
-                    <TableCell>{formatDate(p.a365_paydate)}</TableCell>
-                    <TableCell>
-                      <PayrollStatusBadge status={p.a365_payrollstatus} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPendingUnarchive(p)}
-                        aria-label={`Unarchive ${p.a365_name}`}
-                      >
-                        <ArchiveRestore className="size-3.5" aria-hidden />
-                        Unarchive
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {archivedTable.getRowModel().rows.map((row) => {
+                  const p = row.original
+                  return (
+                    <TableRow key={p.a365_payrollperiodid} className="text-muted-foreground">
+                      <TableCell className="font-medium text-foreground">{p.a365_name}</TableCell>
+                      <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
+                      <TableCell>{formatDate(p.a365_periodend)}</TableCell>
+                      <TableCell>{formatDate(p.a365_paydate)}</TableCell>
+                      <TableCell>
+                        <PayrollStatusBadge status={p.a365_payrollstatus} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPendingUnarchive(p)}
+                          aria-label={`Unarchive ${p.a365_name}`}
+                        >
+                          <ArchiveRestore className="size-3.5" aria-hidden />
+                          Unarchive
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
+          <TablePagination table={archivedTable} />
         </section>
       )}
 

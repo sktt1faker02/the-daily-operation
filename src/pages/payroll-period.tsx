@@ -35,6 +35,10 @@ import { PayrollEntryTable } from "@/features/payroll/payroll-entry-table"
 import { PayrollAuditTrail } from "@/features/payroll/payroll-audit-trail"
 import { PayrollEntryDialog } from "@/features/payroll/payroll-entry-dialog"
 import { sumEntryTotals } from "@/features/payroll/period-utils"
+import { toPayslipDocument } from "@/features/payroll/payslip-data"
+import { openPayslip } from "@/features/payroll/payslip-document"
+import { employeeService } from "@/features/employees/employee-service"
+import { usePositions } from "@/features/employees/use-reference-data"
 import { isPeriodEditable, PayrollStatus, payrollStatusLabel, type PayrollEntry } from "@/features/payroll/types"
 import { nextActions, ACTION_TARGET, type PayrollAction } from "@/features/payroll/payroll-status-machine"
 import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll-status"
@@ -49,6 +53,7 @@ export default function PayrollPeriodPage() {
   const [confirmCopyOpen, setConfirmCopyOpen] = useState(false)
   const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false)
   const [calculatingId, setCalculatingId] = useState<string | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
   const archive = useArchivePeriod()
 
@@ -60,6 +65,7 @@ export default function PayrollPeriodPage() {
   const calcEntry = useCalculateEntry()
   const calcPeriod = useCalculatePeriod(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
+  const { data: positions } = usePositions()
 
   const ACTION_META: Record<
     PayrollAction,
@@ -117,6 +123,39 @@ export default function PayrollPeriodPage() {
   }, [entries.data, search])
 
   const editable = isPeriodEditable(period.data?.a365_payrollstatus)
+  // Payslips become available once the Admin has finalized the cutoff
+  // (Mark Ready / Paid / Locked); Draft/Processing show Edit/Recalculate instead.
+  const status = period.data?.a365_payrollstatus
+  const canViewPayslip =
+    status === PayrollStatus.Ready ||
+    status === PayrollStatus.Paid ||
+    status === PayrollStatus.Locked
+
+  const handleViewPayslip = async (entry: PayrollEntry) => {
+    // Open the tab inside the click gesture so the async fetch below doesn't
+    // trip the pop-up blocker.
+    const win = window.open("", "_blank")
+    if (!period.data || !entry._a365_employee_value) {
+      win?.close()
+      toast.error("Cannot open payslip: missing employee or period information.")
+      return
+    }
+    setViewingId(entry.a365_payrollentryid)
+    try {
+      const employee = await employeeService.get(entry._a365_employee_value)
+      const positionName =
+        positions?.find((p) => p.a365_positionid === employee._a365_position_value)?.a365_name ??
+        null
+      await openPayslip(toPayslipDocument(employee, period.data, entry, positionName), win)
+    } catch (err) {
+      win?.close()
+      toast.error("Unable to prepare the payslip.", {
+        description: err instanceof Error ? err.message : undefined,
+      })
+    } finally {
+      setViewingId(null)
+    }
+  }
 
   const requireSystemUser = (): string | null => {
     if (!systemUser.data) {
@@ -386,6 +425,8 @@ export default function PayrollPeriodPage() {
             onRecalculate={handleRecalculateEntry}
             calculatingId={calculatingId}
             editable={editable}
+            onViewPayslip={canViewPayslip ? handleViewPayslip : undefined}
+            viewingId={viewingId}
           />
           <p className="text-xs text-muted-foreground">
             Withholding tax is entered manually per employee in Edit; other deductions are calculated.

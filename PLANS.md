@@ -2,5 +2,6 @@
 
 # Requirements
 
-- Implement Phase 9 what enough need to be audited, no need track approval
-- No need for approval for now because there's only 1 admin so there's no approval for the payroll on this project
+- Implement Phase 11
+- No need sharepoint document library for this project for now, just generating pdf
+- is it possible to mimick the payslip at docs\Payslip 20260331 Michael Tabilin.pdf Suggest better filename

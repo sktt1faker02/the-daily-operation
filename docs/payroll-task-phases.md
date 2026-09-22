@@ -122,8 +122,8 @@ for payroll processing.
 - [x] Add Total Deductions (`a365_totaldeductions`)
 - [x] Add Net Pay (`a365_netpay`)
 - [~] Consider separate Payroll Earning and Payroll Deduction tables — **decided
-      against for V1**: variable pay is lump-sum columns on the entry
-      (spec §2.5). Revisit only if itemized lines are needed later.
+  against for V1**: variable pay is lump-sum columns on the entry
+  (spec §2.5). Revisit only if itemized lines are needed later.
 
 ### Deliverable
 
@@ -259,8 +259,8 @@ information.
       changing URLs/IDs (payslip resolved only from the caller's own visible
       payslips; unknown/foreign id → "not available")
 - [~] Test employee record-level security (visibility rule unit-tested in
-      `my-payroll.test.ts`; direct Dataverse record-access testing stays in
-      Phase 12 §11, as it is data-layer enforced)
+  `my-payroll.test.ts`; direct Dataverse record-access testing stays in
+  Phase 12 §11, as it is data-layer enforced)
 
 ### Deliverable
 
@@ -275,8 +275,8 @@ Employees can securely view their own payslips and payroll history.
 ### Tasks
 
 - [~] Enable appropriate Dataverse auditing (native table/column auditing is an
-      environment config step — enable on the payroll tables in Dev/Prod; the app
-      does not rebuild it)
+  environment config step — enable on the payroll tables in Dev/Prod; the app
+  does not rebuild it)
 - [x] Track payroll Created By / Created At (standard `createdby`/`createdon`)
 - [x] Track Updated By / Updated At (standard `modifiedby`/`modifiedon`)
 - [x] Track Calculated By / Calculated At (`a365_CalculatedBy`/`a365_calculatedon`, Phase 5)
@@ -284,8 +284,8 @@ Employees can securely view their own payslips and payroll history.
 - [~] Track Approved By / Approved At — **N/A in V1**: one admin, no approval stage (PLANS.md)
 - [x] Track Paid By / Paid At (`a365_paidby`/`a365_paidon`, Phase 7)
 - [~] Track significant salary and deduction changes (delegated to Dataverse
-      native column auditing rather than an in-app field-diff log — YAGNI for a
-      one-admin org)
+  native column auditing rather than an in-app field-diff log — YAGNI for a
+  one-admin org)
 - [x] Define rules for payroll deletion (periods archive/deactivate, never hard delete;
       entries are Restrict-protected — security-model §7)
 - [x] Define adjustment/correction procedure (audited Unlock → Processing, Phase 7)
@@ -314,9 +314,9 @@ history.
 - [x] Copy Basic Pay
 - [x] Copy recurring Allowances
 - [~] Copy recurring earnings/deductions where appropriate — **only Basic Pay +
-      Allowances are treated as recurring in V1**. Other Earnings / Other Deductions,
-      unpaid leave, and manual withholding tax are per-cutoff and reset to blank
-      (CLAUDE.md "do not blindly copy one-time adjustments")
+  Allowances are treated as recurring in V1**. Other Earnings / Other Deductions,
+  unpaid leave, and manual withholding tax are per-cutoff and reset to blank
+  (CLAUDE.md "do not blindly copy one-time adjustments")
 - [x] Keep copied entries editable (created into the Draft/Processing period)
 - [x] Do not blindly copy calculated statutory deductions (calculated columns left blank)
 - [x] Recalculate SSS
@@ -324,8 +324,8 @@ history.
 - [x] Recalculate HDMF
 - [x] Recalculate Withholding Tax
 - [x] Recalculate Net Pay
-      *(copy auto-recalculates the period after creating entries, so it lands with statutory
-      deductions and net pay computed; the Admin can still edit and re-run "Calculate all")*
+      _(copy auto-recalculates the period after creating entries, so it lands with statutory
+      deductions and net pay computed; the Admin can still edit and re-run "Calculate all")_
 - [x] Handle employees hired/terminated between periods (new hires get default basic pay;
       terminated/now-inactive employees are excluded; re-runs skip employees already present)
 
@@ -343,20 +343,26 @@ document storage.
 
 ### Tasks
 
-- [ ] Design payslip document template
-- [ ] Generate payslip PDF
-- [ ] Create SharePoint payroll/payslip document structure
-- [ ] Store generated payslips in SharePoint
-- [ ] Associate SharePoint document reference with Payroll Entry
-- [ ] Apply appropriate SharePoint permissions
-- [ ] Add View/Download Payslip action
-- [ ] Define document naming convention
-- [ ] Test document access as Employee and Admin
+- [x] Design payslip document template (`payslip-document.ts`
+      `buildPayslipDocDefinition` — a pdfmake definition mirroring
+      `docs/Payslip 20260331 Michael Tabilin.pdf`: logo/company header, info grid,
+      Earnings/Deductions table, signature blocks)
+- [x] Generate payslip PDF (genuine vector PDF via `pdfmake`; the library + font VFS
+      are lazy-loaded on demand so they don't bloat the initial bundle)
+- [x] Add View Payslip action (`openPayslip` opens the real PDF in a new tab / the
+      browser's PDF viewer, with its own download — on the employee payslip page
+      `src/pages/payslip.tsx` and in the admin payroll-entry dialog)
+- [x] Define document naming convention (`payslipFileName` →
+      `Payslip_<periodEnd>_<empno>_<Last-First>`, set as the PDF's document title)
+- [~] Test document access as Employee and Admin (access stays Dataverse-enforced —
+  the payslip only renders data the caller can already read; covered in Phase 12 §11)
+- [~] SharePoint document storage — **deferred (out of scope for now, PLANS.md)**:
+  V1 generates the PDF on demand; no SharePoint library is provisioned yet.
 
 ### Deliverable
 
-Approved payroll can produce employee payslip documents stored securely
-in SharePoint.
+Approved payroll can produce a formal employee payslip PDF on demand
+(SharePoint storage deferred — see the note above).
 
 ---
 
@@ -379,13 +385,9 @@ experience before production.
 - [ ] Test payroll locking
 - [ ] Test employee-only access
 - [ ] Test Payroll Admin access
-- [ ] Test Payroll Approver access
 - [ ] Test direct URL/record access attempts
-- [ ] Test SharePoint document permissions
 - [ ] Test empty/missing payroll data
 - [ ] Test terminated/inactive employees
-- [ ] Conduct User Acceptance Testing (UAT)
-- [ ] Resolve UAT findings
 
 ### Deliverable
 

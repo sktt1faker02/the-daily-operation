@@ -6,7 +6,7 @@
  * employee's payslip by changing the URL. Dataverse enforces this underneath.
  */
 import { Link, useParams } from "react-router-dom"
-import { AlertCircle, ArrowLeft } from "lucide-react"
+import { AlertCircle, ArrowLeft, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,11 +15,15 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { PayslipBreakdown } from "@/features/payroll/payslip-breakdown"
 import { useMyPayslips } from "@/features/payroll/hooks/use-my-payroll"
 import { useCurrentEmployee } from "@/features/payroll/hooks/use-current-employee"
+import { usePositions } from "@/features/employees/use-reference-data"
+import { toPayslipDocument } from "@/features/payroll/payslip-data"
+import { openPayslip } from "@/features/payroll/payslip-document"
 
 export default function PayslipPage() {
   const { entryId = "" } = useParams()
   const { data, isPending, isError, error, refetch } = useMyPayslips()
   const employee = useCurrentEmployee()
+  const { data: positions } = usePositions()
 
   const slip = data?.find((s) => s.entry.a365_payrollentryid === entryId)
 
@@ -70,7 +74,23 @@ export default function PayslipPage() {
                 {slip.period.a365_name}
               </p>
             </div>
-            <PayrollStatusBadge status={slip.period.a365_payrollstatus} />
+            <div className="flex items-center gap-2">
+              <PayrollStatusBadge status={slip.period.a365_payrollstatus} />
+              {employee.data &&
+                (() => {
+                  const emp = employee.data
+                  const positionName =
+                    positions?.find((p) => p.a365_positionid === emp._a365_position_value)
+                      ?.a365_name ?? null
+                  const doc = toPayslipDocument(emp, slip.period, slip.entry, positionName)
+                  return (
+                    <Button variant="outline" size="sm" onClick={() => openPayslip(doc)}>
+                      <FileText className="size-4" aria-hidden />
+                      View Payslip
+                    </Button>
+                  )
+                })()}
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             {formatDate(slip.period.a365_periodstart)} – {formatDate(slip.period.a365_periodend)} ·

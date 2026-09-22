@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { Calculator, Loader2, Pencil } from "lucide-react"
+import { Calculator, FileText, Loader2, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -36,12 +36,18 @@ export function PayrollEntryTable({
   onRecalculate,
   calculatingId,
   editable,
+  onViewPayslip,
+  viewingId,
 }: {
   entries: PayrollEntry[]
   onEdit: (entry: PayrollEntry) => void
   onRecalculate: (entry: PayrollEntry) => void
   calculatingId: string | null
   editable: boolean
+  /** When provided, a "View Payslip" action is shown (finalized periods only). */
+  onViewPayslip?: (entry: PayrollEntry) => void
+  /** Id of the entry whose payslip is currently being prepared. */
+  viewingId?: string | null
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -94,8 +100,29 @@ export function PayrollEntryTable({
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => {
           const entry = row.original
+          if (!editable) {
+            if (!onViewPayslip) return null
+            const isViewing = viewingId === entry.a365_payrollentryid
+            return (
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewPayslip(entry)}
+                  disabled={isViewing}
+                  aria-label={`View payslip for ${entry.a365_employeename ?? "employee"}`}
+                >
+                  {isViewing ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <FileText className="size-3.5" aria-hidden />
+                  )}
+                  View Payslip
+                </Button>
+              </div>
+            )
+          }
           const isCalculating = calculatingId === entry.a365_payrollentryid
-          if (!editable) return null
           return (
             <div className="flex justify-end gap-1">
               <Button
@@ -126,7 +153,7 @@ export function PayrollEntryTable({
         },
       },
     ],
-    [onEdit, onRecalculate, calculatingId, editable],
+    [onEdit, onRecalculate, calculatingId, editable, onViewPayslip, viewingId],
   )
 
   const table = useReactTable({
