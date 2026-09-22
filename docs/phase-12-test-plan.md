@@ -1,0 +1,109 @@
+# Phase 12 — Testing & QA Plan
+
+**Milestone:** Payroll V1  ·  **Scope:** verify calculations, workflow, security, and UX before production.
+
+Each case says **how** it is verified:
+
+- **AUTO** — a Vitest unit/integration test in the repo. Run `npm test`.
+- **E2E** — a UI flow driven in the real app. Needs the app running and a signed-in
+  user; can be walked with the Playwright Agent CLI (see §3). The maker logs in;
+  assertions can then be driven step by step.
+- **MANUAL/SECURITY** — a data-layer check that must be done as *real users with real
+  Dataverse roles*. Cannot be simulated from the app UI or from unit tests, because the
+  boundary is Dataverse security, not the React app (see `docs/security-model.md`).
+
+> Why the split: per CLAUDE.md and the security model, authorization is enforced by
+> Dataverse security roles / record ownership, **not** by the UI. So "Employee A cannot
+> see Employee B" can only be proven by signing in as those users (or calling the Web API
+> as them) — a green unit test or a hidden button proves nothing about the real boundary.
+
+---
+
+## 1. Automated (Vitest) — run `npm test`
+
+| Phase 12 item | Covered by |
+|---|---|
+| Unit-test payroll calculations | `services/payroll-calculation.test.ts` (golden fixture + edges) |
+| SSS scenarios | `payroll-calculation.test.ts` — SSS = 875.00 (top MSC), missing-config throws |
+| PhilHealth scenarios | `payroll-calculation.test.ts` — 537.50 |
+| HDMF scenarios | `payroll-calculation.test.ts` — 100.00 (cap) |
+| Withholding tax scenarios | `payroll-calculation.test.ts` — manual WHT passthrough, zero honored |
+| Unpaid leave scenarios | `payroll-calculation.test.ts` — daily rate = monthly/22 reduces gross |
+| Allowances | `period-utils.test.ts` (load/copy) + gross in calc |
+| Payroll copying | `period-utils.test.ts` — `planCopyEntries` (recurring copied, one-time reset) |
+| Payroll locking / transitions | `payroll-status-machine.test.ts` — forward flow, unlock, **illegal jumps rejected** |
+| Employee-only access (visibility) | `services/my-payroll.test.ts` — only Paid/Locked; foreign/unlinked dropped |
+| Payroll Admin vs Employee nav | `access.test.ts` — `deriveAccess` (role, fallback) |
+| Empty / missing payroll data | `period-utils.test.ts` (empty plans) + calc missing-config throw |
+| Terminated / inactive employees | `period-utils.test.ts` — inactive excluded from copy/load |
+| Payslip document | `payslip-document.test.ts` — amounts, derived rates, filename, signatory |
+
+**Payroll Approver** items in the phase list are **N/A** — V1 has no approver role.
+**SharePoint document permissions** are **N/A for now** — document storage is deferred
+(Phase 11 generates the PDF on demand; no SharePoint library provisioned).
+
+---
+
+## 2. Security / record-level tests (MANUAL — must be run as real users)
+
+Prerequisites: two Dataverse users — one in **A365 - Payroll Admin**, one in
+**A365 - Payroll Employee** linked to an Employee record (Employee A). A second
+employee record (Employee B) must exist.
+
+| # | Case | Steps | Expected |
+|---|---|---|---|
+| S1 | Employee A cannot read Employee B's payroll | Sign in as Employee A. In the browser devtools console (or the Web API), request Employee B's payroll entry: `GET /api/data/v9.2/a365_payrollentries(<B-entry-id>)`. | **403 / no record** — Dataverse denies the read (owner/role scoped). |
+| S2 | Employee cannot open another's payslip by URL | As Employee A, open `/my-payroll/<B-entry-id>` directly. | "Payslip not available" — the id isn't in A's visible set, and the record read is denied underneath. |
+| S3 | Employee cannot finalize payroll | As Employee A, attempt `PATCH a365_payrollperiods(<id>)` setting `a365_payrollstatus` to Ready/Paid. | **403** — employee lacks write privilege on payroll periods. |
+| S4 | Employee cannot mark payroll paid | Same as S3 with Paid. | **403**. |
+| S5 | Employee cannot alter payroll via direct request | As Employee A, `PATCH a365_payrollentries(<own or other>)` changing `a365_basicpay`. | **403 / denied** — entries are admin-writable only. |
+| S6 | Locked payroll cannot be modified normally | As Admin, on a **Locked** period, attempt to edit an entry via the Web API `PATCH`. | Denied by the `ProtectFinalizedPayroll` plug-in (server-side), not just the UI. |
+| S7 | Payroll Admin has intended permissions | As Admin, create period → load employees → edit → calculate → Mark Ready → Paid → Lock. | All succeed. |
+
+> S1–S6 are the **"security testing must include direct record/data access, not only
+> hidden buttons"** requirement. A passing result requires the *denial* to come from
+> Dataverse, observed while signed in as the low-privilege user.
+
+---
+
+## 3. End-to-end UI flows (E2E — app running + signed in)
+
+Run the app (`pa app run`, or `npm run dev` + the Power Apps host) and sign in. Drive with
+the Playwright Agent CLI:
+
+```bash
+# start / attach a browser session (maker completes the Entra login)
+playwright-cli open <app-url>
+# then drive assertions, e.g.
+playwright-cli snapshot
+playwright-cli find "View Payslip"
+playwright-cli click "View Payslip"
+```
+
+| # | Flow | Check |
+|---|---|---|
+| E1 | Admin: create cutoff → load employees → edit inputs → Calculate all | Gross / deductions / net populate; toasts on success. |
+| E2 | Admin: Mark Ready → Mark Paid → Lock | Status badge advances; audit trail records who/when; edit controls disappear once finalized. |
+| E3 | Admin: **View Payslip** appears only when Ready/Paid/Locked | In Draft/Processing the row shows Edit/Recalculate; after Mark Ready the row shows **View Payslip**, which opens the PDF. |
+| E4 | Copy previous cutoff | New period copies Basic Pay + Allowances, resets one-time inputs, recalculates. |
+| E5 | Employee portal: My Payroll | Employee sees only their own Paid/Locked payslips and history; opens their payslip PDF. |
+| E6 | Payslip PDF content | PDF matches the reference: header/logo, info grid, earnings/deductions, net pay, signatory. |
+| E7 | Loading / empty / error states | Empty period shows the empty state; list pagination (10/page) appears past 10 rows. |
+
+---
+
+## 4. UAT sign-off (MANUAL)
+
+Walk a full cutoff end to end with the Payroll Admin, confirm calculated figures against a
+known-good payslip, generate payslips, and record findings. Resolve findings, then check the
+**Definition of Done — Payroll V1** list at the bottom of `payroll-task-phases.md`.
+
+---
+
+## What I (the assistant) can and cannot run
+
+- **Can:** the whole of §1 (`npm test`), and drive §3 step-by-step **once you have the app
+  running and are logged in** (I can issue the Playwright CLI commands and read the snapshots).
+- **Cannot:** complete the Entra/Power Apps login, and cannot perform §2 or §4 — those need
+  real user accounts with real Dataverse roles. Those are yours to run; the steps above are
+  written so you can execute them directly.

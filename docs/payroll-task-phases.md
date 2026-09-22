@@ -373,26 +373,35 @@ experience before production.
 
 ### Tasks
 
-- [ ] Unit-test payroll calculations
-- [ ] Test SSS scenarios
-- [ ] Test PhilHealth scenarios
-- [ ] Test HDMF scenarios
-- [ ] Test withholding tax scenarios
-- [ ] Test unpaid leave scenarios
-- [ ] Test allowances
-- [ ] Test payroll copying
-- [ ] Test payroll approval
-- [ ] Test payroll locking
-- [ ] Test employee-only access
-- [ ] Test Payroll Admin access
-- [ ] Test direct URL/record access attempts
-- [ ] Test empty/missing payroll data
-- [ ] Test terminated/inactive employees
+> Full case-by-case plan (automated vs manual vs E2E) in `docs/phase-12-test-plan.md`.
+> Automated coverage runs with `npm test`; security/UAT items are run by the maker as
+> real users because the boundary is Dataverse, not the UI.
+
+- [x] Unit-test payroll calculations (`services/payroll-calculation.test.ts`)
+- [x] Test SSS scenarios (golden 875.00 + missing-config throw)
+- [x] Test PhilHealth scenarios (537.50)
+- [x] Test HDMF scenarios (100.00 cap)
+- [x] Test withholding tax scenarios (manual passthrough + zero honored)
+- [x] Test unpaid leave scenarios (daily = monthly/22 reduces gross)
+- [x] Test allowances (load/copy plans + gross)
+- [x] Test payroll copying (`period-utils.test.ts` `planCopyEntries`)
+- [~] Test payroll approval — **N/A in V1** (no approver role)
+- [x] Test payroll locking (status machine: forward flow, unlock, illegal jumps rejected)
+- [x] Test employee-only access — *visibility rule* (`my-payroll.test.ts`); the
+      *data-layer* boundary is manual (test plan §2, S1–S2)
+- [x] Test Payroll Admin access — *nav gating* (`access.test.ts`); full admin flow is E2E (§3 E1–E4)
+- [~] Test direct URL/record access attempts — logic covered (foreign id → not found);
+      the real check is manual as the low-privilege user (test plan §2, S1–S5)
+- [x] Test empty/missing payroll data (empty plans + missing-config throw)
+- [x] Test terminated/inactive employees (excluded from load/copy)
+- [ ] Security / UAT execution (manual, as real Dataverse users) — see `docs/phase-12-test-plan.md`
+      §2–§4; **awaiting maker run**
 
 ### Deliverable
 
 Payroll module passes calculation, workflow, security, and UAT
-requirements.
+requirements. Automated suite green; security and UAT execution tracked in
+`docs/phase-12-test-plan.md`.
 
 ---
 
