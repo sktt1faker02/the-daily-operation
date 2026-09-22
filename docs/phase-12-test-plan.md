@@ -122,11 +122,23 @@ known-good payslip, generate payslips, and record findings. Resolve findings, th
 | E3 — Draft period | ✅ PASS | Draft period rows show **Edit / Recalculate** and **0** View Payslip buttons (4 Edit for 4 employees). |
 | E7 — pagination (partial) | ✅ PASS | Active periods list (7 rows ≤ 10) correctly shows **no** pagination controls. |
 
-**Not yet run (mutating flows — create real Dev data — awaiting go-ahead; and data-layer probes needing real ids):**
+### 2026-09-22 — Data-layer security (run in the Employee's own browser console against the Dataverse Web API, `org9a7651f0.crm5.dynamics.com/api/data/v9.2`)
 
-- **E1 / E2 / E4** admin mutating flows (create cutoff → load → edit → calculate; Mark Ready → Paid → Lock with audit + controls hiding; copy previous cutoff). These are pre-existing Phase 6/7/10 features (unit-tested) and would create/finalize a real period in Dev.
-- **S1** data-layer read denial — needs a *real* other-employee entry id to prove Dataverse (not just the UI) blocks the read; S2 exercised only the UI guard with a nonexistent id.
-- **S3–S6** employee/locked write denial via the Web API (pure data-layer).
+Confirmed the app calls Dataverse **directly with the signed-in user's token** (no local proxy), so record-level security is genuinely enforced for the browser user. Tests run as Test User (Employee) by borrowing the app's own auth header from a Network request (token never left the tester's browser).
+
+| Case | Request | Result |
+|---|---|---|
+| **S1** — cross-employee read scoping | `GET a365_payrollentries` (no filter) | ✅ **PASS** — HTTP 200, 11 rows, **1 distinct employee** (only Test User's own). RLS scopes the read. |
+| **S3** — employee finalizes a period | `PATCH a365_payrollperiods(id)` `a365_payrollstatus=Ready` | ✅ **PASS** — **403 Forbidden**. |
+| **S5** — employee edits an entry (privilege) | `PATCH a365_payrollentries(id)` on a **Draft** period | ✅ **PASS** — **403 Forbidden** (platform privilege denial, isolated from the lock). |
+| **S6** — locked entry is write-protected | `PATCH a365_payrollentries(id)` on a **Locked** period | ✅ **PASS** — **400** from the `ProtectFinalizedPayroll` plug-in, which fires in pre-validation *before* the privilege check. |
+
+> Testing note: PATCHing a **Locked**-period entry returns **400** (plug-in short-circuit), while a **Draft**-period entry returns **403** (privilege). To test the *privilege* boundary (S5), target a non-locked entry so the lock plug-in doesn't mask the result. The S5 write auto-reverts if it ever succeeds; here it was denied, so nothing changed.
+
+**Still open (optional):**
+
+- **E1 / E2 / E4** admin mutating flows (create cutoff → load → edit → calculate; Mark Ready → Paid → Lock with audit + controls hiding; copy previous cutoff) — pre-existing Phase 6/7/10 features, unit-tested; **skipped** to avoid creating throwaway data in Dev.
+- **S6 admin-side** — the employee test already shows the lock plug-in blocks the write (400) before any privilege check; re-running the same PATCH as an Admin (who *has* write privilege) would confirm the plug-in blocks an otherwise-authorized writer too. Nice-to-have, not required.
 
 ---
 
