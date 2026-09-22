@@ -50,9 +50,9 @@ export function UserPicker({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between font-normal"
+            className="flex-1 min-w-0 justify-between font-normal"
           >
-            <span className={selected ? "" : "text-muted-foreground"}>{label}</span>
+            <span className={`truncate ${selected ? "" : "text-muted-foreground"}`}>{label}</span>
             {isLoading ? (
               <Loader2 className="size-4 shrink-0 animate-spin opacity-50" aria-hidden />
             ) : (
@@ -103,6 +103,7 @@ export function UserPicker({
           type="button"
           variant="ghost"
           size="icon"
+          className="shrink-0"
           onClick={() => onSelect(null)}
           aria-label="Unlink user"
         >
