@@ -140,11 +140,12 @@ export function DateRangePicker({
           endMonth={END_MONTH}
           autoFocus
           onSelect={(r) => {
+            // Stay open until the user clicks outside (Popover default) so they can
+            // adjust either end of the range before committing.
             onChange({
               start: r?.from ? format(r.from, ISO) : "",
               end: r?.to ? format(r.to, ISO) : "",
             })
-            if (r?.from && r?.to) setOpen(false)
           }}
         />
       </PopoverContent>
