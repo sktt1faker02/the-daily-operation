@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Separator } from "@/components/ui/separator"
 import {
   Select,
@@ -98,6 +99,33 @@ function TextField({
         aria-invalid={error ? true : undefined}
         onChange={(event) => onChange(event.target.value)}
       />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+function DateField({
+  id,
+  label,
+  value,
+  onChange,
+  error,
+  required,
+}: {
+  id: keyof EmployeeFormValues
+  label: string
+  value: string
+  onChange: (value: string) => void
+  error?: string
+  required?: boolean
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
+      <DatePicker id={id} value={value} onChange={onChange} invalid={!!error} />
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
@@ -357,10 +385,10 @@ export function EmployeeFormDialog({
                 value={values.a365_employmenttype} options={EMPLOYMENT_TYPE_OPTIONS}
                 error={errors.a365_employmenttype}
                 onChange={(v) => set("a365_employmenttype", v)} />
-              <TextField id="a365_datehired" label="Date hired" type="date" required
+              <DateField id="a365_datehired" label="Date hired" required
                 value={values.a365_datehired} error={errors.a365_datehired}
                 onChange={(v) => set("a365_datehired", v)} />
-              <TextField id="a365_enddate" label="End date" type="date"
+              <DateField id="a365_enddate" label="End date"
                 value={values.a365_enddate}
                 onChange={(v) => set("a365_enddate", v)} />
             </div>

@@ -15,8 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { DatePicker, DateRangePicker } from "@/components/ui/date-picker"
 import { suggestSemiMonthlyPeriod, formatPeriodName } from "./period-utils"
 import { useCreatePayrollPeriod } from "./hooks/use-payroll-periods"
 
@@ -95,38 +95,23 @@ export function CreatePeriodDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="period-start">
-                Period start<span className="ml-0.5 text-destructive">*</span>
-              </Label>
-              <Input
-                id="period-start"
-                type="date"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="period-end">
-                Period end<span className="ml-0.5 text-destructive">*</span>
-              </Label>
-              <Input
-                id="period-end"
-                type="date"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="period-range">
+              Period (start – end)<span className="ml-0.5 text-destructive">*</span>
+            </Label>
+            <DateRangePicker
+              id="period-range"
+              start={start}
+              end={end}
+              onChange={(r) => {
+                setStart(r.start)
+                setEnd(r.end)
+              }}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pay-date">Pay date</Label>
-            <Input
-              id="pay-date"
-              type="date"
-              value={payDate}
-              onChange={(e) => setPayDate(e.target.value)}
-            />
+            <DatePicker id="pay-date" value={payDate} onChange={setPayDate} />
           </div>
           {name && (
             <p className="text-sm text-muted-foreground">
