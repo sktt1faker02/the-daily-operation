@@ -128,6 +128,36 @@ Run the go-live checks from `docs/phase-12-test-plan.md`:
 
 ---
 
+## Updating an existing release (subsequent deployments)
+
+The solution holds a **reference** to the Code App (id `d4f0731a-…`), not a copy. A Dev
+`pa app push` updates that one app record **in place**, and a subsequent push **without**
+`--solution-id` leaves solution membership untouched — the app stays in the solution and
+reflects the new version. The solution captures the app's state at **export time**, not at
+push time. So the loop to get changes to Prod is:
+
+```bash
+# 1. Update the app in Dev (still in the solution — no re-add needed)
+npm run build
+pa app push
+
+# 2. Bump the solution version (portal: Solution → Settings → Version, or pac)
+
+# 3. Re-export managed
+pac solution export --name A365_DailyOperations --managed true \
+  --path ./out/A365_DailyOperations_managed.zip
+
+# 4. Import into Prod as an upgrade (holding = stage then upgrade)
+pac auth select --environment <PROD_ENV_URL>
+pac solution import --path ./out/A365_DailyOperations_managed.zip --publish-changes true
+```
+
+Notes:
+- Table/choice/role **schema** changes ride along in the same managed export automatically.
+- New **statutory/tax rows** are data, not schema — re-run the Config Migration step (§5) if
+  the rates change.
+- Take a Prod backup before each upgrade import (§8).
+
 ## Release checklist
 
 - [ ] Code App added to `A365_DailyOperations` (Step 1)
