@@ -18,7 +18,9 @@ const ICONS: Record<AuditEvent["key"], LucideIcon> = {
 }
 
 export function PayrollAuditTrail({ period }: { period: PayrollPeriod }) {
-  const events = buildAuditTrail(period)
+  // Show the most recent change first. ISO timestamps sort chronologically as
+  // strings; descending puts the latest event on top (undated events sink).
+  const events = [...buildAuditTrail(period)].sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
 
   return (
     <Card>
