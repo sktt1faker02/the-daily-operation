@@ -100,6 +100,27 @@ known-good payslip, generate payslips, and record findings. Resolve findings, th
 
 ---
 
+## Run log
+
+### 2026-09-22 — Employee-session E2E (driven via Playwright, signed in as Test User / testuser@automations365.com, an Employee)
+
+| Case | Result | Notes |
+|---|---|---|
+| Nav gating (employee) | ✅ PASS | Lands on "My Payroll" only; no admin sections rendered. |
+| E5 — My Payroll list | ✅ PASS | Shows only this employee's own history; every row Locked/Paid (finalized-only visibility holds). |
+| E6 — payslip detail page | ✅ PASS | Basic 30,000 → Gross 30,000; SSS 875 + PhilHealth 750 + HDMF 100 = Total Deductions 1,725; Net 28,275. |
+| E6 — real PDF | ✅ PASS | Genuine PDF in the browser viewer; filename `Payslip_2026-11-15_A365-EMP-1002_User-Test`; dark logo, no header overlap; "Adrian Celis" centered on the signature line; derived rates correct (60,000/22 = 2,727.27; ÷8 = 340.91). |
+| S2 — direct URL to a foreign id | ✅ PASS (UI guard) | `/my-payroll/00000000-…` → "Payslip not available." Employee cannot open another's payslip by URL. |
+| Console | ✅ clean | The 3 console errors are Power Apps host noise (webplayer host React warning, host `permissions` 403 probe, Graph `/me/photo` 404) — none from the app bundle. |
+
+**Not yet run (need an Admin session or a real foreign record id):**
+
+- **E1–E4** admin flows (create → load → calculate → Mark Ready → Paid → Lock; View Payslip appears only when finalized; copy cutoff).
+- **S1** data-layer read denial — needs a *real* other-employee entry id to prove Dataverse (not just the UI) blocks the read; S2 above only exercised the UI guard with a nonexistent id.
+- **S3–S6** employee/locked write denial via the Web API (pure data-layer).
+
+---
+
 ## What I (the assistant) can and cannot run
 
 - **Can:** the whole of §1 (`npm test`), and drive §3 step-by-step **once you have the app
