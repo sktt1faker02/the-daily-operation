@@ -113,10 +113,19 @@ known-good payslip, generate payslips, and record findings. Resolve findings, th
 | S2 — direct URL to a foreign id | ✅ PASS (UI guard) | `/my-payroll/00000000-…` → "Payslip not available." Employee cannot open another's payslip by URL. |
 | Console | ✅ clean | The 3 console errors are Power Apps host noise (webplayer host React warning, host `permissions` 403 probe, Graph `/me/photo` 404) — none from the app bundle. |
 
-**Not yet run (need an Admin session or a real foreign record id):**
+### 2026-09-22 — Admin-session E2E (driven via Playwright, signed in as Michael Tabilin / michael@automations365.com, Payroll Admin + Employee)
 
-- **E1–E4** admin flows (create → load → calculate → Mark Ready → Paid → Lock; View Payslip appears only when finalized; copy cutoff).
-- **S1** data-layer read denial — needs a *real* other-employee entry id to prove Dataverse (not just the UI) blocks the read; S2 above only exercised the UI guard with a nonexistent id.
+| Case | Result | Notes |
+|---|---|---|
+| Admin nav gating | ✅ PASS | Dashboard shows Overview / Payroll Periods / Employees **and** My Payroll (admin who is also an employee — by design; My Payroll stays own-scoped). |
+| E3 — View Payslip on finalized period | ✅ PASS | Locked period's entry rows show **View Payslip**, which opens the real PDF (new blob tab). |
+| E3 — Draft period | ✅ PASS | Draft period rows show **Edit / Recalculate** and **0** View Payslip buttons (4 Edit for 4 employees). |
+| E7 — pagination (partial) | ✅ PASS | Active periods list (7 rows ≤ 10) correctly shows **no** pagination controls. |
+
+**Not yet run (mutating flows — create real Dev data — awaiting go-ahead; and data-layer probes needing real ids):**
+
+- **E1 / E2 / E4** admin mutating flows (create cutoff → load → edit → calculate; Mark Ready → Paid → Lock with audit + controls hiding; copy previous cutoff). These are pre-existing Phase 6/7/10 features (unit-tested) and would create/finalize a real period in Dev.
+- **S1** data-layer read denial — needs a *real* other-employee entry id to prove Dataverse (not just the UI) blocks the read; S2 exercised only the UI guard with a nonexistent id.
 - **S3–S6** employee/locked write denial via the Web API (pure data-layer).
 
 ---
