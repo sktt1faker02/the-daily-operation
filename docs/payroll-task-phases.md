@@ -52,7 +52,7 @@ securely to Dataverse.
 - [~] Configure approval permissions (no Approver role in V1; status-transition control designed for Phase 7 §8)
 - [~] Restrict deletion of sensitive payroll records (no Delete on payroll tables, designed §7; enforced in Phase 4)
 - [~] Define access to SharePoint payroll documents (designed §9; enforced in Phase 11)
-- [x] Test unauthorized record access (executed in Phase 12: S1 read scoped to own, S3/S5 writes 403, S6 locked-entry blocked — `docs/phase-12-test-plan.md` run log)
+- [ ] Test unauthorized record access (test plan defined §11; executed in Phase 12)
 - [x] Document the payroll security model (`docs/security-model.md`)
 
 ### Deliverable
@@ -387,32 +387,59 @@ experience before production.
 - [x] Test payroll copying (`period-utils.test.ts` `planCopyEntries`)
 - [~] Test payroll approval — **N/A in V1** (no approver role)
 - [x] Test payroll locking (status machine: forward flow, unlock, illegal jumps rejected)
-- [x] Test employee-only access — _visibility rule_ (`my-payroll.test.ts`) **and**
-      data-layer verified as the Employee: read scoped to own records (S1, run log 2026-09-22)
-- [x] Test Payroll Admin access — _nav gating_ (`access.test.ts`) + admin E2E (View Payslip
-      gating, pagination); create/finalize flows (E1/E2/E4) skipped as pre-existing + unit-tested
-- [x] Test direct URL/record access attempts — UI guard (S2, foreign id → "not available")
-      **and** data-layer denials as the Employee: S3 period-status 403, S5 entry-write 403,
-      S6 locked-entry blocked (400 plug-in) — run log 2026-09-22
+- [x] Test employee-only access — *visibility rule* (`my-payroll.test.ts`); the
+      *data-layer* boundary is manual (test plan §2, S1–S2)
+- [x] Test Payroll Admin access — *nav gating* (`access.test.ts`); full admin flow is E2E (§3 E1–E4)
+- [~] Test direct URL/record access attempts — logic covered (foreign id → not found);
+      the real check is manual as the low-privilege user (test plan §2, S1–S5)
 - [x] Test empty/missing payroll data (empty plans + missing-config throw)
 - [x] Test terminated/inactive employees (excluded from load/copy)
-- [x] Security execution (automated + E2E + data-layer as real users) — all denials confirmed;
-      results in `docs/phase-12-test-plan.md` run log (2026-09-22)
-- [~] UAT sign-off — performed with the Payroll Admin at go-live (Phase 13 training/validation)
+- [ ] Security / UAT execution (manual, as real Dataverse users) — see `docs/phase-12-test-plan.md`
+      §2–§4; **awaiting maker run**
 
 ### Deliverable
 
-Payroll module passes calculation, workflow, and security requirements:
-automated suite green, employee/admin E2E verified, and record-level security
-confirmed against Dataverse (S1/S2/S3/S5/S6). UAT sign-off is carried into
-Phase 13 go-live. Full results in `docs/phase-12-test-plan.md`.
+Payroll module passes calculation, workflow, security, and UAT
+requirements. Automated suite green; security and UAT execution tracked in
+`docs/phase-12-test-plan.md`.
 
 ---
+
+## Phase 13 -- Production Deployment
+
+**Goal:** Release the first Payroll milestone safely.
+
+### Tasks
+
+> Full runbook (with the real solution id, exact `pac`/`pa` commands, and post-import
+> data steps) in `docs/deployment.md`. Prep done now; the rest waits on the Prod env.
+
+- [~] Review production security roles (roles ship in the managed solution; **member
+      assignment is per-env** — assigned in Prod, runbook §6)
+- [x] Review environment variables (none defined — `connectionReferences: {}`; no
+      `deployment-settings.json` remap needed on import, runbook §2)
+- [~] Prepare production Dataverse configuration (runbook §3/§5 — awaiting Prod env)
+- [~] Deploy solution to Production (managed export ready; import steps in runbook §2/§4 —
+      awaiting Prod env)
+- [ ] **Add the Code App to the solution** (the gap — solution has the 10 tables / 5 choices /
+      2 roles but not the app; `pa app push --solution-id 498e4ec8-…` or portal, runbook §1)
+- [ ] Configure production connections (runbook §6)
+- [ ] Load statutory contribution/tax configuration (Config Migration tool — **schema doesn't
+      carry rows**, runbook §5)
+- [ ] Load employee master data (fresh in Prod; no Dev test data, runbook §5)
+- [ ] Perform production smoke testing (reuse `docs/phase-12-test-plan.md`, runbook §7)
+- [ ] Validate Employee access
+- [ ] Validate Payroll Admin access
+- [~] Validate Payroll Approver access — **N/A in V1** (no approver role)
+- [x] Document rollback/recovery procedure (`docs/deployment.md` §8)
+- [ ] Train Payroll Admin
+- [ ] Go live
 
 ### Deliverable
 
 Payroll V1 is live in the Automations 365 Daily Operation production
-environment.
+environment. **Deployment prep complete** — see `docs/deployment.md`; execution
+begins once the Production environment is created.
 
 ---
 
