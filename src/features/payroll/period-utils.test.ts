@@ -89,6 +89,12 @@ describe("suggestSemiMonthlyPeriod", () => {
     expect(s.start).toBe("2026-09-16")
     expect(s.end).toBe("2026-09-30")
   })
+  it("defaults the end to the 31st in a 31-day month", () => {
+    const s = suggestSemiMonthlyPeriod("2026-10-20")
+    expect(s.start).toBe("2026-10-16")
+    expect(s.end).toBe("2026-10-31")
+    expect(suggestSemiMonthlyPeriod("2026-01-25").end).toBe("2026-01-31")
+  })
   it("handles February end-of-month", () => {
     const s = suggestSemiMonthlyPeriod("2026-02-18")
     expect(s.start).toBe("2026-02-16")
