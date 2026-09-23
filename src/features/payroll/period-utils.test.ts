@@ -6,6 +6,7 @@ import {
   formatPeriodName,
   planLoadEntries,
   planCopyEntries,
+  planApplyInputs,
   selectPreviousCutoff,
   sumEntryTotals,
   type CopiedInputs,
@@ -240,5 +241,47 @@ describe("sumEntryTotals", () => {
       { a365_grosspay: 15000, a365_totaldeductions: null, a365_netpay: 15000 },
     ] as unknown as PayrollEntry[]
     expect(sumEntryTotals(entries)).toEqual({ gross: 27500, deductions: 1500, net: 26000 })
+  })
+})
+
+describe("planApplyInputs", () => {
+  const period = { id: "P3", name: "Oct 1–15, 2026" }
+  const inputs = (over: Partial<CopiedInputs> = {}): CopiedInputs => ({
+    basicPay: 10000,
+    allowances: 0,
+    otherEarnings: 0,
+    otherDeductions: 0,
+    unpaidLeaveDays: 0,
+    withholdingTax: 0,
+    comment: "",
+    ...over,
+  })
+
+  it("updates employees already present, adds active-and-missing, skips inactive-and-absent", () => {
+    const source = new Map<string, CopiedInputs>([
+      ["A", inputs({ basicPay: 21500, comment: "keep" })], // present -> update
+      ["B", inputs({ basicPay: 15000 })], // active, absent -> create
+      ["C", inputs({ basicPay: 9000 })], // inactive, absent -> skip
+    ])
+    const existing = [{ a365_payrollentryid: "e-A", _a365_employee_value: "A" }]
+    const active = [emp("A", 43000), emp("B", 30000)] // C not active
+    const plan = planApplyInputs(source, existing, active, period)
+
+    expect(plan.updates).toEqual([{ entryId: "e-A", inputs: inputs({ basicPay: 21500, comment: "keep" }) }])
+    expect(plan.creates.map((c) => c.employeeId)).toEqual(["B"])
+    expect(plan.creates[0]).toMatchObject({ basicPay: 15000 })
+    expect(plan.skipped).toBe(1) // C
+  })
+
+  it("leaves period employees not in the source untouched (no update, no create)", () => {
+    const source = new Map<string, CopiedInputs>([["A", inputs()]])
+    const existing = [
+      { a365_payrollentryid: "e-A", _a365_employee_value: "A" },
+      { a365_payrollentryid: "e-Z", _a365_employee_value: "Z" }, // not in source
+    ]
+    const active = [emp("A", 43000), emp("Z", 20000)]
+    const plan = planApplyInputs(source, existing, active, period)
+    expect(plan.updates.map((u) => u.entryId)).toEqual(["e-A"])
+    expect(plan.creates).toEqual([]) // A present, Z untouched
   })
 })

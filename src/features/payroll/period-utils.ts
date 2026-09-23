@@ -154,6 +154,55 @@ export function planCopyEntries(
   })
 }
 
+export interface EntryInputUpdate {
+  entryId: string
+  inputs: CopiedInputs
+}
+
+export interface ApplyInputsPlan {
+  updates: EntryInputUpdate[]
+  creates: NewEntryPlan[]
+  skipped: number
+}
+
+/**
+ * Decide how to apply a set of inputs (keyed by employee) to a period: overwrite
+ * employees already present, add active employees not yet present, skip source
+ * employees who are neither present nor active. Period employees absent from the
+ * source are left untouched. Pure — the service performs the writes.
+ */
+export function planApplyInputs(
+  sourceByEmployee: Map<string, CopiedInputs>,
+  existingEntries: { a365_payrollentryid: string; _a365_employee_value: string | null }[],
+  activeEmployees: Employee[],
+  period: { id: string; name: string },
+): ApplyInputsPlan {
+  const entryIdByEmployee = new Map<string, string>()
+  for (const e of existingEntries) {
+    if (e._a365_employee_value) entryIdByEmployee.set(e._a365_employee_value, e.a365_payrollentryid)
+  }
+
+  const updates: EntryInputUpdate[] = []
+  for (const [employeeId, inputs] of sourceByEmployee) {
+    const entryId = entryIdByEmployee.get(employeeId)
+    if (entryId) updates.push({ entryId, inputs })
+  }
+
+  const existingIds = new Set(entryIdByEmployee.keys())
+  const creates = planLoadEntries(activeEmployees, existingIds, period).map((plan) => {
+    const source = sourceByEmployee.get(plan.employeeId)
+    return source ? { ...plan, ...source } : plan
+  })
+
+  const activeIds = new Set(activeEmployees.map((e) => e.a365_employeeid))
+  let skipped = 0
+  for (const employeeId of sourceByEmployee.keys()) {
+    if (!entryIdByEmployee.has(employeeId) && !activeIds.has(employeeId)) skipped++
+  }
+
+  return { updates, creates, skipped }
+}
+
 /** Roll up period totals from entries, treating nulls as 0. */
 export function sumEntryTotals(entries: PayrollEntry[]): {
   gross: number
