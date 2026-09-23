@@ -335,6 +335,12 @@ export const payrollPeriodService = {
     const { created, updated } = await applyInputsToPeriod(periodId, periodName, sourceByEmployee, active, existing)
     return { created, updated, copiedFrom: source.a365_name, skipped: Math.max(0, active.length - created - updated) }
   },
+
+  /** Create entries from precomputed plans. Exposed so payroll-template-service
+   *  can reuse the shared create logic when applying a template. */
+  async createEntriesFromPlans(periodId: string, plans: NewEntryPlan[]): Promise<number> {
+    return createPlannedEntries(periodId, plans)
+  },
 }
 
 /**

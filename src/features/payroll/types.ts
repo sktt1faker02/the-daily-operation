@@ -8,6 +8,8 @@
 /** Entity set names registered as data sources under `.power/schemas`. */
 export const PAYROLL_PERIOD_TABLE = "a365_payrollperiods"
 export const PAYROLL_ENTRY_TABLE = "a365_payrollentries"
+export const PAYROLL_TEMPLATE_TABLE = "a365_payrolltemplates"
+export const PAYROLL_TEMPLATE_LINE_TABLE = "a365_payrolltemplatelines"
 
 /** `a365_payrollstatus` global choice (see A365_payrollperiodsModel.ts). */
 export const PayrollStatus = {
@@ -160,4 +162,29 @@ export function toEntryInputValues(entry: PayrollEntry): PayrollEntryInputValues
     a365_withholdingtax: numToInput(entry.a365_withholdingtax),
     a365_comment: entry.a365_comment ?? "",
   }
+}
+
+// --- Payroll cutoff templates -------------------------------------------------
+// Templates store payroll entry INPUTS only (never calculated results), so a
+// saved template can be re-applied to a future period and recalculated fresh.
+
+export interface PayrollTemplate {
+  a365_payrolltemplateid: string
+  a365_name: string
+  a365_description: string | null
+  createdon: string
+}
+
+export interface PayrollTemplateLineRow {
+  a365_payrolltemplatelineid: string
+  a365_name: string | null
+  _a365_template_value: string | null
+  _a365_employee_value: string | null
+  a365_basicpay: number | null
+  a365_allowances: number | null
+  a365_otherearnings: number | null
+  a365_otherdeductions: number | null
+  a365_unpaidleavedays: number | null
+  a365_withholdingtax: number | null
+  a365_comment: string | null
 }
