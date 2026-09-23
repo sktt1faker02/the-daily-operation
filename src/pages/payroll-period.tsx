@@ -7,9 +7,10 @@
 import { useMemo, useState } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, Archive, ArrowLeft, Calculator, Copy, Loader2, Search, UserPlus } from "lucide-react"
+import { AlertCircle, Archive, ArrowLeft, Calculator, Copy, Loader2, Save, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
@@ -42,6 +43,7 @@ import { usePositions } from "@/features/employees/use-reference-data"
 import { isPeriodEditable, PayrollStatus, payrollStatusLabel, type PayrollEntry } from "@/features/payroll/types"
 import { nextActions, ACTION_TARGET, type PayrollAction } from "@/features/payroll/payroll-status-machine"
 import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll-status"
+import { useSaveTemplate } from "@/features/payroll/hooks/use-payroll-templates"
 
 export default function PayrollPeriodPage() {
   const { periodId = "" } = useParams()
@@ -52,6 +54,9 @@ export default function PayrollPeriodPage() {
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false)
   const [confirmCopyOpen, setConfirmCopyOpen] = useState(false)
   const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false)
+  const [confirmSaveTemplateOpen, setConfirmSaveTemplateOpen] = useState(false)
+  const [templateName, setTemplateName] = useState("")
+  const [templateDesc, setTemplateDesc] = useState("")
   const [calculatingId, setCalculatingId] = useState<string | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
@@ -65,6 +70,7 @@ export default function PayrollPeriodPage() {
   const calcEntry = useCalculateEntry()
   const calcPeriod = useCalculatePeriod(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
+  const saveTemplate = useSaveTemplate(periodId)
   const { data: positions } = usePositions()
 
   const ACTION_META: Record<
@@ -130,6 +136,7 @@ export default function PayrollPeriodPage() {
     status === PayrollStatus.Ready ||
     status === PayrollStatus.Paid ||
     status === PayrollStatus.Locked
+  const isFinalized = status === PayrollStatus.Paid || status === PayrollStatus.Locked
 
   const handleViewPayslip = async (entry: PayrollEntry) => {
     // Open the tab inside the click gesture so the async fetch below doesn't
@@ -240,6 +247,21 @@ export default function PayrollPeriodPage() {
     setEditorOpen(true)
   }
 
+  const handleSaveTemplate = () => {
+    saveTemplate.mutate(
+      { name: templateName.trim(), description: templateDesc.trim() || null },
+      {
+        onSuccess: ({ lineCount }) => {
+          toast.success(`Template saved with ${lineCount} employee${lineCount === 1 ? "" : "s"}.`)
+          setConfirmSaveTemplateOpen(false)
+          setTemplateName("")
+          setTemplateDesc("")
+        },
+        onError: (err) => toast.error("Unable to save template.", { description: err.message }),
+      },
+    )
+  }
+
   const handleArchive = () => {
     archive.mutate(periodId, {
       onSuccess: () => {
@@ -340,6 +362,16 @@ export default function PayrollPeriodPage() {
                 {ACTION_META[action].label}
               </Button>
             ))}
+            {isFinalized && (
+              <Button
+                variant="outline"
+                onClick={() => setConfirmSaveTemplateOpen(true)}
+                disabled={saveTemplate.isPending}
+              >
+                <Save className="size-4" aria-hidden />
+                Save as template
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setConfirmArchiveOpen(true)} disabled={archive.isPending}>
               <Archive className="size-4" aria-hidden />
               Archive
@@ -486,6 +518,66 @@ export default function PayrollPeriodPage() {
             <Button onClick={handleCopyPrevious} disabled={copyPrevious.isPending}>
               {copyPrevious.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Copy previous cutoff
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmSaveTemplateOpen}
+        onOpenChange={(o) => {
+          setConfirmSaveTemplateOpen(o)
+          if (!o) {
+            setTemplateName("")
+            setTemplateDesc("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save as template</DialogTitle>
+            <DialogDescription>
+              Saves this period's inputs as a reusable template that can be applied to a future
+              cutoff. Statutory results, withholding tax, and net pay are not copied.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label htmlFor="template-name" className="text-sm font-medium">
+                Name
+              </label>
+              <Input
+                id="template-name"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g. Standard semi-monthly"
+                disabled={saveTemplate.isPending}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="template-description" className="text-sm font-medium">
+                Description <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <Textarea
+                id="template-description"
+                value={templateDesc}
+                onChange={(e) => setTemplateDesc(e.target.value)}
+                placeholder="Notes about when to use this template"
+                disabled={saveTemplate.isPending}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmSaveTemplateOpen(false)}
+              disabled={saveTemplate.isPending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTemplate} disabled={saveTemplate.isPending || !templateName.trim()}>
+              {saveTemplate.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
