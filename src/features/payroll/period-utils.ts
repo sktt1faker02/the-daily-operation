@@ -84,6 +84,7 @@ export interface NewEntryPlan {
   otherDeductions: number
   unpaidLeaveDays: number
   withholdingTax: number
+  comment: string
   /** The employee's linked Entra user, so the new entry can be owned by them
    *  (ownership-based access — security-model §4). Null when not linked. */
   systemUserId: string | null
@@ -112,6 +113,7 @@ export function planLoadEntries(
       otherDeductions: 0,
       unpaidLeaveDays: 0,
       withholdingTax: 0,
+      comment: "",
       systemUserId: e._a365_systemuser_value,
     }))
 }
@@ -128,6 +130,7 @@ export interface CopiedInputs {
   otherDeductions: number
   unpaidLeaveDays: number
   withholdingTax: number
+  comment: string
 }
 
 /**

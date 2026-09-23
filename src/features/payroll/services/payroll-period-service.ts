@@ -327,6 +327,7 @@ export const payrollPeriodService = {
           otherDeductions: entry.a365_otherdeductions ?? 0,
           unpaidLeaveDays: entry.a365_unpaidleavedays ?? 0,
           withholdingTax: entry.a365_withholdingtax ?? 0,
+          comment: entry.a365_comment ?? "",
         })
       }
     }
@@ -350,6 +351,7 @@ export const payrollPeriodService = {
           a365_otherdeductions: inputs.otherDeductions,
           a365_unpaidleavedays: inputs.unpaidLeaveDays,
           a365_withholdingtax: inputs.withholdingTax,
+          a365_comment: inputs.comment || null,
         },
       )
       if (!result.success) throw result.error ?? new Error("Unable to update payroll entry during copy.")
@@ -384,6 +386,7 @@ async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Pr
       a365_otherdeductions: plan.otherDeductions,
       a365_unpaidleavedays: plan.unpaidLeaveDays,
       a365_withholdingtax: plan.withholdingTax,
+      a365_comment: plan.comment || null,
     }
     // Own the entry as the employee's linked user so they can read their own
     // payslip at User level (security-model §4). Set at creation, while the

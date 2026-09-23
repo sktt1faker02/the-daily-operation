@@ -192,6 +192,7 @@ describe("planCopyEntries", () => {
         otherDeductions: 300,
         unpaidLeaveDays: 1,
         withholdingTax: 1325,
+        comment: "Recurring note",
       },
     ],
   ])
@@ -206,6 +207,7 @@ describe("planCopyEntries", () => {
       otherDeductions: 300,
       unpaidLeaveDays: 1,
       withholdingTax: 1325,
+      comment: "Recurring note",
     })
   })
 
@@ -220,6 +222,7 @@ describe("planCopyEntries", () => {
       otherDeductions: 0,
       unpaidLeaveDays: 0,
       withholdingTax: 0,
+      comment: "",
     })
   })
 
