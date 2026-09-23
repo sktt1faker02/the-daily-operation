@@ -537,8 +537,11 @@ export default function PayrollPeriodPage() {
           <DialogHeader>
             <DialogTitle>Save as template</DialogTitle>
             <DialogDescription>
-              Saves this period's inputs as a reusable template that can be applied to a future
-              cutoff. Statutory results, withholding tax, and net pay are not copied.
+              Saves this period's per-employee inputs — Basic Pay, Allowances, Other
+              Earnings/Deductions, Unpaid Leave, Withholding Tax, and Comment — as a reusable
+              template you can apply to a future cutoff. Calculated results (gross pay, statutory
+              deductions, and net pay) are not saved; they're recalculated when the template is
+              applied.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
