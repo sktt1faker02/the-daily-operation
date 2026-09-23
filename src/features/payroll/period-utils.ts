@@ -6,7 +6,31 @@
  */
 import { round2 } from "./services/payroll-calculation"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
-import type { PayrollEntry } from "./types"
+import { PayrollStatus, type PayrollEntry } from "./types"
+
+/** Cutoffs settled enough to be a "copy previous cutoff" source. */
+export const FINALIZED_STATUSES = new Set<PayrollStatus>([PayrollStatus.Paid, PayrollStatus.Locked])
+
+/**
+ * Choose the source for "copy previous cutoff": the most recent finalized
+ * (Paid/Locked) period that starts before the target. In-progress periods
+ * (Draft/Processing/Ready) aren't settled, so they're skipped even if they fall
+ * between. Expects `periods` ordered by period start descending (how
+ * listPeriods returns them). Returns null when there's no eligible source. Pure.
+ */
+export function selectPreviousCutoff<
+  T extends { a365_payrollperiodid: string; a365_periodstart: string; a365_payrollstatus: PayrollStatus },
+>(periods: T[], targetId: string): T | null {
+  const target = periods.find((p) => p.a365_payrollperiodid === targetId)
+  return (
+    periods.find(
+      (p) =>
+        p.a365_payrollperiodid !== targetId &&
+        FINALIZED_STATUSES.has(p.a365_payrollstatus) &&
+        (!target || p.a365_periodstart < target.a365_periodstart),
+    ) ?? null
+  )
+}
 
 /** Confirmed rule (spec §2): per-cutoff basic pay = round2(monthly / 2). */
 export function basicPayForCutoff(monthlySalary: number | null | undefined): number {
@@ -59,6 +83,7 @@ export interface NewEntryPlan {
   otherEarnings: number
   otherDeductions: number
   unpaidLeaveDays: number
+  withholdingTax: number
   /** The employee's linked Entra user, so the new entry can be owned by them
    *  (ownership-based access — security-model §4). Null when not linked. */
   systemUserId: string | null
@@ -86,34 +111,43 @@ export function planLoadEntries(
       otherEarnings: 0,
       otherDeductions: 0,
       unpaidLeaveDays: 0,
+      withholdingTax: 0,
       systemUserId: e._a365_systemuser_value,
     }))
 }
 
-/** Recurring inputs carried forward when copying a previous cutoff. */
-export interface RecurringInputs {
+/**
+ * All copyable *input* fields carried forward when copying a previous cutoff.
+ * Calculated results (gross, statutory, total deductions, net) are never copied
+ * — the caller recalculates afterward.
+ */
+export interface CopiedInputs {
   basicPay: number
   allowances: number
+  otherEarnings: number
+  otherDeductions: number
+  unpaidLeaveDays: number
+  withholdingTax: number
 }
 
 /**
  * Plan the entries to create when copying the previous cutoff. Same eligibility
  * as `planLoadEntries` (active employees not already in the period), but each
- * employee present in the source period keeps their recurring inputs (Basic Pay
- * and Allowances) instead of the defaults. Employees hired since the source
- * period fall back to the normal defaults; one-time inputs (unpaid leave, other
- * earnings/deductions, withholding tax) and calculated results are never copied
- * — the caller recalculates afterward. Pure.
+ * employee present in the source period gets ALL their inputs carried forward
+ * (Basic Pay, Allowances, Other Earnings/Deductions, Unpaid Leave days,
+ * Withholding Tax) instead of the defaults — the admin copies then verifies and
+ * adjusts. Employees hired since the source period fall back to the normal
+ * defaults; calculated results are never copied (the caller recalculates). Pure.
  */
 export function planCopyEntries(
   activeEmployees: Employee[],
   existingEmployeeIds: Set<string>,
   period: { id: string; name: string },
-  sourceByEmployee: Map<string, RecurringInputs>,
+  sourceByEmployee: Map<string, CopiedInputs>,
 ): NewEntryPlan[] {
   return planLoadEntries(activeEmployees, existingEmployeeIds, period).map((plan) => {
     const source = sourceByEmployee.get(plan.employeeId)
-    return source ? { ...plan, basicPay: source.basicPay, allowances: source.allowances } : plan
+    return source ? { ...plan, ...source } : plan
   })
 }
 

@@ -7,7 +7,7 @@ import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus } from "@/features/employees/types"
-import { planLoadEntries, planCopyEntries, type NewEntryPlan, type RecurringInputs } from "../period-utils"
+import { planLoadEntries, planCopyEntries, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
 import { canTransition } from "../payroll-status-machine"
 import {
   PAYROLL_PERIOD_TABLE,
@@ -291,19 +291,25 @@ export const payrollPeriodService = {
 
   /**
    * Populate a period by copying the previous cutoff. Source = the most recent
-   * *other* active period. Returning employees keep their recurring inputs
-   * (Basic Pay + Allowances); one-time inputs and calculated results are not
-   * copied — the caller recalculates afterward. Idempotent: employees already
-   * in the target period are skipped. Returns a summary for toast messaging;
-   * `copiedFrom` is null when there is no previous period to copy from.
+   * *finalized* (Paid or Locked) period that starts before the target; in-progress
+   * periods (Draft/Processing/Ready) are skipped, since their inputs aren't
+   * settled. Each returning employee's ALL inputs are carried forward — Basic Pay,
+   * Allowances, Other Earnings, Other Deductions, Unpaid Leave days, and
+   * Withholding Tax — so the admin starts from a full copy and manually adjusts
+   * only what changed. Employees not yet in the period are added; employees
+   * already present are **updated** (overwritten) with the source values.
+   * Calculated results (gross, statutory, total deductions, net) are never copied
+   * — the caller recalculates afterward. Employees absent from the source (e.g.
+   * newly hired) are left untouched. Returns a summary for toast messaging;
+   * `copiedFrom` is null when there is no finalized previous period to copy from.
    */
   async copyFromPreviousCutoff(
     periodId: string,
     periodName: string,
-  ): Promise<{ created: number; copiedFrom: string | null; skipped: number }> {
+  ): Promise<{ created: number; updated: number; copiedFrom: string | null; skipped: number }> {
     const periods = await payrollPeriodService.listPeriods()
-    const source = periods.find((p) => p.a365_payrollperiodid !== periodId)
-    if (!source) return { created: 0, copiedFrom: null, skipped: 0 }
+    const source = selectPreviousCutoff(periods, periodId)
+    if (!source) return { created: 0, updated: 0, copiedFrom: null, skipped: 0 }
 
     const [sourceEntries, active, existing] = await Promise.all([
       payrollPeriodService.listEntries(source.a365_payrollperiodid),
@@ -311,21 +317,51 @@ export const payrollPeriodService = {
       payrollPeriodService.listEntries(periodId),
     ])
 
-    const sourceByEmployee = new Map<string, RecurringInputs>()
+    const sourceByEmployee = new Map<string, CopiedInputs>()
     for (const entry of sourceEntries) {
       if (entry._a365_employee_value) {
         sourceByEmployee.set(entry._a365_employee_value, {
           basicPay: entry.a365_basicpay ?? 0,
           allowances: entry.a365_allowances ?? 0,
+          otherEarnings: entry.a365_otherearnings ?? 0,
+          otherDeductions: entry.a365_otherdeductions ?? 0,
+          unpaidLeaveDays: entry.a365_unpaidleavedays ?? 0,
+          withholdingTax: entry.a365_withholdingtax ?? 0,
         })
       }
     }
-    const existingIds = new Set(
-      existing.map((e) => e._a365_employee_value).filter((v): v is string => Boolean(v)),
-    )
+
+    // Refresh recurring inputs on employees already in the period (overwrite).
+    const existingByEmployee = new Map<string, PayrollEntry>()
+    for (const e of existing) {
+      if (e._a365_employee_value) existingByEmployee.set(e._a365_employee_value, e)
+    }
+    let updated = 0
+    for (const [employeeId, inputs] of sourceByEmployee) {
+      const entry = existingByEmployee.get(employeeId)
+      if (!entry) continue
+      const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
+        PAYROLL_ENTRY_TABLE,
+        entry.a365_payrollentryid,
+        {
+          a365_basicpay: inputs.basicPay,
+          a365_allowances: inputs.allowances,
+          a365_otherearnings: inputs.otherEarnings,
+          a365_otherdeductions: inputs.otherDeductions,
+          a365_unpaidleavedays: inputs.unpaidLeaveDays,
+          a365_withholdingtax: inputs.withholdingTax,
+        },
+      )
+      if (!result.success) throw result.error ?? new Error("Unable to update payroll entry during copy.")
+      updated++
+    }
+
+    // Add active employees not yet in the period.
+    const existingIds = new Set(existingByEmployee.keys())
     const plans = planCopyEntries(active, existingIds, { id: periodId, name: periodName }, sourceByEmployee)
     const created = await createPlannedEntries(periodId, plans)
-    return { created, copiedFrom: source.a365_name, skipped: active.length - plans.length }
+    const skipped = Math.max(0, active.length - plans.length - updated)
+    return { created, updated, copiedFrom: source.a365_name, skipped }
   },
 }
 
@@ -347,6 +383,7 @@ async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Pr
       a365_otherearnings: plan.otherEarnings,
       a365_otherdeductions: plan.otherDeductions,
       a365_unpaidleavedays: plan.unpaidLeaveDays,
+      a365_withholdingtax: plan.withholdingTax,
     }
     // Own the entry as the employee's linked user so they can read their own
     // payslip at User level (security-model §4). Set at creation, while the

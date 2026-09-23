@@ -6,8 +6,9 @@ import {
   formatPeriodName,
   planLoadEntries,
   planCopyEntries,
+  selectPreviousCutoff,
   sumEntryTotals,
-  type RecurringInputs,
+  type CopiedInputs,
 } from "./period-utils"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import type { PayrollEntry } from "./types"
@@ -34,6 +35,44 @@ describe("payrollStatusBadgeTone", () => {
     expect(payrollStatusBadgeTone(PayrollStatus.Paid)).toBe("paid")
     expect(payrollStatusBadgeTone(PayrollStatus.Locked)).toBe("locked")
     expect(payrollStatusBadgeTone(null)).toBe("unknown")
+  })
+})
+
+describe("selectPreviousCutoff", () => {
+  // Periods as listPeriods returns them: a365_periodstart descending.
+  const period = (id: string, start: string, status: PayrollStatus) => ({
+    a365_payrollperiodid: id,
+    a365_periodstart: start,
+    a365_payrollstatus: status,
+  })
+
+  it("skips an in-progress previous period and copies the last finalized cutoff", () => {
+    // Repro of the reported bug: target Mar 1-15; Feb 1-15 is still Processing,
+    // so the source must be the Paid Jan 16-31, not Feb.
+    const periods = [
+      period("mar1", "2027-03-01", PayrollStatus.Processing), // target
+      period("feb1", "2027-02-01", PayrollStatus.Processing),
+      period("jan16", "2027-01-16", PayrollStatus.Paid),
+      period("jan1", "2027-01-01", PayrollStatus.Locked),
+    ]
+    expect(selectPreviousCutoff(periods, "mar1")?.a365_payrollperiodid).toBe("jan16")
+  })
+
+  it("never selects the target itself or a later finalized period", () => {
+    const periods = [
+      period("apr1", "2027-04-01", PayrollStatus.Paid), // later than target
+      period("mar1", "2027-03-01", PayrollStatus.Processing), // target
+      period("jan16", "2027-01-16", PayrollStatus.Locked),
+    ]
+    expect(selectPreviousCutoff(periods, "mar1")?.a365_payrollperiodid).toBe("jan16")
+  })
+
+  it("returns null when no earlier period is finalized", () => {
+    const periods = [
+      period("mar1", "2027-03-01", PayrollStatus.Processing),
+      period("feb1", "2027-02-01", PayrollStatus.Draft),
+    ]
+    expect(selectPreviousCutoff(periods, "mar1")).toBeNull()
   })
 })
 
@@ -143,22 +182,45 @@ describe("planLoadEntries", () => {
 
 describe("planCopyEntries", () => {
   const period = { id: "P2", name: "Sep 16–30, 2026" }
-  const source = new Map<string, RecurringInputs>([["A", { basicPay: 13000, allowances: 2000 }]])
+  const source = new Map<string, CopiedInputs>([
+    [
+      "A",
+      {
+        basicPay: 13000,
+        allowances: 2000,
+        otherEarnings: 500,
+        otherDeductions: 300,
+        unpaidLeaveDays: 1,
+        withholdingTax: 1325,
+      },
+    ],
+  ])
 
-  it("carries the source cutoff's Basic Pay and Allowances for a returning employee", () => {
+  it("carries ALL of the source cutoff's inputs for a returning employee", () => {
     const [plan] = planCopyEntries([emp("A", 25000)], new Set<string>(), period, source)
-    expect(plan).toMatchObject({ employeeId: "A", basicPay: 13000, allowances: 2000 })
+    expect(plan).toMatchObject({
+      employeeId: "A",
+      basicPay: 13000,
+      allowances: 2000,
+      otherEarnings: 500,
+      otherDeductions: 300,
+      unpaidLeaveDays: 1,
+      withholdingTax: 1325,
+    })
   })
 
-  it("uses the default basic pay for an employee hired since the source period", () => {
-    // "B" isn't in the source map → falls back to salary/2, allowances 0.
+  it("uses defaults for an employee hired since the source period", () => {
+    // "B" isn't in the source map → basic pay salary/2, everything else 0.
     const [plan] = planCopyEntries([emp("B", 30000)], new Set<string>(), period, source)
-    expect(plan).toMatchObject({ employeeId: "B", basicPay: 15000, allowances: 0 })
-  })
-
-  it("never copies one-time inputs (they reset to 0)", () => {
-    const [plan] = planCopyEntries([emp("A", 25000)], new Set<string>(), period, source)
-    expect(plan).toMatchObject({ otherEarnings: 0, otherDeductions: 0, unpaidLeaveDays: 0 })
+    expect(plan).toMatchObject({
+      employeeId: "B",
+      basicPay: 15000,
+      allowances: 0,
+      otherEarnings: 0,
+      otherDeductions: 0,
+      unpaidLeaveDays: 0,
+      withholdingTax: 0,
+    })
   })
 
   it("excludes terminated employees and skips those already present", () => {

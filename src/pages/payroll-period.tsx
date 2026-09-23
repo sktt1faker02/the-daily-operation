@@ -190,13 +190,13 @@ export default function PayrollPeriodPage() {
         calculatedByUserId: userId,
       },
       {
-        onSuccess: ({ created, copiedFrom, skipped }) => {
+        onSuccess: ({ created, updated, copiedFrom, skipped }) => {
           if (!copiedFrom) {
-            toast.info("No previous cutoff to copy from.")
+            toast.info("No finalized previous cutoff to copy from.")
           } else {
-            toast.success(
-              `Copied from ${copiedFrom}: ${created} added${skipped ? `, ${skipped} already present` : ""} and recalculated.`,
-            )
+            const parts = [`${created} added`, `${updated} updated`]
+            if (skipped) parts.push(`${skipped} unchanged`)
+            toast.success(`Copied from ${copiedFrom}: ${parts.join(", ")} and recalculated.`)
           }
           setConfirmCopyOpen(false)
         },
@@ -474,10 +474,9 @@ export default function PayrollPeriodPage() {
           <DialogHeader>
             <DialogTitle>Copy from the previous cutoff?</DialogTitle>
             <DialogDescription>
-              Adds a payroll entry for every active employee not already in this period, carrying
-              forward each returning employee's Basic Pay and Allowances from the most recent
-              previous cutoff. Newly hired employees use the default basic pay. One-time inputs are
-              not copied; statutory deductions and net pay are recalculated automatically.
+              Copies all inputs from the last finalized (Paid or Locked) cutoff into this period,
+              overwriting existing entries and adding any missing employees. Deductions and net pay
+              are recalculated. Review and adjust before marking ready.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

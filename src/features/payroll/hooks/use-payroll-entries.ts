@@ -44,7 +44,7 @@ export function useCopyPreviousCutoff(periodId: string) {
       calculatedByUserId: string
     }) => {
       const result = await payrollPeriodService.copyFromPreviousCutoff(periodId, periodName)
-      if (result.created > 0) {
+      if (result.created > 0 || result.updated > 0) {
         await calculatePeriod(periodId, periodEndDate, calculatedByUserId)
       }
       return result
