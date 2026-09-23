@@ -62,6 +62,16 @@
         "users": {
           "entitySetName": "systemusers",
           "logicalName": "systemuser"
+        },
+        "payrollcutofftemplates": {
+          "entitySetName": "a365_payrolltemplates",
+          "logicalName": "a365_payrolltemplate",
+          "isHidden": false
+        },
+        "payrollcutofftemplatelines": {
+          "entitySetName": "a365_payrolltemplatelines",
+          "logicalName": "a365_payrolltemplateline",
+          "isHidden": false
         }
       },
       "environmentVariableName": ""

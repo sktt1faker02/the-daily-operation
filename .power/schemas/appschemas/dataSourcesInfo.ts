@@ -40,6 +40,20 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "a365_payrolltemplatelines": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_payrolltemplatelineid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_payrolltemplates": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_payrolltemplateid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "a365_philhealthcontributions": {
     "tableId": "",
     "version": "",
@@ -54,13 +68,6 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
-  "roles": {
-    "tableId": "",
-    "version": "",
-    "primaryKey": "roleid",
-    "dataSourceType": "Dataverse",
-    "apis": {}
-  },
   "a365_ssscontributions": {
     "tableId": "",
     "version": "",
@@ -72,6 +79,13 @@ export const dataSourcesInfo = {
     "tableId": "",
     "version": "",
     "primaryKey": "a365_taxbracketid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "roles": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "roleid",
     "dataSourceType": "Dataverse",
     "apis": {}
   },
