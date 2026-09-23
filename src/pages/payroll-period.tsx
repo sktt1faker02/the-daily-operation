@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, Archive, ArrowLeft, Calculator, Copy, Loader2, Save, Search, UserPlus } from "lucide-react"
+import { AlertCircle, Archive, ArrowLeft, Calculator, Copy, LayoutTemplate, Loader2, Save, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatDate } from "@/lib/format"
 import { usePayrollPeriod, useArchivePeriod } from "@/features/payroll/hooks/use-payroll-periods"
 import {
@@ -43,7 +44,7 @@ import { usePositions } from "@/features/employees/use-reference-data"
 import { isPeriodEditable, PayrollStatus, payrollStatusLabel, type PayrollEntry } from "@/features/payroll/types"
 import { nextActions, ACTION_TARGET, type PayrollAction } from "@/features/payroll/payroll-status-machine"
 import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll-status"
-import { useSaveTemplate } from "@/features/payroll/hooks/use-payroll-templates"
+import { useSaveTemplate, useTemplates, useApplyTemplate } from "@/features/payroll/hooks/use-payroll-templates"
 
 export default function PayrollPeriodPage() {
   const { periodId = "" } = useParams()
@@ -57,6 +58,8 @@ export default function PayrollPeriodPage() {
   const [confirmSaveTemplateOpen, setConfirmSaveTemplateOpen] = useState(false)
   const [templateName, setTemplateName] = useState("")
   const [templateDesc, setTemplateDesc] = useState("")
+  const [confirmLoadTemplateOpen, setConfirmLoadTemplateOpen] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
   const [calculatingId, setCalculatingId] = useState<string | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
@@ -71,6 +74,8 @@ export default function PayrollPeriodPage() {
   const calcPeriod = useCalculatePeriod(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
   const saveTemplate = useSaveTemplate(periodId)
+  const templates = useTemplates()
+  const applyTemplate = useApplyTemplate(periodId)
   const { data: positions } = usePositions()
 
   const ACTION_META: Record<
@@ -212,6 +217,24 @@ export default function PayrollPeriodPage() {
     )
   }
 
+  const handleLoadTemplate = () => {
+    const userId = requireSystemUser()
+    if (!userId || !period.data) return
+    applyTemplate.mutate(
+      { templateId: selectedTemplateId, periodEndDate: period.data.a365_periodend, calculatedByUserId: userId },
+      {
+        onSuccess: ({ created, updated, skipped, templateName }) => {
+          const parts = [`${created} added`, `${updated} updated`]
+          if (skipped) parts.push(`${skipped} skipped`)
+          toast.success(`Loaded "${templateName}": ${parts.join(", ")} and recalculated.`)
+          setConfirmLoadTemplateOpen(false)
+          setSelectedTemplateId("")
+        },
+        onError: (err) => toast.error("Unable to load template.", { description: err.message }),
+      },
+    )
+  }
+
   const handleRecalculateEntry = (entry: PayrollEntry) => {
     const userId = requireSystemUser()
     if (!userId || !period.data) return
@@ -340,6 +363,16 @@ export default function PayrollPeriodPage() {
               >
                 <Copy className="size-4" aria-hidden />
                 Copy previous cutoff
+              </Button>
+            )}
+            {hasEntries && editable && (
+              <Button
+                variant="outline"
+                onClick={() => setConfirmLoadTemplateOpen(true)}
+                disabled={applyTemplate.isPending}
+              >
+                <LayoutTemplate className="size-4" aria-hidden />
+                Load template
               </Button>
             )}
             {hasEntries && editable && (
@@ -518,6 +551,76 @@ export default function PayrollPeriodPage() {
             <Button onClick={handleCopyPrevious} disabled={copyPrevious.isPending}>
               {copyPrevious.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Copy previous cutoff
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmLoadTemplateOpen}
+        onOpenChange={(o) => {
+          setConfirmLoadTemplateOpen(o)
+          if (!o) setSelectedTemplateId("")
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Load a template into this period?</DialogTitle>
+            <DialogDescription>
+              Applies the template's saved inputs — overwriting matching employees' entries and
+              adding any employees from the template not already in this period. Deductions and
+              net pay are recalculated afterward.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <label htmlFor="template-picker" className="text-sm font-medium">
+              Template
+            </label>
+            {templates.data && templates.data.length === 0 ? (
+              <>
+                <Select disabled>
+                  <SelectTrigger id="template-picker" className="w-full">
+                    <SelectValue placeholder="No templates available" />
+                  </SelectTrigger>
+                  <SelectContent />
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  No templates yet — save one from a Paid or Locked period.
+                </p>
+              </>
+            ) : (
+              <Select
+                value={selectedTemplateId}
+                onValueChange={setSelectedTemplateId}
+                disabled={templates.isLoading || applyTemplate.isPending}
+              >
+                <SelectTrigger id="template-picker" className="w-full">
+                  <SelectValue placeholder="Select a template…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(templates.data ?? []).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.lineCount} employee{t.lineCount === 1 ? "" : "s"})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmLoadTemplateOpen(false)}
+              disabled={applyTemplate.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLoadTemplate}
+              disabled={applyTemplate.isPending || selectedTemplateId === ""}
+            >
+              {applyTemplate.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+              Load template
             </Button>
           </DialogFooter>
         </DialogContent>
