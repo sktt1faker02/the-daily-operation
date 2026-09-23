@@ -133,27 +133,6 @@ export interface CopiedInputs {
   comment: string
 }
 
-/**
- * Plan the entries to create when copying the previous cutoff. Same eligibility
- * as `planLoadEntries` (active employees not already in the period), but each
- * employee present in the source period gets ALL their inputs carried forward
- * (Basic Pay, Allowances, Other Earnings/Deductions, Unpaid Leave days,
- * Withholding Tax) instead of the defaults — the admin copies then verifies and
- * adjusts. Employees hired since the source period fall back to the normal
- * defaults; calculated results are never copied (the caller recalculates). Pure.
- */
-export function planCopyEntries(
-  activeEmployees: Employee[],
-  existingEmployeeIds: Set<string>,
-  period: { id: string; name: string },
-  sourceByEmployee: Map<string, CopiedInputs>,
-): NewEntryPlan[] {
-  return planLoadEntries(activeEmployees, existingEmployeeIds, period).map((plan) => {
-    const source = sourceByEmployee.get(plan.employeeId)
-    return source ? { ...plan, ...source } : plan
-  })
-}
-
 export interface EntryInputUpdate {
   entryId: string
   inputs: CopiedInputs

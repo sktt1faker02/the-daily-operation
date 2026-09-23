@@ -5,7 +5,6 @@ import {
   suggestSemiMonthlyPeriod,
   formatPeriodName,
   planLoadEntries,
-  planCopyEntries,
   planApplyInputs,
   selectPreviousCutoff,
   sumEntryTotals,
@@ -178,59 +177,6 @@ describe("planLoadEntries", () => {
     const [plan] = planLoadEntries([linked, emp("B", 30000)], new Set<string>(), period)
     expect(plan.systemUserId).toBe("user-1")
     expect(planLoadEntries([emp("B", 30000)], new Set<string>(), period)[0].systemUserId).toBeNull()
-  })
-})
-
-describe("planCopyEntries", () => {
-  const period = { id: "P2", name: "Sep 16–30, 2026" }
-  const source = new Map<string, CopiedInputs>([
-    [
-      "A",
-      {
-        basicPay: 13000,
-        allowances: 2000,
-        otherEarnings: 500,
-        otherDeductions: 300,
-        unpaidLeaveDays: 1,
-        withholdingTax: 1325,
-        comment: "Recurring note",
-      },
-    ],
-  ])
-
-  it("carries ALL of the source cutoff's inputs for a returning employee", () => {
-    const [plan] = planCopyEntries([emp("A", 25000)], new Set<string>(), period, source)
-    expect(plan).toMatchObject({
-      employeeId: "A",
-      basicPay: 13000,
-      allowances: 2000,
-      otherEarnings: 500,
-      otherDeductions: 300,
-      unpaidLeaveDays: 1,
-      withholdingTax: 1325,
-      comment: "Recurring note",
-    })
-  })
-
-  it("uses defaults for an employee hired since the source period", () => {
-    // "B" isn't in the source map → basic pay salary/2, everything else 0.
-    const [plan] = planCopyEntries([emp("B", 30000)], new Set<string>(), period, source)
-    expect(plan).toMatchObject({
-      employeeId: "B",
-      basicPay: 15000,
-      allowances: 0,
-      otherEarnings: 0,
-      otherDeductions: 0,
-      unpaidLeaveDays: 0,
-      withholdingTax: 0,
-      comment: "",
-    })
-  })
-
-  it("excludes terminated employees and skips those already present", () => {
-    const active = [emp("A", 25000), emp("B", 30000), emp("C", 20000, EmploymentStatus.Inactive)]
-    const plans = planCopyEntries(active, new Set(["B"]), period, source)
-    expect(plans.map((p) => p.employeeId)).toEqual(["A"]) // C inactive, B already present
   })
 })
 

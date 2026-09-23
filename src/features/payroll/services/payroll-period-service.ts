@@ -6,8 +6,8 @@
 import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { userService } from "@/features/employees/user-service"
-import { EmploymentStatus } from "@/features/employees/types"
-import { planLoadEntries, planCopyEntries, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
+import { EmploymentStatus, type Employee } from "@/features/employees/types"
+import { planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
 import { canTransition } from "../payroll-status-machine"
 import {
   PAYROLL_PERIOD_TABLE,
@@ -332,39 +332,42 @@ export const payrollPeriodService = {
       }
     }
 
-    // Refresh recurring inputs on employees already in the period (overwrite).
-    const existingByEmployee = new Map<string, PayrollEntry>()
-    for (const e of existing) {
-      if (e._a365_employee_value) existingByEmployee.set(e._a365_employee_value, e)
-    }
-    let updated = 0
-    for (const [employeeId, inputs] of sourceByEmployee) {
-      const entry = existingByEmployee.get(employeeId)
-      if (!entry) continue
-      const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
-        PAYROLL_ENTRY_TABLE,
-        entry.a365_payrollentryid,
-        {
-          a365_basicpay: inputs.basicPay,
-          a365_allowances: inputs.allowances,
-          a365_otherearnings: inputs.otherEarnings,
-          a365_otherdeductions: inputs.otherDeductions,
-          a365_unpaidleavedays: inputs.unpaidLeaveDays,
-          a365_withholdingtax: inputs.withholdingTax,
-          a365_comment: inputs.comment || null,
-        },
-      )
-      if (!result.success) throw result.error ?? new Error("Unable to update payroll entry during copy.")
-      updated++
-    }
-
-    // Add active employees not yet in the period.
-    const existingIds = new Set(existingByEmployee.keys())
-    const plans = planCopyEntries(active, existingIds, { id: periodId, name: periodName }, sourceByEmployee)
-    const created = await createPlannedEntries(periodId, plans)
-    const skipped = Math.max(0, active.length - plans.length - updated)
-    return { created, updated, copiedFrom: source.a365_name, skipped }
+    const { created, updated } = await applyInputsToPeriod(periodId, periodName, sourceByEmployee, active, existing)
+    return { created, updated, copiedFrom: source.a365_name, skipped: Math.max(0, active.length - created - updated) }
   },
+}
+
+/**
+ * Apply a set of inputs keyed by employee to a period: overwrite present
+ * employees, add active-and-missing ones. Returns counts. Shared by copy-previous
+ * and template-load. Caller recalculates afterward.
+ */
+async function applyInputsToPeriod(
+  periodId: string,
+  periodName: string,
+  sourceByEmployee: Map<string, CopiedInputs>,
+  active: Employee[],
+  existing: PayrollEntry[],
+): Promise<{ created: number; updated: number; skipped: number }> {
+  const plan = planApplyInputs(sourceByEmployee, existing, active, { id: periodId, name: periodName })
+  for (const { entryId, inputs } of plan.updates) {
+    const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
+      PAYROLL_ENTRY_TABLE,
+      entryId,
+      {
+        a365_basicpay: inputs.basicPay,
+        a365_allowances: inputs.allowances,
+        a365_otherearnings: inputs.otherEarnings,
+        a365_otherdeductions: inputs.otherDeductions,
+        a365_unpaidleavedays: inputs.unpaidLeaveDays,
+        a365_withholdingtax: inputs.withholdingTax,
+        a365_comment: inputs.comment || null,
+      },
+    )
+    if (!result.success) throw result.error ?? new Error("Unable to update payroll entry.")
+  }
+  const created = await createPlannedEntries(periodId, plan.creates)
+  return { created, updated: plan.updates.length, skipped: plan.skipped }
 }
 
 /**
