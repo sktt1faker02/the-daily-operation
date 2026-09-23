@@ -120,7 +120,7 @@ export const payrollTemplateService = {
       const line = await dataClient.createRecordAsync<Record<string, unknown>, PayrollTemplateLineRow>(
         PAYROLL_TEMPLATE_LINE_TABLE,
         {
-          a365_name: e.a365_name ?? name,
+          a365_name: e.a365_employeename ?? name,
           "a365_Template@odata.bind": `/${PAYROLL_TEMPLATE_TABLE}(${templateId})`,
           "a365_Employee@odata.bind": `/a365_employees(${e._a365_employee_value})`,
           a365_basicpay: e.a365_basicpay ?? 0,
@@ -148,6 +148,8 @@ export const payrollTemplateService = {
       }),
       payrollPeriodService.getPeriod(periodId),
     ])
+    if (!template.success) throw template.error ?? new Error("Unable to load the template.")
+
     const sourceByEmployee = new Map<string, CopiedInputs>()
     for (const l of lines) sourceByEmployee.set(l.employeeId, l.inputs)
 
@@ -176,7 +178,7 @@ export const payrollTemplateService = {
       created,
       updated: plan.updates.length,
       skipped: plan.skipped,
-      templateName: template.success ? template.data.a365_name : "",
+      templateName: template.data.a365_name,
     }
   },
 
