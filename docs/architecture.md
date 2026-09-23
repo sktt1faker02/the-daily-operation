@@ -120,6 +120,17 @@ writes results to the entry. Statutory rules are configuration-driven
 (`a365_ssscontribution`, etc.), never hardcoded. The withholding-tax taxable-base
 rule is an isolated TBD seam pending client-accountant confirmation.
 
+**Payroll Cutoff Templates — implemented under `features/payroll/`:**
+`services/payroll-template-service.ts` saves a Paid/Locked period's per-employee
+inputs as a reusable template and applies a template into an editable period
+(overwriting matching employees, adding missing, recalculating); backed by two
+OrganizationOwned Dataverse tables `a365_payrolltemplate` + `a365_payrolltemplateline`
+(see `docs/data-model.md`). `hooks/use-payroll-templates.ts` provides hook access;
+`pages/payroll-templates.tsx` (route `/payroll/templates`, AdminOnly) lists, views,
+renames, and deletes templates. Save/Load actions live on the payroll period page.
+Shared `period-utils.ts` utility `planApplyInputs` is reused by both copy-previous-cutoff
+and template load to avoid duplication.
+
 ---
 
 ## 5. Providers and composition
