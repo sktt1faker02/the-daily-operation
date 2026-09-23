@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { LayoutGrid, Wallet, Users, FileText, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Wallet, Users, FileText, LayoutTemplate, type LucideIcon } from "lucide-react";
 import { usePowerContext } from "@/hooks/use-power-context";
 import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile";
 
@@ -27,6 +27,7 @@ const ADMIN_GROUPS: NavGroup[] = [
     label: "Payroll",
     items: [
       { to: "/payroll", label: "Payroll Periods", icon: Wallet },
+      { to: "/payroll/templates", label: "Payroll Templates", icon: LayoutTemplate },
       { to: "/employees", label: "Employees", icon: Users },
     ],
   },

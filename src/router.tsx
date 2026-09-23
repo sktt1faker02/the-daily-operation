@@ -5,6 +5,7 @@ import EmployeesPage from "@/pages/employees"
 import OverviewPage from "@/pages/overview"
 import PayrollDashboardPage from "@/pages/payroll"
 import PayrollPeriodPage from "@/pages/payroll-period"
+import PayrollTemplatesPage from "@/pages/payroll-templates"
 import MyPayrollPage from "@/pages/my-payroll"
 import PayslipPage from "@/pages/payslip"
 import NotFoundPage from "@/pages/not-found"
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: "overview", element: <AdminOnly><OverviewPage /></AdminOnly> },
       { path: "employees", element: <AdminOnly><EmployeesPage /></AdminOnly> },
       { path: "payroll", element: <AdminOnly><PayrollDashboardPage /></AdminOnly> },
+      { path: "payroll/templates", element: <AdminOnly><PayrollTemplatesPage /></AdminOnly> },
       { path: "payroll/:periodId", element: <AdminOnly><PayrollPeriodPage /></AdminOnly> },
       { path: "my-payroll", element: <MyPayrollPage /> },
       { path: "my-payroll/:entryId", element: <PayslipPage /> },
