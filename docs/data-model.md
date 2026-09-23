@@ -260,3 +260,46 @@ of the config — production load is Phase 13). Verified against the client pays
 - **PhilHealth** — 1 row: premium 0.05, employee share 0.5, floor 10,000, ceiling 100,000.
 - **HDMF** — 1 row: employee 0.02, employer 0.02, cap 10,000.
 - **Tax** — 6 semi-monthly BIR brackets (0/15/20/25/30/35%).
+
+---
+
+## Payroll Cutoff Templates — `a365_payrolltemplate` + `a365_payrolltemplateline`
+
+- **Status:** ✅ **created** in `The Daily Operation - Dev` (2026-09-23) via the
+  metadata Web API. **Verified** logical/entity-set/lookup names below.
+- **Ownership:** **OrganizationOwned** (admin-managed reference data; sensitive pay
+  values — Payroll Admin privileges only).
+- **Solution:** `A365_DailyOperations` · **Prefix:** `a365_`
+
+### `a365_payrolltemplate` (header)
+Entity set `a365_payrolltemplates` · primary id `a365_payrolltemplateid` · primary name `a365_name`.
+
+| Display name | Logical name | Type |
+|---|---|---|
+| Name | `a365_name` | String (primary, max 200) |
+| Description | `a365_description` | Memo (max 2000) |
+
+### `a365_payrolltemplateline` (one row per employee)
+Entity set `a365_payrolltemplatelines` · primary id `a365_payrolltemplatelineid` · primary name `a365_name`.
+
+| Display name | Logical name | Type |
+|---|---|---|
+| Name | `a365_name` | String (primary, max 200) |
+| Template | `a365_template` | Lookup → `a365_payrolltemplate` — nav prop **`a365_Template`** (cascade delete: parental) |
+| Employee | `a365_employee` | Lookup → `a365_employee` — nav prop **`a365_Employee`** (delete: remove link) |
+| Basic Pay | `a365_basicpay` | Money |
+| Allowances | `a365_allowances` | Money |
+| Other Earnings | `a365_otherearnings` | Money |
+| Other Deductions | `a365_otherdeductions` | Money |
+| Withholding Tax | `a365_withholdingtax` | Money |
+| Unpaid Leave Days | `a365_unpaidleavedays` | Decimal (precision 2) |
+| Comment | `a365_comment` | Memo (max 2000) |
+
+Notes:
+- `@odata.bind` keys for creating lines: `a365_Template@odata.bind` → `/a365_payrolltemplates(<id>)`, `a365_Employee@odata.bind` → `/a365_employees(<id>)`.
+- Money columns auto-create paired `*_base` columns + a `transactioncurrencyid`; records created without a currency default to the org base currency (same as `a365_payrollentry`).
+- Dataverse also auto-added unused `a365_templatename` / `a365_employeename` string columns alongside the lookups; not used by the app.
+
+### Pending (Task 1 hand-off)
+- **Payroll Admin privileges** (Create/Read/Write/Delete, Organization depth) on both tables; ordinary users no access — set in the maker portal / security role.
+- **Wire as code-app data sources** (`pac code add-data-source`) so `dataClient` can reach `a365_payrolltemplates` + `a365_payrolltemplatelines`; regenerates `.power/schemas` + `src/generated`.
