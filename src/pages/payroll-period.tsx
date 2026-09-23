@@ -470,6 +470,14 @@ export default function PayrollPeriodPage() {
               )}
               Copy previous cutoff
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmLoadTemplateOpen(true)}
+              disabled={!editable || applyTemplate.isPending}
+            >
+              <LayoutTemplate className="size-4" aria-hidden />
+              Load template
+            </Button>
           </div>
         </div>
       ) : (
