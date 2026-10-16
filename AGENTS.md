@@ -19,6 +19,26 @@ https://learn.microsoft.com/en-us/power-apps/developer/code-apps/overview
 
 ---
 
+## Requirement Review Workflow
+
+Before starting any application feature implementation or update, read the
+project guidance in this order:
+
+1. Read `AGENTS.md` for project rules, architecture, and domain constraints.
+2. Read `DESIGN.md` for the required visual system and interaction patterns.
+3. Then read `PLANS.md` (or the task-specific requirements document) for the
+   requested scope and acceptance criteria.
+
+Do not begin implementation based on a summary or selected excerpt when the
+full requirement document is available. Convert every acceptance criterion
+into a concrete verification checklist before editing. Check the affected UI,
+business logic, data behavior, and related states against that checklist, then
+verify each criterion after the changes. Report any criterion that cannot be
+verified or completed and why. Do not assume existing controls or behavior
+should remain when they conflict with an explicit requirement.
+
+---
+
 ## Task Phases
 
 see task phases at docs\payroll-task-phases.md
@@ -1102,3 +1122,9 @@ Audit & Security
 14. **Keep Payroll, Leave Management, and Accounting as clear domain
     modules.**
 15. **Treat payroll and financial information as sensitive by default.**
+
+## Microsoft Power Platform Skills
+
+Project skills are discoverable under `.agents/skills/`. Before Power Platform work, select and read the relevant imported skill entry; it points to the full Microsoft source instructions and preserved references in `.agents/power-platform-skills-source/`. Prefer the Power Apps Code Apps skills for Code App work, Dataverse skills for schema/security/query/data operations, and Power Automate skills for flow work. Use other imported skills when the task requires them. Read referenced documentation and examples before using unfamiliar APIs, and verify commands and APIs against installed tools and authoritative documentation.
+
+These imports provide written workflows only. Claude/Copilot manifests, agent personas, command registrations, tool permission lists, and MCP servers are not installed by Codex; check tool availability and adapt accordingly. Never infer external/environment-changing authorization from a skill. Existing project and payroll security rules take precedence.

@@ -9,7 +9,7 @@ import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
 import type { PayrollEntryInputValues } from "../types"
-import { PayrollStatus } from "../types"
+import { isPeriodEditable, PayrollStatus } from "../types"
 import { payrollPeriodService } from "./payroll-period-service"
 
 const ENTRY_TABLE = "a365_payrollentries"
@@ -23,6 +23,7 @@ interface EntryReadModel {
   a365_unpaidleavedays?: number
   a365_withholdingtax?: number
   _a365_employee_value?: string
+  _a365_payrollperiod_value?: string
 }
 
 /**
@@ -51,18 +52,73 @@ export async function calculateAndPersistEntry(
   if (!read.success) throw read.error ?? new Error("Unable to load the payroll entry.")
   const entry = read.data
 
+  await calculateAndPersist(entryId, entry, periodEndDate, calculatedByUserId, preloadedConfig)
+}
+
+/** Save edited inputs and their calculation results in one Dataverse update. */
+export async function saveAndCalculateEntry(
+  entryId: string,
+  periodId: string,
+  periodEndDate: string,
+  calculatedByUserId: string,
+  values: PayrollEntryInputValues,
+): Promise<void> {
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (!isPeriodEditable(period.a365_payrollstatus)) {
+    throw new Error("Payroll entries can only be edited while the period is Draft or Processing.")
+  }
+  const read = await dataClient.retrieveRecordAsync<EntryReadModel>(ENTRY_TABLE, entryId, {
+    select: [
+      "a365_payrollentryid", "a365_basicpay", "a365_allowances", "a365_otherearnings",
+      "a365_otherdeductions", "a365_unpaidleavedays", "a365_withholdingtax", "_a365_employee_value",
+      "_a365_payrollperiod_value",
+    ],
+  })
+  if (!read.success) throw read.error ?? new Error("Unable to load the payroll entry.")
+  if (read.data._a365_payrollperiod_value !== periodId) {
+    throw new Error("The payroll entry does not belong to this period.")
+  }
+  await calculateAndPersist(entryId, read.data, periodEndDate, calculatedByUserId, undefined, values)
+}
+
+function amountFromInput(value: string): number {
+  const trimmed = value.trim()
+  if (trimmed === "") return 0
+  const amount = Number(trimmed)
+  if (!Number.isFinite(amount) || amount < 0) throw new Error("Payroll inputs must be non-negative numbers.")
+  return amount
+}
+
+async function calculateAndPersist(
+  entryId: string,
+  entry: EntryReadModel,
+  periodEndDate: string,
+  calculatedByUserId: string,
+  preloadedConfig?: StatutoryConfig,
+  editedValues?: PayrollEntryInputValues,
+): Promise<void> {
+
   const employeeId = entry._a365_employee_value
   if (!employeeId) throw new Error("Payroll entry has no linked employee.")
   const employee = await employeeService.get(employeeId)
 
+  const edited = editedValues ? {
+    basicPay: amountFromInput(editedValues.a365_basicpay),
+    allowances: amountFromInput(editedValues.a365_allowances),
+    otherEarnings: amountFromInput(editedValues.a365_otherearnings),
+    otherDeductions: amountFromInput(editedValues.a365_otherdeductions),
+    unpaidLeaveDays: amountFromInput(editedValues.a365_unpaidleavedays),
+    withholdingTax: amountFromInput(editedValues.a365_withholdingtax),
+  } : null
+
   const input: PayrollInput = {
     monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0,
-    basicPay: entry.a365_basicpay ?? 0,
-    allowances: entry.a365_allowances ?? 0,
-    otherEarnings: entry.a365_otherearnings ?? 0,
-    otherDeductions: entry.a365_otherdeductions ?? 0,
-    unpaidLeaveDays: entry.a365_unpaidleavedays ?? 0,
-    withholdingTax: entry.a365_withholdingtax ?? 0, // manual admin input, used as-is
+    basicPay: edited?.basicPay ?? entry.a365_basicpay ?? 0,
+    allowances: edited?.allowances ?? entry.a365_allowances ?? 0,
+    otherEarnings: edited?.otherEarnings ?? entry.a365_otherearnings ?? 0,
+    otherDeductions: edited?.otherDeductions ?? entry.a365_otherdeductions ?? 0,
+    unpaidLeaveDays: edited?.unpaidLeaveDays ?? entry.a365_unpaidleavedays ?? 0,
+    withholdingTax: edited?.withholdingTax ?? entry.a365_withholdingtax ?? 0,
   }
 
   const config = preloadedConfig ?? (await getStatutoryConfig(periodEndDate))
@@ -81,45 +137,23 @@ export async function calculateAndPersistEntry(
     a365_calculatedon: new Date().toISOString(),
     "a365_CalculatedBy@odata.bind": `/systemusers(${calculatedByUserId})`,
   }
+  if (edited && editedValues) {
+    Object.assign(payload, {
+      a365_basicpay: edited.basicPay,
+      a365_allowances: edited.allowances,
+      a365_otherearnings: edited.otherEarnings,
+      a365_otherdeductions: edited.otherDeductions,
+      a365_unpaidleavedays: edited.unpaidLeaveDays,
+      a365_withholdingtax: edited.withholdingTax,
+      a365_comment: editedValues.a365_comment.trim() || null,
+    })
+  }
   const update = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
     ENTRY_TABLE,
     entryId,
     payload,
   )
   if (!update.success) throw update.error ?? new Error("Unable to save the calculation results.")
-}
-
-/** Parse a controlled numeric input to a number; blank → 0. */
-function toAmount(value: string): number {
-  const trimmed = value.trim()
-  if (trimmed === "") return 0
-  const n = Number(trimmed)
-  return Number.isFinite(n) ? n : 0
-}
-
-/**
- * Persist the editable input columns of a payroll entry. Does NOT touch
- * calculated columns — those change only through calculation.
- */
-export async function updateEntryInputs(
-  entryId: string,
-  values: PayrollEntryInputValues,
-): Promise<void> {
-  const payload: Record<string, unknown> = {
-    a365_basicpay: toAmount(values.a365_basicpay),
-    a365_allowances: toAmount(values.a365_allowances),
-    a365_otherearnings: toAmount(values.a365_otherearnings),
-    a365_otherdeductions: toAmount(values.a365_otherdeductions),
-    a365_unpaidleavedays: toAmount(values.a365_unpaidleavedays),
-    a365_withholdingtax: toAmount(values.a365_withholdingtax),
-    a365_comment: values.a365_comment.trim() || null,
-  }
-  const result = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
-    ENTRY_TABLE,
-    entryId,
-    payload,
-  )
-  if (!result.success) throw result.error ?? new Error("Unable to save the payroll entry.")
 }
 
 /**

@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { Calculator, FileText, Loader2, Pencil } from "lucide-react"
+import { FileText, Loader2, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -33,16 +33,12 @@ function money(value: number | null) {
 export function PayrollEntryTable({
   entries,
   onEdit,
-  onRecalculate,
-  calculatingId,
   editable,
   onViewPayslip,
   viewingId,
 }: {
   entries: PayrollEntry[]
   onEdit: (entry: PayrollEntry) => void
-  onRecalculate: (entry: PayrollEntry) => void
-  calculatingId: string | null
   editable: boolean
   /** When provided, a "View Payslip" action is shown (finalized periods only). */
   onViewPayslip?: (entry: PayrollEntry) => void
@@ -122,7 +118,6 @@ export function PayrollEntryTable({
               </div>
             )
           }
-          const isCalculating = calculatingId === entry.a365_payrollentryid
           return (
             <div className="flex justify-end gap-1">
               <Button
@@ -134,26 +129,12 @@ export function PayrollEntryTable({
                 <Pencil className="size-3.5" aria-hidden />
                 Edit
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRecalculate(entry)}
-                disabled={isCalculating}
-                aria-label={`Recalculate ${entry.a365_employeename ?? "entry"}`}
-              >
-                {isCalculating ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                ) : (
-                  <Calculator className="size-3.5" aria-hidden />
-                )}
-                Recalculate
-              </Button>
             </div>
           )
         },
       },
     ],
-    [onEdit, onRecalculate, calculatingId, editable, onViewPayslip, viewingId],
+    [onEdit, editable, onViewPayslip, viewingId],
   )
 
   const table = useReactTable({

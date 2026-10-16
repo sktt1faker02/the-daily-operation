@@ -28,6 +28,7 @@ import {
   type PayrollEntryInputValues,
 } from "./types"
 import { useUpdateEntryInputs } from "./hooks/use-payroll-entries"
+import { useCurrentSystemUserId } from "./hooks/use-current-system-user"
 
 const FIELDS: { id: keyof PayrollEntryInputValues; label: string }[] = [
   { id: "a365_basicpay", label: "Basic Pay" },
@@ -53,11 +54,13 @@ export function PayrollEntryDialog({
   onOpenChange,
   entry,
   periodId,
+  periodEndDate,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   entry: PayrollEntry | null
   periodId: string
+  periodEndDate: string
 }) {
   const initial = useMemo(
     () => (entry ? toEntryInputValues(entry) : emptyEntryInputValues),
@@ -66,6 +69,7 @@ export function PayrollEntryDialog({
   const [values, setValues] = useState<PayrollEntryInputValues>(initial)
   const [error, setError] = useState<string | null>(null)
   const updateInputs = useUpdateEntryInputs(periodId)
+  const systemUser = useCurrentSystemUserId()
 
   useEffect(() => {
     if (open) {
@@ -78,17 +82,30 @@ export function PayrollEntryDialog({
 
   const set = (key: keyof PayrollEntryInputValues, value: string) =>
     setValues((prev) => ({ ...prev, [key]: value }))
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && updateInputs.isPending) return
+    onOpenChange(nextOpen)
+  }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     const msg = validate(values)
     setError(msg)
     if (msg) return
+    if (!systemUser.data) {
+      setError("Your Dataverse user could not be resolved. Please try again.")
+      return
+    }
     updateInputs.mutate(
-      { id: entry.a365_payrollentryid, values },
+      {
+        id: entry.a365_payrollentryid,
+        periodEndDate,
+        calculatedByUserId: systemUser.data,
+        values,
+      },
       {
         onSuccess: () => {
-          toast.success("Payroll entry saved.")
+          toast.success("Payroll entry saved and recalculated.")
           onOpenChange(false)
         },
         onError: (err) =>
@@ -98,12 +115,12 @@ export function PayrollEntryDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{entry.a365_employeename ?? "Payroll entry"}</DialogTitle>
           <DialogDescription>
-            Edit the variable inputs, then calculate to update the deductions and net pay.
+            Saving recalculates this entry and updates its payroll totals.
           </DialogDescription>
         </DialogHeader>
 
@@ -149,11 +166,11 @@ export function PayrollEntryDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={updateInputs.isPending}
+              disabled={updateInputs.isPending || systemUser.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={updateInputs.isPending}>
+            <Button type="submit" disabled={updateInputs.isPending || systemUser.isPending}>
               {updateInputs.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Save changes
             </Button>

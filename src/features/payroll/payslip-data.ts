@@ -26,6 +26,7 @@ export function toPayslipDocument(
     periodEnd: period.a365_periodend,
     basicPay: entry.a365_basicpay,
     allowances: entry.a365_allowances,
+    otherEarnings: entry.a365_otherearnings,
     unpaidLeave: entry.a365_unpaidleave,
     grossPay: entry.a365_grosspay,
     sss: entry.a365_sss,

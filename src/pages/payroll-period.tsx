@@ -1,13 +1,13 @@
 /**
  * Payroll period detail (Payroll Admin). Load active employees, edit variable
- * inputs, calculate, and drive status transitions (Mark Ready / Mark Paid /
+ * inputs, and drive status transitions (Mark Ready / Mark Paid /
  * Lock / Unlock) via the centralized status machine. Loading / Empty / Error
  * / Success states throughout.
  */
 import { useMemo, useState } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, Archive, ArrowLeft, Calculator, Copy, LayoutTemplate, Loader2, Save, Search, UserPlus } from "lucide-react"
+import { AlertCircle, Archive, ArrowLeft, Copy, LayoutTemplate, Loader2, Save, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,8 +27,6 @@ import {
   usePayrollEntries,
   useLoadActiveEmployees,
   useCopyPreviousCutoff,
-  useCalculateEntry,
-  useCalculatePeriod,
 } from "@/features/payroll/hooks/use-payroll-entries"
 import { useCurrentSystemUserId } from "@/features/payroll/hooks/use-current-system-user"
 import { PayrollSummaryCards } from "@/features/payroll/payroll-summary-cards"
@@ -60,7 +58,6 @@ export default function PayrollPeriodPage() {
   const [templateDesc, setTemplateDesc] = useState("")
   const [confirmLoadTemplateOpen, setConfirmLoadTemplateOpen] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
-  const [calculatingId, setCalculatingId] = useState<string | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
   const archive = useArchivePeriod()
@@ -70,8 +67,6 @@ export default function PayrollPeriodPage() {
   const systemUser = useCurrentSystemUserId()
   const loadEmployees = useLoadActiveEmployees(periodId)
   const copyPrevious = useCopyPreviousCutoff(periodId)
-  const calcEntry = useCalculateEntry()
-  const calcPeriod = useCalculatePeriod(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
   const saveTemplate = useSaveTemplate(periodId)
   const templates = useTemplates()
@@ -135,7 +130,7 @@ export default function PayrollPeriodPage() {
 
   const editable = isPeriodEditable(period.data?.a365_payrollstatus)
   // Payslips become available once the Admin has finalized the cutoff
-  // (Mark Ready / Paid / Locked); Draft/Processing show Edit/Recalculate instead.
+  // (Mark Ready / Paid / Locked); Draft/Processing show editable inputs.
   const status = period.data?.a365_payrollstatus
   const canViewPayslip =
     status === PayrollStatus.Ready ||
@@ -231,36 +226,6 @@ export default function PayrollPeriodPage() {
           setSelectedTemplateId("")
         },
         onError: (err) => toast.error("Unable to load template.", { description: err.message }),
-      },
-    )
-  }
-
-  const handleRecalculateEntry = (entry: PayrollEntry) => {
-    const userId = requireSystemUser()
-    if (!userId || !period.data) return
-    setCalculatingId(entry.a365_payrollentryid)
-    calcEntry.mutate(
-      {
-        id: entry.a365_payrollentryid,
-        periodEndDate: period.data.a365_periodend,
-        calculatedByUserId: userId,
-      },
-      {
-        onSuccess: () => toast.success("Entry recalculated."),
-        onError: (err) => toast.error("Unable to recalculate.", { description: err.message }),
-        onSettled: () => setCalculatingId(null),
-      },
-    )
-  }
-
-  const handleCalculateAll = () => {
-    const userId = requireSystemUser()
-    if (!userId || !period.data) return
-    calcPeriod.mutate(
-      { periodEndDate: period.data.a365_periodend, calculatedByUserId: userId },
-      {
-        onSuccess: ({ calculated }) => toast.success(`Calculated ${calculated} entries.`),
-        onError: (err) => toast.error("Unable to calculate payroll.", { description: err.message }),
       },
     )
   }
@@ -375,16 +340,6 @@ export default function PayrollPeriodPage() {
                 Load template
               </Button>
             )}
-            {hasEntries && editable && (
-              <Button onClick={handleCalculateAll} disabled={calcPeriod.isPending}>
-                {calcPeriod.isPending ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <Calculator className="size-4" aria-hidden />
-                )}
-                Calculate all
-              </Button>
-            )}
             {actions.map((action) => (
               <Button
                 key={action}
@@ -446,7 +401,7 @@ export default function PayrollPeriodPage() {
           <div>
             <p className="font-medium">No employees loaded</p>
             <p className="text-sm text-muted-foreground">
-              Load active employees to populate this cutoff, then enter inputs and calculate.
+              Load active employees to populate this cutoff. Payroll amounts update automatically when you save entry changes.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -495,8 +450,6 @@ export default function PayrollPeriodPage() {
           <PayrollEntryTable
             entries={filtered}
             onEdit={openEditor}
-            onRecalculate={handleRecalculateEntry}
-            calculatingId={calculatingId}
             editable={editable}
             onViewPayslip={canViewPayslip ? handleViewPayslip : undefined}
             viewingId={viewingId}
@@ -514,6 +467,7 @@ export default function PayrollPeriodPage() {
         onOpenChange={setEditorOpen}
         entry={editing}
         periodId={periodId}
+        periodEndDate={period.data?.a365_periodend ?? ""}
       />
 
       <Dialog open={confirmLoadOpen} onOpenChange={setConfirmLoadOpen}>

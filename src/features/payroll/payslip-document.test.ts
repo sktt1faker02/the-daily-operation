@@ -17,6 +17,7 @@ const reference: PayslipDocumentData = {
   periodEnd: "2026-03-31",
   basicPay: 21500,
   allowances: 1000,
+  otherEarnings: 0,
   unpaidLeave: null,
   grossPay: 22500,
   sss: 875,
@@ -54,13 +55,13 @@ describe("derivedRates", () => {
 })
 
 describe("payslipFileName", () => {
-  it("suggests Payslip_<periodEnd>_<empno>_<Last-First>", () => {
-    expect(payslipFileName(reference)).toBe("Payslip_2026-03-31_0004_Tabilin-Michael")
+  it("suggests a PDF name using period end, employee number, and Last-First", () => {
+    expect(payslipFileName(reference)).toBe("Payslip_2026-03-31_0004_Tabilin-Michael.pdf")
   })
 
   it("falls back when employee number is missing", () => {
     expect(payslipFileName({ ...reference, employeeNumber: null })).toBe(
-      "Payslip_2026-03-31_NA_Tabilin-Michael",
+      "Payslip_2026-03-31_NA_Tabilin-Michael.pdf",
     )
   })
 })
@@ -70,7 +71,7 @@ describe("buildPayslipDocDefinition", () => {
   const text = textOf(def.content)
 
   it("names the document with the suggested filename", () => {
-    expect(def.info?.title).toBe("Payslip_2026-03-31_0004_Tabilin-Michael")
+    expect(def.info?.title).toBe("Payslip_2026-03-31_0004_Tabilin-Michael.pdf")
   })
 
   it("renders the reference amounts formatted with two decimals and no ₱", () => {
@@ -95,9 +96,9 @@ describe("buildPayslipDocDefinition", () => {
   })
 
   it("shows a dash for absent optional amounts (unpaid leave)", () => {
-    // unpaidLeave is null → the Absence line shows a dash, not 0.00.
-    const absenceRow = textOf(def.content).includes("Absence")
-    expect(absenceRow).toBe(true)
+    // unpaidLeave is null → the adjustment line shows a dash, not 0.00.
+    const unpaidLeaveRow = textOf(def.content).includes("Less: Unpaid Leave")
+    expect(unpaidLeaveRow).toBe(true)
     expect(text).toContain("-")
   })
 })

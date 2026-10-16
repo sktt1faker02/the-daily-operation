@@ -353,7 +353,7 @@ document storage.
       browser's PDF viewer, with its own download — on the employee payslip page
       `src/pages/payslip.tsx` and in the admin payroll-entry dialog)
 - [x] Define document naming convention (`payslipFileName` →
-      `Payslip_<periodEnd>_<empno>_<Last-First>`, set as the PDF's document title)
+      `Payslip_<periodEnd>_<empno>_<Last-First>.pdf`, set as the PDF's document title)
 - [~] Test document access as Employee and Admin (access stays Dataverse-enforced —
   the payslip only renders data the caller can already read; covered in Phase 12 §11)
 - [~] SharePoint document storage — **deferred (out of scope for now, PLANS.md)**:

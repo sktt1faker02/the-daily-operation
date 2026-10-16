@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { payrollPeriodService } from "../services/payroll-period-service"
 import {
-  updateEntryInputs,
   calculatePeriod,
   calculateAndPersistEntry,
+  saveAndCalculateEntry,
 } from "../services/payroll-service"
 import type { PayrollEntryInputValues } from "../types"
 import { payrollKeys } from "./use-payroll-periods"
@@ -58,8 +58,12 @@ export function useCopyPreviousCutoff(periodId: string) {
 export function useUpdateEntryInputs(periodId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, values }: { id: string; values: PayrollEntryInputValues }) =>
-      updateEntryInputs(id, values),
+    mutationFn: ({ id, periodEndDate, calculatedByUserId, values }: {
+      id: string
+      periodEndDate: string
+      calculatedByUserId: string
+      values: PayrollEntryInputValues
+    }) => saveAndCalculateEntry(id, periodId, periodEndDate, calculatedByUserId, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
     },

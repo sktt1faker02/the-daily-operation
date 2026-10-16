@@ -1,0 +1,41 @@
+# Deliberately separate from `power-pages-script-tests.yml`.
+# This workflow runs policy enforcement (gate markers, ALM-aware-by-default,
+# discovery coverage) — pure-Node, OS-independent, completes in seconds, so
+# it runs on a single OS to surface red checks fast.
+# The sibling workflow runs functional unit tests across ubuntu × windows × macos.
+# See PLUGIN_DEVELOPMENT_GUIDE.md and references/approval-gates.md.
+name: power-pages-alm-lint
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "plugins/power-pages/**"
+
+jobs:
+    alm-lint:
+        name: alm-lint
+        runs-on: ubuntu-latest
+        # Consistency backstop: keep all power-pages CI opted out of telemetry
+        # transmission. This job runs only the linter today (no emission), so the
+        # var is inert here — it guarantees no transmission if an emitting step is
+        # ever added to this workflow.
+        env:
+            POWER_PLATFORM_SKILLS_TELEMETRY_POWER_PAGES_OPTOUT: "1"
+        steps:
+            - name: checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: setup-node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 20
+
+            - name: run-alm-lint
+              # Fails the check when any SKILL.md, script, or new powerpagecomponenttype
+              # violates the ALM-aware-by-default rules documented in
+              # plugins/power-pages/AGENTS.md. See PLUGIN_DEVELOPMENT_GUIDE.md for the
+              # full checklist and the allowlist mechanism (.almlintignore / inline
+              # `alm-lint-ignore:` comments).
+              run: node plugins/power-pages/scripts/lint-skills-alm.js

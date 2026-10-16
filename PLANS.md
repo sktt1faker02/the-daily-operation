@@ -2,6 +2,7 @@
 
 # Requirements
 
-- Implement Phase 11
+- [x] Implement Phase 11
 - No need sharepoint document library for this project for now, just generating pdf
-- is it possible to mimick the payslip at docs\Payslip 20260331 Michael Tabilin.pdf Suggest better filename
+- Mimic the reference payslip layout, and name generated PDFs
+  `Payslip_<periodEnd>_<employeeNumber>_<Last-First>.pdf`.

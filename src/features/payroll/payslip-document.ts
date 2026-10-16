@@ -33,6 +33,7 @@ export interface PayslipDocumentData {
   periodEnd: string
   basicPay: number | null
   allowances: number | null
+  otherEarnings: number | null
   unpaidLeave: number | null
   grossPay: number | null
   sss: number | null
@@ -65,13 +66,16 @@ export function derivedRates(monthlySalary: number | null): {
   return { daily, hourly: round2(daily / 8) }
 }
 
-/** Suggested document name, e.g. `Payslip_2026-03-31_0004_Tabilin-Michael`. */
+/** Suggested PDF filename, e.g. `Payslip_2026-03-31_0004_Tabilin-Michael.pdf`. */
 export function payslipFileName(data: PayslipDocumentData): string {
   const parts = data.employeeName.trim().split(/\s+/)
   const nameSlug =
     parts.length > 1 ? `${parts[parts.length - 1]}-${parts[0]}` : parts[0] || "Employee"
-  const emp = data.employeeNumber?.trim() || "NA"
-  return `Payslip_${data.periodEnd}_${emp}_${nameSlug}`.replace(/[^\w.-]+/g, "-")
+  const safePart = (value: string) => value.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "")
+  const period = safePart(data.periodEnd) || "Undated"
+  const employeeNumber = safePart(data.employeeNumber?.trim() || "NA") || "NA"
+  const employee = safePart(nameSlug) || "Employee"
+  return `Payslip_${period}_${employeeNumber}_${employee}.pdf`
 }
 
 /** Left/right key–value grid under the header (labels bold, values right-aligned). */
@@ -120,7 +124,8 @@ function amountsTable(data: PayslipDocumentData): Content {
   const earnings: [string, number | null][] = [
     ["Basic Pay", data.basicPay],
     ["Allowances", data.allowances],
-    ["Absence", data.unpaidLeave],
+    ["Other Earnings", data.otherEarnings],
+    ["Less: Unpaid Leave", data.unpaidLeave === null ? null : -Math.abs(data.unpaidLeave)],
   ]
   const deductions: [string, number | null][] = [
     ["SSS", data.sss],
