@@ -7,6 +7,12 @@ import type { Employee } from "@/features/employees/types"
 import type { PayrollEntry, PayrollPeriod } from "./types"
 import type { PayslipDocumentData } from "./payslip-document"
 
+/** Return displayable comment text, suppressing null, empty, and whitespace-only values. */
+export function normalizeOtherDeductionsComment(comment: string | null | undefined): string | null {
+  const trimmed = comment?.trim()
+  return trimmed ? trimmed : null
+}
+
 export function toPayslipDocument(
   employee: Pick<
     Employee,
@@ -34,6 +40,7 @@ export function toPayslipDocument(
     hdmf: entry.a365_hdmf,
     withholdingTax: entry.a365_withholdingtax,
     otherDeductions: entry.a365_otherdeductions,
+    otherDeductionsComment: normalizeOtherDeductionsComment(entry.a365_comment),
     totalDeductions: entry.a365_totaldeductions,
     netPay: entry.a365_netpay,
   }

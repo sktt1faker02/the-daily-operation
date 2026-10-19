@@ -270,6 +270,12 @@ export const payrollPeriodService = {
       status: typeof errorDetails?.status === "number" ? errorDetails.status : result.success ? "success" : "error",
       rowCount: result.success ? (result.data?.length ?? 0) : null,
       requestId: typeof errorDetails?.requestId === "string" ? errorDetails.requestId : null,
+      rawEntryComments: result.success
+        ? (result.data ?? []).map(({ a365_payrollentryid, a365_comment }) => ({
+            a365_payrollentryid,
+            a365_comment,
+          }))
+        : null,
     })
     if (!result.success) throw result.error ?? new Error("Unable to load your payroll entries.")
     return result.data ?? []

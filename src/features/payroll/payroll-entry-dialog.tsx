@@ -148,7 +148,7 @@ export function PayrollEntryDialog({
               rows={3}
               value={values.a365_comment}
               onChange={(e) => set("a365_comment", e.target.value)}
-              placeholder="Optional note about this entry…"
+              placeholder="Reason for other deductions (shown to the employee on their payslip)"
             />
           </div>
 

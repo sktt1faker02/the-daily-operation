@@ -26,6 +26,13 @@ export default function PayslipPage() {
   const { data: positions } = usePositions()
 
   const slip = data?.find((s) => s.entry.a365_payrollentryid === entryId)
+  const employeeRecord = employee.data
+  const positionName = employeeRecord
+    ? positions?.find((p) => p.a365_positionid === employeeRecord._a365_position_value)?.a365_name ?? null
+    : null
+  const payslipView = slip && employeeRecord
+    ? toPayslipDocument(employeeRecord, slip.period, slip.entry, positionName)
+    : null
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 p-6">
@@ -76,20 +83,12 @@ export default function PayslipPage() {
             </div>
             <div className="flex items-center gap-2">
               <PayrollStatusBadge status={slip.period.a365_payrollstatus} />
-              {employee.data &&
-                (() => {
-                  const emp = employee.data
-                  const positionName =
-                    positions?.find((p) => p.a365_positionid === emp._a365_position_value)
-                      ?.a365_name ?? null
-                  const doc = toPayslipDocument(emp, slip.period, slip.entry, positionName)
-                  return (
-                    <Button variant="outline" size="sm" onClick={() => openPayslip(doc)}>
-                      <FileText className="size-4" aria-hidden />
-                      View Payslip
-                    </Button>
-                  )
-                })()}
+              {payslipView && (
+                <Button variant="outline" size="sm" onClick={() => openPayslip(payslipView)}>
+                  <FileText className="size-4" aria-hidden />
+                  View Payslip
+                </Button>
+              )}
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -98,7 +97,10 @@ export default function PayslipPage() {
           </p>
           <Card>
             <CardContent className="p-5">
-              <PayslipBreakdown entry={slip.entry} />
+              <PayslipBreakdown
+                entry={slip.entry}
+                otherDeductionsComment={payslipView?.otherDeductionsComment}
+              />
             </CardContent>
           </Card>
         </div>

@@ -7,15 +7,18 @@
  */
 import { formatCurrency } from "@/lib/format"
 import type { PayrollEntry } from "./types"
+import { normalizeOtherDeductionsComment } from "./payslip-data"
 
 function Row({
   label,
   amount,
+  detail,
   subtotal,
   emphasis,
 }: {
   label: string
   amount: number | null
+  detail?: string | null
   subtotal?: boolean
   emphasis?: boolean
 }) {
@@ -26,7 +29,14 @@ function Row({
         subtotal ? "border-t border-border mt-1 pt-2 font-medium text-foreground" : "",
       ].join(" ")}
     >
-      <dt className={subtotal ? "" : "text-muted-foreground"}>{label}</dt>
+      <dt className={subtotal ? "" : "text-muted-foreground"}>
+        <span>{label}</span>
+        {detail && (
+          <span className="block break-words whitespace-pre-wrap [overflow-wrap:anywhere] text-xs font-normal text-muted-foreground">
+            {detail}
+          </span>
+        )}
+      </dt>
       <dd
         className={[
           "tabular-nums",
@@ -44,7 +54,14 @@ function has(value: number | null): boolean {
   return value !== null && value !== 0
 }
 
-export function PayslipBreakdown({ entry }: { entry: PayrollEntry }) {
+export function PayslipBreakdown({
+  entry,
+  otherDeductionsComment = entry.a365_comment,
+}: {
+  entry: PayrollEntry
+  otherDeductionsComment?: string | null
+}) {
+  const reason = normalizeOtherDeductionsComment(otherDeductionsComment)
   return (
     <div className="space-y-5 text-sm">
       <section>
@@ -74,7 +91,11 @@ export function PayslipBreakdown({ entry }: { entry: PayrollEntry }) {
           <Row label="HDMF / Pag-IBIG" amount={entry.a365_hdmf} />
           <Row label="Withholding Tax" amount={entry.a365_withholdingtax} />
           {has(entry.a365_otherdeductions) && (
-            <Row label="Other Deductions" amount={entry.a365_otherdeductions} />
+            <Row
+              label="Other Deductions"
+              amount={entry.a365_otherdeductions}
+              detail={reason ? `Reason: ${reason}` : null}
+            />
           )}
           <Row label="Total Deductions" amount={entry.a365_totaldeductions} subtotal />
         </dl>

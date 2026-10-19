@@ -41,6 +41,7 @@ export interface PayslipDocumentData {
   hdmf: number | null
   withholdingTax: number | null
   otherDeductions: number | null
+  otherDeductionsComment?: string | null
   totalDeductions: number | null
   netPay: number | null
 }
@@ -142,6 +143,22 @@ function amountsTable(data: PayslipDocumentData): Content {
     fillColor: HEADER_FILL,
   })
   const label = (text: string): Content => ({ text })
+  const deductionLabel = (text: string): Content => {
+    const comment = data.otherDeductionsComment?.trim()
+    if (text !== "Other Deductions" || !comment) return label(text)
+    return {
+      stack: [
+        { text },
+        {
+          text: `Reason: ${comment}`,
+          fontSize: 8,
+          color: "#667085",
+          margin: [0, 2, 0, 0],
+          wordBreak: "break-all",
+        },
+      ],
+    }
+  }
   const num = (value: number | null): Content => ({ text: money(value), alignment: "right" })
 
   const body: Content[][] = [
@@ -160,7 +177,7 @@ function amountsTable(data: PayslipDocumentData): Content {
     body.push([
       e ? label(e[0]) : label(""),
       e ? num(e[1]) : label(""),
-      d ? label(d[0]) : label(""),
+      d ? deductionLabel(d[0]) : label(""),
       d ? num(d[1]) : label(""),
     ])
   }

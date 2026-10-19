@@ -102,3 +102,41 @@ describe("buildPayslipDocDefinition", () => {
     expect(text).toContain("-")
   })
 })
+
+describe("payslip PDF other-deduction reason", () => {
+  const withOtherDeductions = { ...reference, otherDeductions: 5000 }
+
+  it.each([
+    ["non-empty comment", "Unpaid Leave", "Reason: Unpaid Leave"],
+    ["multi-line comment", "Unpaid Leave\nManual adjustment", "Reason: Unpaid Leave\nManual adjustment"],
+    ["very long comment", "x".repeat(5000), `Reason: ${"x".repeat(5000)}`],
+    ["HTML characters", "<fee & tax>", "Reason: <fee & tax>"],
+  ])("includes a %s under Other Deductions", (_label, comment, expected) => {
+    const text = textOf(
+      buildPayslipDocDefinition({ ...withOtherDeductions, otherDeductionsComment: comment }).content,
+    )
+    expect(text).toContain("Other Deductions")
+    expect(text).toContain(expected)
+  })
+
+  it.each(["", " \n\t "]) ("omits an empty or whitespace-only comment", (comment) => {
+    const text = textOf(
+      buildPayslipDocDefinition({ ...withOtherDeductions, otherDeductionsComment: comment }).content,
+    )
+    expect(text).not.toContain("Reason:")
+  })
+
+  it("leaves amounts and totals unchanged", () => {
+    const before = buildPayslipDocDefinition(withOtherDeductions)
+    const after = buildPayslipDocDefinition({
+      ...withOtherDeductions,
+      otherDeductionsComment: "Unpaid Leave",
+    })
+    const amounts = (definition: typeof before) =>
+      textOf(definition.content).match(/(?:\d{1,3}(?:,\d{3})*|\d+)\.\d{2}/g)
+    expect(amounts(after)).toEqual(amounts(before))
+    expect(textOf(after.content)).toContain("5,000.00")
+    expect(textOf(after.content)).toContain("2,837.50")
+    expect(textOf(after.content)).toContain("19,662.50")
+  })
+})
