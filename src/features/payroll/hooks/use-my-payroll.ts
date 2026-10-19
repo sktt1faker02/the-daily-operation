@@ -20,6 +20,8 @@ export function useMyPayslips() {
     isPending: employee.isPending || (Boolean(employeeId) && query.isPending),
     isError: employee.isError || query.isError,
     error: employee.error ?? query.error,
+    employeeLookupFailed: employee.isError,
+    retryEmployeeLookup: employee.refetch,
     /** True once we know the user has no linked employee record (not a payslip owner). */
     noEmployeeRecord: employee.isSuccess && !employee.data,
   }

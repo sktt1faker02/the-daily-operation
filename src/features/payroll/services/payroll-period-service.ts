@@ -263,6 +263,14 @@ export const payrollPeriodService = {
       PAYROLL_ENTRY_TABLE,
       { select: ENTRY_SELECT, filter: `_a365_employee_value eq ${employeeId}` },
     )
+    const errorDetails = !result.success && result.error && typeof result.error === "object"
+      ? result.error as { status?: unknown; requestId?: unknown }
+      : undefined
+    console.info("Dataverse payroll-entry query", {
+      status: typeof errorDetails?.status === "number" ? errorDetails.status : result.success ? "success" : "error",
+      rowCount: result.success ? (result.data?.length ?? 0) : null,
+      requestId: typeof errorDetails?.requestId === "string" ? errorDetails.requestId : null,
+    })
     if (!result.success) throw result.error ?? new Error("Unable to load your payroll entries.")
     return result.data ?? []
   },

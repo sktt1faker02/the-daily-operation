@@ -22,7 +22,7 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { useMyPayslips } from "@/features/payroll/hooks/use-my-payroll"
 
 export default function MyPayrollPage() {
-  const { data, isPending, isError, error, noEmployeeRecord, refetch } = useMyPayslips()
+  const { data, isPending, isError, error, noEmployeeRecord, employeeLookupFailed, retryEmployeeLookup, refetch } = useMyPayslips()
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
@@ -43,11 +43,13 @@ export default function MyPayrollPage() {
       ) : isError ? (
         <div className="flex flex-col items-center gap-3 rounded-md border border-dashed p-12 text-center">
           <AlertCircle className="size-6 text-destructive" aria-hidden />
-          <p className="font-medium">Unable to load your payroll</p>
+          <p className="font-medium">
+            {employeeLookupFailed ? "We couldn't load your employee profile" : "Unable to load your payroll"}
+          </p>
           <p className="text-sm text-muted-foreground">
             {error instanceof Error ? error.message : "Please try again."}
           </p>
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button variant="outline" onClick={() => employeeLookupFailed ? retryEmployeeLookup() : refetch()}>
             Try again
           </Button>
         </div>
