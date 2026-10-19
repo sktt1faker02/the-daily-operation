@@ -8,12 +8,10 @@ import { employeeService } from "@/features/employees/employee-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
-import { canTransition } from "../payroll-status-machine"
+import { canTransition, PayrollStatus, payrollStatusLabel } from "../period-status"
 import {
   PAYROLL_PERIOD_TABLE,
   PAYROLL_ENTRY_TABLE,
-  PayrollStatus,
-  payrollStatusLabel,
   type PayrollPeriod,
   type PayrollEntry,
 } from "../types"
@@ -108,8 +106,9 @@ export const payrollPeriodService = {
   },
 
   /**
-   * Move a period to `to`, validated against the centralized state machine, and
-   * stamp the matching audit columns. Unlock (→ Processing) clears the lock date.
+   * Move a period to `to`, validated against the centralized lifecycle rules,
+   * and stamp all matching audit columns in the same update. Unlock (→ Processing)
+   * clears the lock date.
    * The plug-in enforces entry immutability; this writes the period lifecycle.
    */
   async transitionStatus(
@@ -124,15 +123,25 @@ export const payrollPeriodService = {
         `Cannot change payroll from ${payrollStatusLabel(from)} to ${payrollStatusLabel(to)}.`,
       )
     }
+    if (to === PayrollStatus.Ready) {
+      const entries = await payrollPeriodService.listEntries(periodId)
+      const uncalculatedCount = entries.filter(
+        (entry) => entry.a365_isincluded && !hasCalculatedResults(entry),
+      ).length
+      if (uncalculatedCount > 0) {
+        throw new Error(
+          `Calculate all included payroll entries before marking this period Ready (${uncalculatedCount} remaining).`,
+        )
+      }
+    }
     const now = new Date().toISOString()
     const payload: Record<string, unknown> = { a365_payrollstatus: to }
     if (to === PayrollStatus.Ready) {
       payload.a365_readyon = now
       payload["a365_ReadyBy@odata.bind"] = `/systemusers(${actingUserId})`
-    } else if (to === PayrollStatus.Paid) {
+    } else if (to === PayrollStatus.Locked) {
       payload.a365_paidon = now
       payload["a365_PaidBy@odata.bind"] = `/systemusers(${actingUserId})`
-    } else if (to === PayrollStatus.Locked) {
       payload.a365_lockedon = now
       payload["a365_LockedBy@odata.bind"] = `/systemusers(${actingUserId})`
     } else if (to === PayrollStatus.Processing) {
@@ -194,7 +203,7 @@ export const payrollPeriodService = {
       a365_periodstart: input.start,
       a365_periodend: input.end,
       a365_paydate: input.payDate || null,
-      a365_payrollstatus: PayrollStatus.Draft,
+      a365_payrollstatus: PayrollStatus.Processing,
     }
     const result = await dataClient.createRecordAsync<Record<string, unknown>, PayrollPeriod>(
       PAYROLL_PERIOD_TABLE,
@@ -227,11 +236,12 @@ export const payrollPeriodService = {
     if (employeeIds.length > 0) {
       const filter = employeeIds.map((id) => `a365_employeeid eq ${id}`).join(" or ")
       const employees = await employeeService.list({ filter })
-      const nameById = new Map(employees.map((e) => [e.a365_employeeid, e.a365_name]))
+      const employeeById = new Map(employees.map((employee) => [employee.a365_employeeid, employee]))
       for (const entry of entries) {
-        entry.a365_employeename = entry._a365_employee_value
-          ? nameById.get(entry._a365_employee_value) ?? undefined
+        const employee = entry._a365_employee_value
+          ? employeeById.get(entry._a365_employee_value)
           : undefined
+        entry.a365_employeename = employee?.a365_name
       }
     }
     return entries
@@ -305,8 +315,8 @@ export const payrollPeriodService = {
 
   /**
    * Populate a period by copying the previous cutoff. Source = the most recent
-   * *finalized* (Paid or Locked) period that starts before the target; in-progress
-   * periods (Draft/Processing/Ready) are skipped, since their inputs aren't
+   * most recent Locked period that starts before the target; Processing and
+   * Ready periods are skipped, since their inputs aren't
    * settled. Each returning employee's ALL inputs are carried forward — Basic Pay,
    * Allowances, Other Earnings, Other Deductions, Unpaid Leave days, and
    * Withholding Tax — so the admin starts from a full copy and manually adjusts
@@ -428,4 +438,17 @@ async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Pr
     created += 1
   }
   return created
+}
+
+function hasCalculatedResults(entry: PayrollEntry): boolean {
+  return Boolean(entry.a365_calculatedon) && [
+    entry.a365_grosspay,
+    entry.a365_sss,
+    entry.a365_philhealth,
+    entry.a365_hdmf,
+    entry.a365_unpaidleave,
+    entry.a365_withholdingtax,
+    entry.a365_totaldeductions,
+    entry.a365_netpay,
+  ].every((value) => value !== null && value !== undefined)
 }

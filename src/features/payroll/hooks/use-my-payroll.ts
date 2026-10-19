@@ -1,6 +1,6 @@
 /**
- * Employee portal data: the signed-in employee's finalized payslips (Paid /
- * Locked only). Depends on the current employee resolving first.
+ * Employee portal data: the signed-in employee's Ready or Locked payslips.
+ * Depends on the current employee resolving first.
  */
 import { useQuery } from "@tanstack/react-query"
 import { listPayslipsForEmployee } from "../services/my-payroll"

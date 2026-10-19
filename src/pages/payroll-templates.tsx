@@ -1,7 +1,7 @@
 /**
  * Payroll cutoff templates management (Payroll Admin). Lists saved templates
  * with View / Rename / Delete actions. Templates are created from the payroll
- * period page (save from a Paid or Locked cutoff); this page only manages
+ * period page (save from a Locked cutoff); this page only manages
  * existing ones. Loading / Empty / Error / Success states.
  * Authorization is enforced in Dataverse, not this UI (CLAUDE.md "Security").
  */
@@ -234,7 +234,7 @@ export default function PayrollTemplatesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Payroll Templates</h1>
           <p className="text-sm text-muted-foreground">
-            Manage saved cutoff templates. Save a new template from a Paid or Locked payroll period.
+            Manage saved cutoff templates. Save a new template from a Locked payroll period.
           </p>
         </div>
       </div>
@@ -264,7 +264,7 @@ export default function PayrollTemplatesPage() {
           <div>
             <p className="font-medium">No templates yet</p>
             <p className="text-sm text-muted-foreground">
-              Save one from a Paid or Locked period.
+              Save one from a Locked period.
             </p>
           </div>
         </div>

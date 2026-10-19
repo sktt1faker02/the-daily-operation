@@ -6,27 +6,25 @@
  */
 import { round2 } from "./services/payroll-calculation"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
-import { PayrollStatus, type PayrollEntry } from "./types"
-
-/** Cutoffs settled enough to be a "copy previous cutoff" source. */
-export const FINALIZED_STATUSES = new Set<PayrollStatus>([PayrollStatus.Paid, PayrollStatus.Locked])
+import { isFinalized, type PayrollStatusValue } from "./period-status"
+import type { PayrollEntry } from "./types"
 
 /**
- * Choose the source for "copy previous cutoff": the most recent finalized
- * (Paid/Locked) period that starts before the target. In-progress periods
- * (Draft/Processing/Ready) aren't settled, so they're skipped even if they fall
+ * Choose the source for "copy previous cutoff": the most recent Locked period
+ * that starts before the target. Processing and Ready periods aren't settled,
+ * so they're skipped even if they fall
  * between. Expects `periods` ordered by period start descending (how
  * listPeriods returns them). Returns null when there's no eligible source. Pure.
  */
 export function selectPreviousCutoff<
-  T extends { a365_payrollperiodid: string; a365_periodstart: string; a365_payrollstatus: PayrollStatus },
+  T extends { a365_payrollperiodid: string; a365_periodstart: string; a365_payrollstatus: PayrollStatusValue },
 >(periods: T[], targetId: string): T | null {
   const target = periods.find((p) => p.a365_payrollperiodid === targetId)
   return (
     periods.find(
       (p) =>
         p.a365_payrollperiodid !== targetId &&
-        FINALIZED_STATUSES.has(p.a365_payrollstatus) &&
+        isFinalized(p.a365_payrollstatus) &&
         (!target || p.a365_periodstart < target.a365_periodstart),
     ) ?? null
   )
@@ -66,6 +64,58 @@ export function suggestSemiMonthlyPeriod(refISO: string): {
   const endDay = firstHalf ? 15 : endOfMonthDay(y, m)
   const end = `${y}-${pad2(m)}-${pad2(endDay)}`
   return { start, end, payDate: end, name: formatPeriodName(start, end) }
+}
+
+export interface LinkedPeriodDateState {
+  start: string
+  end: string
+  payDate: string
+  endManuallyPicked: boolean
+  payDateManuallyEdited: boolean
+}
+
+/** Keep End linked to Start until chosen, then only push it forward if needed. */
+export function applyStartChange(
+  state: LinkedPeriodDateState,
+  start: string,
+): LinkedPeriodDateState {
+  const startPassedEnd = Boolean(start && state.end && start > state.end)
+  const end = !state.endManuallyPicked || startPassedEnd ? start : state.end
+  return {
+    ...state,
+    start,
+    end,
+    payDate: state.payDateManuallyEdited ? state.payDate : end,
+  }
+}
+
+/** Update Pay date with End until the admin edits Pay date themselves. */
+export function applyEndChange(
+  state: LinkedPeriodDateState,
+  end: string,
+): LinkedPeriodDateState {
+  return {
+    ...state,
+    end,
+    payDate: state.payDateManuallyEdited ? state.payDate : end,
+    endManuallyPicked: true,
+  }
+}
+
+export function applyPayDateChange(
+  state: LinkedPeriodDateState,
+  payDate: string,
+): LinkedPeriodDateState {
+  return { ...state, payDate, payDateManuallyEdited: true }
+}
+
+/** ISO date-only strings sort chronologically, so no UTC conversion is needed. */
+export function isEndDateDisabled(date: string, start: string): boolean {
+  return Boolean(start && date < start)
+}
+
+export function isValidPeriodDates(start: string, end: string): boolean {
+  return Boolean(start && end && start <= end)
 }
 
 /** e.g. "Sep 1–15, 2026". Assumes start and end share a month (semi-monthly). */

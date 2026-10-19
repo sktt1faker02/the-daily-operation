@@ -2,7 +2,7 @@
  * Employee payslip detail (`/my-payroll/:entryId`). Renders the full itemized
  * breakdown for one finalized payslip. The entry is resolved from the current
  * employee's own visible payslips, so an id that isn't theirs (or isn't a
- * Paid/Locked cutoff) simply isn't found — an employee cannot open another
+ * Ready/Locked cutoff) simply isn't found — an employee cannot open another
  * employee's payslip by changing the URL. Dataverse enforces this underneath.
  */
 import { Link, useParams } from "react-router-dom"

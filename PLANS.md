@@ -1,51 +1,58 @@
-# Active: Show the Other Deductions Comment on the Employee Payslip
+# Active: Split the New Payroll Period Date Range Into Start Date and End Date
 
 ## Requirements
 
 - Integrate Power Platform Skills
-- Do NOT change any Dataverse security role or environment setting. If the comment comes back empty for the employee because of column-level security or a privilege, tell me the exact table, column and security profile instead of working around it in code.
 - Extend existing files. Do not rewrite them.
-- Use the existing `dataClient` and generated services. Do not use raw fetch.
-- Do not change `calculatePayroll(entry)` or any payroll formulas. This task does not touch calculations.
+- Use the existing date picker / calendar component. Do not add a new date library.
+- Scope: ONLY the "New payroll period" dialog. Do not change how periods are saved, named or listed, and do not change any Dataverse table, column or security role.
 
-## Feature: Show the admin's comment under Other Deductions on the payslip screen and PDF
+## Feature: Separate Start Date and End Date fields with linked defaults
 
 ### Context
-Power Apps code app (React + Vite + TypeScript, Dataverse backend) called "The Daily Operation". In the admin's Edit modal for a payroll entry, the **Comment** field holds the reason for the **Other Deductions** amount. Employees hold `A365 - Payroll Employee` (read-only). They open My Payroll, then Payslip, then "View Payslip" for the PDF.
+Power Apps code app (React + Vite + TypeScript, Dataverse backend) called "The Daily Operation". On the Payroll Periods page, "New payroll period" opens a dialog with a single range field ("Period (start – end)", for example "Sep 15, 2026 – Sep 15, 2026") that opens a two-month range calendar, plus a Pay date field. The dialog also shows "This period will be named Sep 15–15, 2026."
 
 ### Current problem
-The employee's payslip shows the Other Deductions amount (for example ₱5,000.00) but not the comment, so they can't tell what the deduction is for. The comment is missing on the screen and in the PDF.
+One range field for both dates is easy to misread and misclick. It is unclear which click sets the start and which sets the end, and the pay date is set separately and can be left inconsistent with the period (for example a period ending Sep 15 with a pay date of Nov 15).
 
 ### Investigation first
 Before changing code, tell me:
-- Which files hold the payslip screen, the PDF generator, the employee payslip query and its select list, and the payslip view model.
-- The logical name of the Comment column on Payroll Entry.
-- Whether the employee's query selects the comment column, and whether it is mapped into the view model used by the screen and by the PDF.
-- Whether the comment comes back null for the employee but has a value when read as an admin. Log the raw row as the employee. If it does, that is column-level security. Report the table, column and profile, and stop there.
-- The existing rule that decides whether the Other Deductions row is shown (always, or only when non-zero).
+- The files for the dialog, the date range picker, the default-date logic ("Semi-monthly defaults are suggested from today"), the period label builder, and the create handler.
+- How the start, end and pay dates are currently stored in the form state and sent to Dataverse (type and format).
+- What the current defaults logic does for today's date, and whether it produces the values in the screenshot (period Sep 15 – Sep 15, pay date Nov 15). Report only. Do not change the defaults logic.
 
 ### Expected behavior
-1. When the entry has a non-empty (trimmed) comment and the Other Deductions row is shown, display the comment directly under the Other Deductions line on the screen, as a small muted note, for example "Reason: <comment>".
-2. In the PDF, show the same comment under the Other Deductions row, or in a "Remarks" line below the deductions table. Keep the existing layout, branding and signature area.
-3. Hide the comment completely when it is empty or whitespace-only. No empty placeholder.
-4. Render the comment as plain text only, escaped, preserving line breaks. Long comments wrap and must not overflow the card or the PDF page.
-5. The amounts and totals do not change.
-6. Admin Edit modal: keep the Comment field, but change its placeholder to say it is shown to the employee, for example "Reason for other deductions (shown to the employee on their payslip)".
+1. Replace the single range field with two fields: **Start date** (required) and **End date** (required). Each opens its own single-date calendar.
+2. **End date follows the start date.** When the dialog opens, and whenever the Start date changes, the End date is set to the Start date until the admin explicitly picks an End date. After the admin has picked one, changing the Start date does not change the End date, except in rule 4.
+3. **End date calendar:**
+   - It opens on the Start date's month.
+   - Every date earlier than the Start date is disabled: shown muted, not selectable by click or keyboard, and marked `aria-disabled`.
+   - The Start date itself and all later dates are selectable, so a one-day period remains possible.
+4. If the Start date is changed to a date later than the current End date, set the End date to the new Start date.
+5. **Pay date is auto-populated and equals the End date.** It updates whenever the End date changes, until the admin edits the Pay date manually. After a manual edit, the End date no longer overwrites it. The Pay date stays editable.
+6. Keep the "This period will be named …" preview and update it live from the Start and End dates, using the existing label builder. Do not change the label format.
+7. Keep the existing starting defaults for Start and End as they are. Pay date now follows End from the first render.
+8. "Create period" is disabled until both Start and End are set and End is not earlier than Start. Keep the existing Cancel behavior and reset the dialog state each time it opens.
+9. Show a short helper text under End date, for example "Dates before the start date are unavailable."
 
 ### Implementation requirements
-- Add the comment to the select list of the employee payslip query and to the payslip view model once, and have both the screen and the PDF read it from the same view model. Do not fetch it separately in the PDF.
-- Employees remain read-only. Do not add any edit control.
-- Keep current visibility rules: employees only see their own finalized payslips.
-- If the comment column is unavailable to the employee, the payslip must still render without it. Tell me what is missing.
-- Add unit tests for the mapping and rendering logic: non-empty comment, empty comment, whitespace-only comment, multi-line comment, very long comment, and a comment that contains HTML characters.
+- Treat the three dates as date-only values in local time. No UTC conversion, so no off-by-one-day errors when saving or showing them.
+- Put the linking rules in small pure helper functions (for example `applyStartChange`, `applyEndChange`, `isEndDateDisabled`) so they are unit-testable. Do not bury them in the component.
+- The values sent to the create handler must have the same shape and format as before.
+- Keep accessibility: each field has its own label, the required marker, keyboard navigation, and visible focus. If the calendar is react-day-picker, use its `disabled` and `defaultMonth` props.
+- Keep the dialog layout consistent with the existing style and usable on narrow screens: fields stacked, or Start and End side by side on wide screens.
 
 ### Acceptance criteria
-- The test user (Payroll Employee) opens a payslip where Other Deductions is non-zero and has a comment: the comment shows under that line on the screen and in the PDF.
-- A payslip with an empty comment shows nothing extra.
-- A comment with `<`, `>` or `&` characters appears as typed.
-- Amounts and totals are identical to before.
-- The admin Edit modal text says the comment is shown to the employee.
-- Unit tests pass, `npm run build` passes, and the app works after `pac code push`.
+- The dialog shows separate Start date and End date fields, with no combined range field.
+- Opening the dialog sets End date equal to Start date and Pay date equal to End date.
+- Picking a Start date updates End date (if the admin hasn't picked one) and Pay date to match.
+- In the End date calendar, dates before the Start date are disabled and cannot be clicked or selected with the keyboard.
+- Choosing a later End date updates Pay date to the same date, until the Pay date is edited by hand.
+- Changing the Start date to a date after the current End date moves End and Pay date to the new Start date.
+- The period name preview updates live and uses the same format as before.
+- Created periods are saved with the same data shape as before, and the dates are not off by a day.
+- Unit tests cover: start change before and after the end date, end change, pay date following end, pay date after a manual edit, disabled-date check, and a one-day period.
+- `npm run build` passes and the app works after `pac code push`.
 
 ### Workflow
-Before changing code, briefly tell me which files hold the payslip screen, the PDF generator, the employee payslip query, and the Edit modal, and what the investigation found about the comment column for an employee. Then make the changes.
+First report the investigation findings, then make the changes.

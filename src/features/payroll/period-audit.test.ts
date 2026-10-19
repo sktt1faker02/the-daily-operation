@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { buildAuditTrail } from "./period-audit"
-import { PayrollStatus, type PayrollPeriod } from "./types"
+import { PayrollStatus } from "./period-status"
+import type { PayrollPeriod } from "./types"
 
 function period(overrides: Partial<PayrollPeriod>): PayrollPeriod {
   return {
@@ -9,7 +10,7 @@ function period(overrides: Partial<PayrollPeriod>): PayrollPeriod {
     a365_periodstart: "2026-09-01",
     a365_periodend: "2026-09-15",
     a365_paydate: "2026-09-20",
-    a365_payrollstatus: PayrollStatus.Draft,
+    a365_payrollstatus: PayrollStatus.Processing,
     createdon: "2026-09-01T08:00:00Z",
     createdbyname: "Admin User",
     ...overrides,

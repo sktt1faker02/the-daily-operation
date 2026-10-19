@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest"
 import { selectVisiblePayslips } from "./my-payroll"
-import { PayrollStatus, type PayrollEntry, type PayrollPeriod } from "../types"
+import { LEGACY_LOCKED_STATUS, LEGACY_PROCESSING_STATUS, PayrollStatus } from "../period-status"
+import type { PayrollEntry, PayrollPeriod } from "../types"
 
-function period(id: string, start: string, status: PayrollStatus): PayrollPeriod {
+function period(id: string, start: string, status: PayrollPeriod["a365_payrollstatus"]): PayrollPeriod {
   return {
     a365_payrollperiodid: id,
     a365_name: id,
@@ -39,23 +40,27 @@ function entry(id: string, periodId: string): PayrollEntry {
 }
 
 describe("selectVisiblePayslips", () => {
-  it("shows only Paid and Locked periods, excludes Draft/Processing/Ready", () => {
+  it("shows Ready and Locked periods, hides Processing, and normalizes unmigrated values", () => {
     const periods = [
-      period("p-draft", "2026-01-01", PayrollStatus.Draft),
+      period("p-pre-flow", "2026-01-01", LEGACY_PROCESSING_STATUS),
       period("p-proc", "2026-02-01", PayrollStatus.Processing),
       period("p-ready", "2026-03-01", PayrollStatus.Ready),
-      period("p-paid", "2026-04-01", PayrollStatus.Paid),
+      period("p-legacy-locked", "2026-04-01", LEGACY_LOCKED_STATUS),
       period("p-locked", "2026-05-01", PayrollStatus.Locked),
     ]
     const entries = periods.map((p) => entry(`e-${p.a365_payrollperiodid}`, p.a365_payrollperiodid))
     const visible = selectVisiblePayslips(entries, periods)
-    expect(visible.map((s) => s.period.a365_payrollperiodid)).toEqual(["p-locked", "p-paid"])
+    expect(visible.map((s) => s.period.a365_payrollperiodid)).toEqual([
+      "p-locked",
+      "p-legacy-locked",
+      "p-ready",
+    ])
   })
 
   it("sorts newest cutoff first by period start", () => {
     const periods = [
-      period("older", "2026-04-01", PayrollStatus.Paid),
-      period("newer", "2026-05-01", PayrollStatus.Paid),
+      period("older", "2026-04-01", LEGACY_LOCKED_STATUS),
+      period("newer", "2026-05-01", LEGACY_LOCKED_STATUS),
     ]
     const entries = [entry("e1", "older"), entry("e2", "newer")]
     expect(selectVisiblePayslips(entries, periods).map((s) => s.period.a365_payrollperiodid)).toEqual([
@@ -65,8 +70,8 @@ describe("selectVisiblePayslips", () => {
   })
 
   it("drops entries whose period is missing or unlinked", () => {
-    const periods = [period("p-paid", "2026-04-01", PayrollStatus.Paid)]
-    const entries = [entry("e1", "does-not-exist"), { ...entry("e2", "p-paid"), _a365_payrollperiod_value: null }]
+    const periods = [period("p-ready", "2026-04-01", PayrollStatus.Ready)]
+    const entries = [entry("e1", "does-not-exist"), { ...entry("e2", "p-locked"), _a365_payrollperiod_value: null }]
     expect(selectVisiblePayslips(entries, periods)).toEqual([])
   })
 })

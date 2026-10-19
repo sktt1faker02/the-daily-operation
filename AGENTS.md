@@ -41,7 +41,11 @@ should remain when they conflict with an explicit requirement.
 
 ## Task Phases
 
-see task phases at docs\payroll-task-phases.md
+Use `docs/payroll-task-phases.md` as the template and reference for phase-based
+Payroll planning. Record ongoing Payroll enhancement change logs in the root
+`Payroll-Enhancements.md` file. Each entry should include the date, request or
+business outcome, files/features changed, verification performed, and any
+remaining limitations. Do not use the phase checklist as the change log.
 
 ## Technology Stack
 

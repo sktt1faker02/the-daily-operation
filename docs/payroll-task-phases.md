@@ -2,6 +2,11 @@
 
 ## Milestone 1: Payroll -- Task Phases Breakdown
 
+> **Template and phase reference:** Use this document's milestone, phase, goal,
+> task checklist, and deliverable structure when planning Payroll work. Record
+> completed enhancement history in the root `Payroll-Enhancements.md` instead
+> of adding change-log entries here.
+
 **Project:** Central Hub 2 -- The Daily Operation\
 **Company:** Automations 365\
 **Primary Stack:** Power Apps Code Apps + Dataverse + Power Automate\

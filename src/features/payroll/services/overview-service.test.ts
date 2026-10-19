@@ -1,8 +1,13 @@
 import { describe, it, expect } from "vitest"
 import { buildOverview } from "./overview-service"
-import { PayrollStatus, type PayrollEntry, type PayrollPeriod } from "../types"
+import { LEGACY_LOCKED_STATUS, LEGACY_PROCESSING_STATUS, PayrollStatus } from "../period-status"
+import type { PayrollEntry, PayrollPeriod } from "../types"
 
-function period(id: string, start: string, status: PayrollStatus = PayrollStatus.Paid): PayrollPeriod {
+function period(
+  id: string,
+  start: string,
+  status: PayrollPeriod["a365_payrollstatus"] = PayrollStatus.Locked,
+): PayrollPeriod {
   return {
     a365_payrollperiodid: id,
     a365_name: id,
@@ -54,22 +59,22 @@ describe("buildOverview", () => {
   it("cards use the latest FINALIZED cutoff, skipping newer in-progress periods", () => {
     const mixed = [
       period("sep", "2026-09-16", PayrollStatus.Processing),
-      period("aug", "2026-08-16", PayrollStatus.Paid),
+      period("aug", "2026-08-16", LEGACY_LOCKED_STATUS),
       period("jul", "2026-07-01", PayrollStatus.Locked),
     ]
     const entries = [entry("sep", 1000), entry("aug", 500), entry("jul", 700)]
     const o = buildOverview(mixed, entries, 2)
-    // sep is newest but Processing → cards fall to aug (latest Paid/Locked)
+    // sep is newest but Processing → cards fall to aug (latest Locked)
     expect(o.cutoffPeriod?.a365_payrollperiodid).toBe("aug")
     expect(o.cutoff.net).toBe(500)
   })
 
-  it("cutoffPeriod is null when nothing is finalized", () => {
-    const drafts = [
-      period("sep", "2026-09-16", PayrollStatus.Draft),
+  it("cutoffPeriod is null when nothing is Locked", () => {
+    const inProgress = [
+      period("sep", "2026-09-16", LEGACY_PROCESSING_STATUS),
       period("aug", "2026-08-16", PayrollStatus.Processing),
     ]
-    const o = buildOverview(drafts, [entry("sep", 1000)], 2)
+    const o = buildOverview(inProgress, [entry("sep", 1000)], 2)
     expect(o.cutoffPeriod).toBeNull()
     expect(o.cutoff).toEqual({ gross: 0, deductions: 0, net: 0 })
   })

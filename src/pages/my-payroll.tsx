@@ -1,6 +1,6 @@
 /**
  * Employee portal — "My Payroll". Shows the signed-in employee's own finalized
- * payslips (Paid / Locked only): the latest cutoff's totals up top, then the
+ * payslips (Ready / Locked only): the latest cutoff's totals up top, then the
  * full history linking to each payslip. Employees only ever see their own
  * records (Dataverse-enforced; the query is scoped to their employee id).
  */
@@ -66,7 +66,7 @@ export default function MyPayrollPage() {
           <FileText className="size-6 text-muted-foreground" aria-hidden />
           <p className="font-medium">No payslips yet</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Your payslips appear here once a payroll cutoff has been paid.
+            Your payslips appear here once your payroll administrator marks the cutoff Ready.
           </p>
         </div>
       ) : (

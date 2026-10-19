@@ -1,7 +1,7 @@
 /**
  * Payroll entry operations that combine the pure calculation engine with
  * Dataverse persistence. Business-oriented; keeps Dataverse access behind this
- * layer. The Draft/Processing status guard on recalculation is enforced at the
+ * layer. The Processing status guard on recalculation is enforced at the
  * data layer in Phase 7 — this operation computes and writes results.
  */
 import { dataClient } from "@/lib/power/data-client"
@@ -9,7 +9,7 @@ import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
 import type { PayrollEntryInputValues } from "../types"
-import { isPeriodEditable, PayrollStatus } from "../types"
+import { isPeriodEditable } from "../period-status"
 import { payrollPeriodService } from "./payroll-period-service"
 
 const ENTRY_TABLE = "a365_payrollentries"
@@ -65,7 +65,7 @@ export async function saveAndCalculateEntry(
 ): Promise<void> {
   const period = await payrollPeriodService.getPeriod(periodId)
   if (!isPeriodEditable(period.a365_payrollstatus)) {
-    throw new Error("Payroll entries can only be edited while the period is Draft or Processing.")
+    throw new Error("Payroll entries can only be edited while the period is Processing.")
   }
   const read = await dataClient.retrieveRecordAsync<EntryReadModel>(ENTRY_TABLE, entryId, {
     select: [
@@ -176,11 +176,6 @@ export async function calculatePeriod(
   for (const entry of included) {
     await calculateAndPersistEntry(entry.a365_payrollentryid, periodEndDate, calculatedByUserId, config)
     calculated += 1
-  }
-  // First calculation advances the period Draft → Processing (centralized rule).
-  const period = await payrollPeriodService.getPeriod(periodId)
-  if (period.a365_payrollstatus === PayrollStatus.Draft) {
-    await payrollPeriodService.transitionStatus(periodId, PayrollStatus.Processing, calculatedByUserId)
   }
   return { calculated }
 }

@@ -1,7 +1,7 @@
 /**
  * Payroll period detail (Payroll Admin). Load active employees, edit variable
- * inputs, and drive status transitions (Mark Ready / Mark Paid /
- * Lock / Unlock) via the centralized status machine. Loading / Empty / Error
+ * inputs, and drive status transitions (Mark Ready / Mark as Paid / Unlock)
+ * via the centralized status rules. Loading / Empty / Error
  * / Success states throughout.
  */
 import { useMemo, useState } from "react"
@@ -39,8 +39,18 @@ import { toPayslipDocument } from "@/features/payroll/payslip-data"
 import { openPayslip } from "@/features/payroll/payslip-document"
 import { employeeService } from "@/features/employees/employee-service"
 import { usePositions } from "@/features/employees/use-reference-data"
-import { isPeriodEditable, PayrollStatus, payrollStatusLabel, type PayrollEntry } from "@/features/payroll/types"
-import { nextActions, ACTION_TARGET, type PayrollAction } from "@/features/payroll/payroll-status-machine"
+import type { PayrollEntry } from "@/features/payroll/types"
+import {
+  ACTION_TARGET,
+  isFinalized,
+  isPeriodEditable,
+  isVisibleToEmployee,
+  nextActions,
+  normalizePayrollStatus,
+  PayrollStatus,
+  payrollStatusLabel,
+  type PayrollAction,
+} from "@/features/payroll/period-status"
 import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll-status"
 import { useSaveTemplate, useTemplates, useApplyTemplate } from "@/features/payroll/hooks/use-payroll-templates"
 
@@ -80,17 +90,12 @@ export default function PayrollPeriodPage() {
     markReady: {
       label: "Mark Ready",
       title: "Mark this payroll Ready?",
-      description: "Finalizes inputs for review. Entries become read-only and can only be changed after an Unlock.",
+      description: "Makes payslips visible to employees and locks entries. Unlock reopens the cutoff for corrections.",
     },
     markPaid: {
-      label: "Mark Paid",
+      label: "Mark as Paid",
       title: "Mark this payroll Paid?",
       description: "Records that this cutoff has been paid out. Entries remain locked.",
-    },
-    lock: {
-      label: "Lock",
-      title: "Lock this payroll?",
-      description: "Closes the cutoff as an immutable financial snapshot. Corrections require an Unlock.",
     },
     unlock: {
       label: "Unlock",
@@ -115,7 +120,7 @@ export default function PayrollPeriodPage() {
     )
   }
 
-  const actions = nextActions(period.data?.a365_payrollstatus ?? PayrollStatus.Draft)
+  const actions = nextActions(period.data?.a365_payrollstatus ?? PayrollStatus.Processing)
 
   const totals = useMemo(
     () => sumEntryTotals((entries.data ?? []).filter((e) => e.a365_isincluded)),
@@ -129,14 +134,11 @@ export default function PayrollPeriodPage() {
   }, [entries.data, search])
 
   const editable = isPeriodEditable(period.data?.a365_payrollstatus)
-  // Payslips become available once the Admin has finalized the cutoff
-  // (Mark Ready / Paid / Locked); Draft/Processing show editable inputs.
+  // Ready releases payslips; Processing remains editable and hidden from employees.
   const status = period.data?.a365_payrollstatus
-  const canViewPayslip =
-    status === PayrollStatus.Ready ||
-    status === PayrollStatus.Paid ||
-    status === PayrollStatus.Locked
-  const isFinalized = status === PayrollStatus.Paid || status === PayrollStatus.Locked
+  const canViewPayslip = isVisibleToEmployee(status)
+  const periodIsFinalized = isFinalized(status)
+  const normalizedStatus = normalizePayrollStatus(status)
 
   const handleViewPayslip = async (entry: PayrollEntry) => {
     // Open the tab inside the click gesture so the async fetch below doesn't
@@ -350,7 +352,7 @@ export default function PayrollPeriodPage() {
                 {ACTION_META[action].label}
               </Button>
             ))}
-            {isFinalized && (
+            {periodIsFinalized && (
               <Button
                 variant="outline"
                 onClick={() => setConfirmSaveTemplateOpen(true)}
@@ -376,7 +378,7 @@ export default function PayrollPeriodPage() {
 
       {!editable && period.data && (
         <p className="rounded-md border border-border bg-surface-subtle px-3 py-2 text-sm text-muted-foreground">
-          {period.data.a365_payrollstatus === PayrollStatus.Locked
+          {normalizedStatus === PayrollStatus.Locked
             ? `Locked on ${formatDate(period.data.a365_lockedon)}. Unlock to make corrections.`
             : `This period is ${payrollStatusLabel(period.data.a365_payrollstatus)} and is no longer editable in payroll administration.`}
         </p>
@@ -501,7 +503,7 @@ export default function PayrollPeriodPage() {
           <DialogHeader>
             <DialogTitle>Copy from the previous cutoff?</DialogTitle>
             <DialogDescription>
-              Copies all inputs from the last finalized (Paid or Locked) cutoff into this period,
+              Copies all inputs from the last Locked cutoff into this period,
               overwriting existing entries and adding any missing employees. Deductions and net pay
               are recalculated. Review and adjust before marking ready.
             </DialogDescription>
@@ -547,7 +549,7 @@ export default function PayrollPeriodPage() {
                   <SelectContent />
                 </Select>
                 <p className="text-sm text-muted-foreground">
-                  No templates yet — save one from a Paid or Locked period.
+                  No templates yet — save one from a Locked period.
                 </p>
               </>
             ) : (
