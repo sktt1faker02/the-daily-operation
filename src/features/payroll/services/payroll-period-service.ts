@@ -5,6 +5,7 @@
  */
 import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
+import { referenceService } from "@/features/employees/reference-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
@@ -23,6 +24,7 @@ const PERIOD_SELECT: (keyof PayrollPeriod)[] = [
   "a365_periodend",
   "a365_paydate",
   "a365_payrollstatus",
+  "statecode",
   "a365_lockedon",
   "createdon",
   // Audit trail (Phase 9): lifecycle date stamps + actor lookup GUIDs. Actor
@@ -60,6 +62,22 @@ const ENTRY_SELECT = [
   "_a365_employee_value",
   "_a365_payrollperiod_value",
 ]
+
+async function retrieveAllPages<T>(table: string, options: Parameters<typeof dataClient.retrieveMultipleRecordsAsync<T>>[1]): Promise<T[]> {
+  const records: T[] = []
+  let skipToken: string | undefined
+  do {
+    const result = await dataClient.retrieveMultipleRecordsAsync<T>(table, {
+      ...options,
+      maxPageSize: 500,
+      ...(skipToken ? { skipToken } : {}),
+    })
+    if (!result.success) throw result.error ?? new Error("Unable to load payroll export data.")
+    records.push(...(result.data ?? []))
+    skipToken = result.skipToken
+  } while (skipToken)
+  return records
+}
 
 export const payrollPeriodService = {
   async listPeriods(): Promise<PayrollPeriod[]> {
@@ -166,7 +184,7 @@ export const payrollPeriodService = {
       },
     )
     if (!result.success) throw result.error ?? new Error("Unable to load archived periods.")
-    return result.data ?? []
+    return (result.data ?? []).map((period) => ({ ...period, statecode: 1 }))
   },
 
   /**
@@ -237,14 +255,64 @@ export const payrollPeriodService = {
       const filter = employeeIds.map((id) => `a365_employeeid eq ${id}`).join(" or ")
       const employees = await employeeService.list({ filter })
       const employeeById = new Map(employees.map((employee) => [employee.a365_employeeid, employee]))
+      const departmentNames = await referenceService.getDepartmentNamesByIds(
+        employees
+          .map((employee) => employee._a365_department_value)
+          .filter((id): id is string => Boolean(id)),
+      )
       for (const entry of entries) {
         const employee = entry._a365_employee_value
           ? employeeById.get(entry._a365_employee_value)
           : undefined
         entry.a365_employeename = employee?.a365_name
+        entry.a365_employeenumber = employee?.a365_employeenumber
+        entry.a365_departmentname = employee?._a365_department_value
+          ? departmentNames.get(employee._a365_department_value)
+          : undefined
+        entry.a365_bankname = employee?.a365_bankname
+        entry.a365_bankaccountnumber = employee?.a365_bankaccountnumber
       }
     }
     return entries
+  },
+
+  /** Loads export entries in bounded period batches and follows Dataverse continuation tokens. */
+  async listEntriesForExport(periodIds: string[], onProgress?: (completedPeriods: number) => void): Promise<Map<string, PayrollEntry[]>> {
+    const result = new Map<string, PayrollEntry[]>(periodIds.map((id) => [id, []]))
+    const periodBatches: string[][] = []
+    for (let index = 0; index < periodIds.length; index += 10) periodBatches.push(periodIds.slice(index, index + 10))
+    let completed = 0
+    for (const batch of periodBatches) {
+      const filter = batch.map((id) => `_a365_payrollperiod_value eq ${id}`).join(" or ")
+      const entries = await retrieveAllPages<PayrollEntry>(PAYROLL_ENTRY_TABLE, {
+        select: ENTRY_SELECT,
+        filter,
+        orderBy: ["a365_name asc"],
+      })
+      const employeeIds = [...new Set(entries.map((entry) => entry._a365_employee_value).filter((id): id is string => Boolean(id)))]
+      const employeeRecords: Employee[] = []
+      for (let index = 0; index < employeeIds.length; index += 20) {
+        const employeeFilter = employeeIds.slice(index, index + 20).map((id) => `a365_employeeid eq ${id}`).join(" or ")
+        employeeRecords.push(...await employeeService.list({ filter: employeeFilter }))
+      }
+      const employeesById = new Map(employeeRecords.map((employee) => [employee.a365_employeeid, employee]))
+      const departmentNames = await referenceService.getDepartmentNamesByIds(
+        employeeRecords.map((employee) => employee._a365_department_value).filter((id): id is string => Boolean(id)),
+      )
+      for (const entry of entries) {
+        const employee = entry._a365_employee_value ? employeesById.get(entry._a365_employee_value) : undefined
+        entry.a365_employeename = employee?.a365_name
+        entry.a365_employeenumber = employee?.a365_employeenumber
+        entry.a365_departmentname = employee?._a365_department_value ? departmentNames.get(employee._a365_department_value) : undefined
+        entry.a365_bankname = employee?.a365_bankname
+        entry.a365_bankaccountnumber = employee?.a365_bankaccountnumber
+        const periodId = entry._a365_payrollperiod_value
+        if (periodId && result.has(periodId)) result.get(periodId)!.push(entry)
+      }
+      completed += batch.length
+      onProgress?.(completed)
+    }
+    return result
   },
 
   /**
@@ -273,20 +341,6 @@ export const payrollPeriodService = {
       PAYROLL_ENTRY_TABLE,
       { select: ENTRY_SELECT, filter: `_a365_employee_value eq ${employeeId}` },
     )
-    const errorDetails = !result.success && result.error && typeof result.error === "object"
-      ? result.error as { status?: unknown; requestId?: unknown }
-      : undefined
-    console.info("Dataverse payroll-entry query", {
-      status: typeof errorDetails?.status === "number" ? errorDetails.status : result.success ? "success" : "error",
-      rowCount: result.success ? (result.data?.length ?? 0) : null,
-      requestId: typeof errorDetails?.requestId === "string" ? errorDetails.requestId : null,
-      rawEntryComments: result.success
-        ? (result.data ?? []).map(({ a365_payrollentryid, a365_comment }) => ({
-            a365_payrollentryid,
-            a365_comment,
-          }))
-        : null,
-    })
     if (!result.success) throw result.error ?? new Error("Unable to load your payroll entries.")
     return result.data ?? []
   },

@@ -7,7 +7,44 @@
 import { round2 } from "./services/payroll-calculation"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { isFinalized, type PayrollStatusValue } from "./period-status"
-import type { PayrollEntry } from "./types"
+import type { PayrollEntry, PayrollPeriod } from "./types"
+
+export type PayrollQuarter = 1 | 2 | 3 | 4
+export type PayrollQuarterFilter = PayrollQuarter | "all"
+export type PayrollYearFilter = number | "all"
+
+/** Returns the calendar year containing a payroll period's start date. */
+export function getPayrollPeriodYear(period: Pick<PayrollPeriod, "a365_periodstart">): number | null {
+  const match = /^(\d{4})-\d{2}-\d{2}$/.exec(period.a365_periodstart)
+  if (!match) return null
+  const year = Number(match[1])
+  return Number.isInteger(year) && year > 0 ? year : null
+}
+
+/** Returns the calendar quarter containing a payroll period's start date. */
+export function getPayrollPeriodQuarter(period: Pick<PayrollPeriod, "a365_periodstart">): PayrollQuarter | null {
+  const month = Number(period.a365_periodstart.slice(5, 7))
+  if (!Number.isInteger(month) || month < 1 || month > 12) return null
+  return Math.ceil(month / 3) as PayrollQuarter
+}
+
+export function filterPayrollPeriodsByQuarter<T extends Pick<PayrollPeriod, "a365_periodstart">>(
+  periods: T[],
+  quarter: PayrollQuarterFilter,
+): T[] {
+  return quarter === "all" ? periods : periods.filter((period) => getPayrollPeriodQuarter(period) === quarter)
+}
+
+export function filterPayrollPeriodsByYearAndQuarter<T extends Pick<PayrollPeriod, "a365_periodstart">>(
+  periods: T[],
+  year: PayrollYearFilter,
+  quarter: PayrollQuarterFilter,
+): T[] {
+  return periods.filter((period) =>
+    (year === "all" || getPayrollPeriodYear(period) === year) &&
+    (quarter === "all" || getPayrollPeriodQuarter(period) === quarter),
+  )
+}
 
 /**
  * Choose the source for "copy previous cutoff": the most recent Locked period

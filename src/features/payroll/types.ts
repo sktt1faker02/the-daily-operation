@@ -24,6 +24,7 @@ export interface PayrollPeriod {
   a365_periodend: string
   a365_paydate: string | null
   a365_payrollstatus: PayrollStatusValue
+  statecode?: number
   a365_lockedon?: string | null
   createdon?: string
   modifiedon?: string
@@ -73,6 +74,12 @@ export interface PayrollEntry {
   _a365_payrollperiod_value?: string | null
   /** Formatted lookup name of the linked employee. */
   a365_employeename?: string
+  /** Employee number and department label attached by listEntries for export. */
+  a365_employeenumber?: string | null
+  a365_departmentname?: string
+  /** Employee payment fields attached for the optional sensitive export group. */
+  a365_bankname?: string | null
+  a365_bankaccountnumber?: string | null
 }
 
 // --- Entry input form model (controlled string state) ------------------------

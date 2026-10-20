@@ -16,9 +16,10 @@ vi.mock("@/features/employees/employee-service", () => ({
 }))
 
 import { dataClient } from "@/lib/power/data-client"
+import { employeeService } from "@/features/employees/employee-service"
 import { payrollPeriodService } from "./payroll-period-service"
 import { PayrollStatus } from "../period-status"
-import type { PayrollPeriod } from "../types"
+import type { PayrollEntry, PayrollPeriod } from "../types"
 
 const period = (status: PayrollPeriod["a365_payrollstatus"]): PayrollPeriod => ({
   a365_payrollperiodid: "period-1",
@@ -30,6 +31,64 @@ const period = (status: PayrollPeriod["a365_payrollstatus"]): PayrollPeriod => (
 })
 
 beforeEach(() => vi.clearAllMocks())
+
+describe("payrollPeriodService.listEntries", () => {
+  it("attaches employee number and department name from the linked records", async () => {
+    vi.mocked(dataClient.retrieveMultipleRecordsAsync)
+      .mockResolvedValueOnce({
+        success: true,
+        data: [{
+          a365_payrollentryid: "entry-1",
+          a365_name: "Ada Employee — Oct cutoff",
+          a365_isincluded: true,
+          a365_basicpay: 100,
+          a365_allowances: 0,
+          a365_otherearnings: 0,
+          a365_otherdeductions: 0,
+          a365_unpaidleavedays: 0,
+          a365_grosspay: 100,
+          a365_sss: 0,
+          a365_philhealth: 0,
+          a365_hdmf: 0,
+          a365_unpaidleave: 0,
+          a365_withholdingtax: 0,
+          a365_totaldeductions: 0,
+          a365_netpay: 100,
+          a365_calculatedon: null,
+          a365_comment: null,
+          _a365_employee_value: "employee-1",
+          _a365_payrollperiod_value: "period-1",
+        } as PayrollEntry],
+      } as never)
+      .mockResolvedValueOnce({
+        success: true,
+        data: [{ a365_departmentid: "department-1", a365_name: "Operations" }],
+      } as never)
+    vi.mocked(employeeService.list).mockResolvedValue([{
+      a365_employeeid: "employee-1",
+      a365_employeenumber: "EMP-001",
+      a365_name: "Ada Employee",
+      _a365_department_value: "department-1",
+      a365_bankname: "Test Bank",
+      a365_bankaccountnumber: "1234567890",
+    } as never])
+
+    const entries = await payrollPeriodService.listEntries("period-1")
+
+    expect(entries[0]).toMatchObject({
+      a365_employeename: "Ada Employee",
+      a365_employeenumber: "EMP-001",
+      a365_departmentname: "Operations",
+      a365_bankname: "Test Bank",
+      a365_bankaccountnumber: "1234567890",
+    })
+    expect(dataClient.retrieveMultipleRecordsAsync).toHaveBeenNthCalledWith(
+      2,
+      "a365_departments",
+      expect.objectContaining({ select: ["a365_departmentid", "a365_name"] }),
+    )
+  })
+})
 
 describe("payrollPeriodService.createPeriod", () => {
   it("sets the initial status explicitly to Processing", async () => {

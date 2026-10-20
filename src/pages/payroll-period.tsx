@@ -4,10 +4,10 @@
  * via the centralized status rules. Loading / Empty / Error
  * / Success states throughout.
  */
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertCircle, Archive, ArrowLeft, Copy, LayoutTemplate, Loader2, Save, Search, UserPlus } from "lucide-react"
+import { AlertCircle, AlertTriangle, Archive, ArrowLeft, Copy, Download, LayoutTemplate, Loader2, Save, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -34,6 +34,18 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { PayrollEntryTable } from "@/features/payroll/payroll-entry-table"
 import { PayrollAuditTrail } from "@/features/payroll/payroll-audit-trail"
 import { PayrollEntryDialog } from "@/features/payroll/payroll-entry-dialog"
+import {
+  buildPayrollDetailRows,
+  createPayrollWorkbook,
+  DEFAULT_PAYROLL_EXPORT_GROUPS,
+  downloadBlob,
+  nonFinalPeriodsNote,
+  payrollExportFileNameForPeriods,
+  requiresLargeExportConfirmation,
+  selectColumns,
+} from "@/features/payroll/payroll-export"
+import { usePowerContext } from "@/hooks/use-power-context"
+import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile"
 import { sumEntryTotals } from "@/features/payroll/period-utils"
 import { toPayslipDocument } from "@/features/payroll/payslip-data"
 import { openPayslip } from "@/features/payroll/payslip-document"
@@ -54,6 +66,8 @@ import {
 import { usePayrollStatusTransition } from "@/features/payroll/hooks/use-payroll-status"
 import { useSaveTemplate, useTemplates, useApplyTemplate } from "@/features/payroll/hooks/use-payroll-templates"
 
+const PAYROLL_EXPORT_COLUMNS = selectColumns("full", DEFAULT_PAYROLL_EXPORT_GROUPS)
+
 export default function PayrollPeriodPage() {
   const { periodId = "" } = useParams()
   const navigate = useNavigate()
@@ -70,6 +84,9 @@ export default function PayrollPeriodPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
+  const [exportBusy, setExportBusy] = useState(false)
+  const [pendingLargeExport, setPendingLargeExport] = useState(false)
+  const exportBusyRef = useRef(false)
   const archive = useArchivePeriod()
 
   const period = usePayrollPeriod(periodId)
@@ -82,6 +99,8 @@ export default function PayrollPeriodPage() {
   const templates = useTemplates()
   const applyTemplate = useApplyTemplate(periodId)
   const { data: positions } = usePositions()
+  const { data: powerContext } = usePowerContext()
+  const { isAdmin } = useAccessProfile({ loadEmployee: false })
 
   const ACTION_META: Record<
     PayrollAction,
@@ -263,6 +282,55 @@ export default function PayrollPeriodPage() {
     })
   }
 
+  const handleExport = async (confirmedLargeExport = false) => {
+    if (exportBusyRef.current) return
+    if (!isAdmin) {
+      toast.error("Only a Payroll Admin can export payroll.", {
+        description: "Contact your administrator if you believe you should have access.",
+      })
+      return
+    }
+    if (!period.data || !entries.data) {
+      toast.error("Unable to export payroll details.", {
+        description: "Wait for the period and its entries to finish loading, then try again.",
+      })
+      return
+    }
+    const exportedBy = powerContext?.user.fullName
+    if (!exportedBy) {
+      toast.error("Unable to identify your account.", {
+        description: "Refresh the page and try again. Contact your administrator if the problem continues.",
+      })
+      return
+    }
+    const currentPeriod = period.data
+    const currentEntries = entries.data
+    if (requiresLargeExportConfirmation(currentEntries.length) && !confirmedLargeExport) {
+      setPendingLargeExport(true)
+      return
+    }
+
+    exportBusyRef.current = true
+    setExportBusy(true)
+    setPendingLargeExport(false)
+    try {
+      const rows = buildPayrollDetailRows(currentPeriod, currentEntries)
+      const notFinalNote = nonFinalPeriodsNote([currentPeriod])
+      if (notFinalNote) toast.warning(`${notFinalNote}. This period may still change.`)
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+      const workbook = await createPayrollWorkbook(currentPeriod, rows, PAYROLL_EXPORT_COLUMNS, exportedBy)
+      downloadBlob(workbook, payrollExportFileNameForPeriods([currentPeriod]))
+      toast.success(`Exported ${rows.length} payroll row${rows.length === 1 ? "" : "s"}.`)
+    } catch (cause) {
+      toast.error("Unable to create the Excel workbook.", {
+        description: `${cause instanceof Error ? cause.message : "An unexpected error occurred."} Your payroll data is unchanged. Please retry.`,
+      })
+    } finally {
+      exportBusyRef.current = false
+      setExportBusy(false)
+    }
+  }
+
   if (period.isPending) {
     return (
       <div className="mx-auto w-full max-w-7xl space-y-6 p-6" aria-busy>
@@ -366,12 +434,30 @@ export default function PayrollPeriodPage() {
               <Archive className="size-4" aria-hidden />
               Archive
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => void handleExport()}
+              disabled={!isAdmin || entries.isPending || entries.isError || exportBusy}
+              aria-label="Export payroll period to Excel"
+            >
+              {exportBusy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Download className="size-4" aria-hidden />}
+              {exportBusy ? "Preparing Excel…" : "Export"}
+            </Button>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
           {formatDate(period.data.a365_periodstart)} – {formatDate(period.data.a365_periodend)} ·
           Pay date {formatDate(period.data.a365_paydate)}
         </p>
+        {pendingLargeExport && (
+          <div role="alert" className="flex flex-col gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-start gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />This export contains {(entries.data?.length ?? 0).toLocaleString()} detail rows, more than 5,000. Preparing it may take longer and use more memory.</p>
+            <div className="flex shrink-0 justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setPendingLargeExport(false)} disabled={exportBusy}>Cancel export</Button>
+              <Button type="button" size="sm" onClick={() => void handleExport(true)} disabled={exportBusy}>Continue</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <PayrollSummaryCards gross={totals.gross} deductions={totals.deductions} net={totals.net} />
@@ -695,6 +781,7 @@ export default function PayrollPeriodPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }

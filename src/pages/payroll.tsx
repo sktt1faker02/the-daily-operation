@@ -3,7 +3,7 @@
  * links into each period's detail. Loading / Empty / Error / Success states.
  * Authorization is enforced in Dataverse, not this UI (CLAUDE.md "Security").
  */
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import {
@@ -15,10 +15,12 @@ import {
 } from "@tanstack/react-table"
 import {
   AlertCircle,
+  AlertTriangle,
   Archive,
   ArchiveRestore,
   ChevronLeft,
   ChevronRight,
+  FileDown,
   Loader2,
   Plus,
   Wallet,
@@ -51,6 +53,30 @@ import {
 import { CreatePeriodDialog } from "@/features/payroll/create-period-dialog"
 import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import type { PayrollPeriod } from "@/features/payroll/types"
+import { Checkbox } from "@/components/ui/checkbox"
+import { payrollPeriodService } from "@/features/payroll/services/payroll-period-service"
+import {
+  buildMultiPeriodRows,
+  createPayrollWorkbook,
+  DEFAULT_PAYROLL_EXPORT_GROUPS,
+  downloadBlob,
+  nonFinalPeriodsNote,
+  payrollExportFileNameForPeriods,
+  requiresLargeExportConfirmation,
+  selectColumns,
+} from "@/features/payroll/payroll-export"
+import { usePowerContext } from "@/hooks/use-power-context"
+import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile"
+import { filterPayrollPeriodsByYearAndQuarter, getPayrollPeriodYear, type PayrollQuarterFilter, type PayrollYearFilter } from "@/features/payroll/period-utils"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+type PendingLargeExport = {
+  periods: PayrollPeriod[]
+  rows: ReturnType<typeof buildMultiPeriodRows>
+}
+
+const PAYROLL_EXPORT_COLUMNS = selectColumns("full", DEFAULT_PAYROLL_EXPORT_GROUPS)
 
 /** Prev/Next page controls, shown only when the table has more than one page. */
 function TablePagination({ table }: { table: TableInstance<PayrollPeriod> }) {
@@ -95,6 +121,68 @@ export default function PayrollDashboardPage() {
   const archive = useArchivePeriod()
   const unarchive = useUnarchivePeriod()
   const [pendingUnarchive, setPendingUnarchive] = useState<PayrollPeriod | null>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedQuarter, setSelectedQuarter] = useState<PayrollQuarterFilter>("all")
+  const [selectedYear, setSelectedYear] = useState<PayrollYearFilter>("all")
+  const [pendingLargeExport, setPendingLargeExport] = useState<PendingLargeExport | null>(null)
+  const [exportBusy, setExportBusy] = useState(false)
+  const [exportProgress, setExportProgress] = useState("")
+  const exportBusyRef = useRef(false)
+  const { data: powerContext } = usePowerContext()
+  const { isAdmin } = useAccessProfile({ loadEmployee: false })
+
+  const exportPayroll = async (
+    targets: PayrollPeriod[],
+    confirmedLargeExport = false,
+    preparedRows?: ReturnType<typeof buildMultiPeriodRows>,
+  ) => {
+    if (exportBusyRef.current) return
+    if (!isAdmin) {
+      toast.error("Only a Payroll Admin can export payroll.", { description: "Contact your administrator if you believe you should have access." })
+      return
+    }
+    const exportedBy = powerContext?.user.fullName
+    if (!exportedBy) {
+      toast.error("Unable to identify your account.", { description: "Refresh the page and try again. Contact your administrator if the problem continues." })
+      return
+    }
+    if (targets.length === 0) {
+      toast.error("No payroll periods are selected.", { description: "Select at least one period, then try again." })
+      return
+    }
+    exportBusyRef.current = true
+    setExportBusy(true)
+    setExportProgress(`Preparing 0 of ${targets.length} periods…`)
+    try {
+      const rows = preparedRows ?? buildMultiPeriodRows(targets, await payrollPeriodService.listEntriesForExport(
+        targets.map((period) => period.a365_payrollperiodid),
+        (completed) => setExportProgress(`Preparing ${completed} of ${targets.length} periods…`),
+      ))
+      if (rows.length === 0) {
+        toast.error("No payroll details are available for these periods.", { description: "Choose periods that contain payroll entries and try again." })
+        return
+      }
+      if (!confirmedLargeExport && requiresLargeExportConfirmation(rows.length)) {
+        setPendingLargeExport({ periods: targets, rows })
+        return
+      }
+
+      const notFinalNote = nonFinalPeriodsNote(targets)
+      if (notFinalNote) toast.warning(`${notFinalNote}. These periods may still change.`)
+      setPendingLargeExport(null)
+      setExportProgress("Building your Excel workbook…")
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+      const workbook = await createPayrollWorkbook(targets, rows, PAYROLL_EXPORT_COLUMNS, exportedBy)
+      downloadBlob(workbook, payrollExportFileNameForPeriods(targets))
+      toast.success(`Exported ${rows.length} payroll row${rows.length === 1 ? "" : "s"}.`)
+    } catch (cause) {
+      toast.error("Unable to create the Excel workbook.", { description: `${cause instanceof Error ? cause.message : "An unexpected error occurred."} Your payroll data is unchanged. Please retry.` })
+    } finally {
+      exportBusyRef.current = false
+      setExportBusy(false)
+      setExportProgress("")
+    }
+  }
 
   const handleArchive = () => {
     if (!pendingArchive) return
@@ -118,24 +206,34 @@ export default function PayrollDashboardPage() {
     })
   }
 
-  const archived = archivedQuery.data ?? []
+  const archived = useMemo(() => archivedQuery.data ?? [], [archivedQuery.data])
+  const availableYears = useMemo(() => Array.from(new Set(
+    [...(periods ?? []), ...archived]
+      .map(getPayrollPeriodYear)
+      .filter((year): year is number => year !== null),
+  )).sort((a, b) => b - a), [periods, archived])
+  const quarterPeriods = useMemo(() => filterPayrollPeriodsByYearAndQuarter(periods ?? [], selectedYear, selectedQuarter), [periods, selectedYear, selectedQuarter])
+  const quarterArchived = useMemo(() => filterPayrollPeriodsByYearAndQuarter(archived, selectedYear, selectedQuarter), [archived, selectedYear, selectedQuarter])
+  const selectedPeriods = useMemo(() => quarterPeriods.filter((period) => selectedIds.includes(period.a365_payrollperiodid)), [quarterPeriods, selectedIds])
+  const selectedPeriodsNote = nonFinalPeriodsNote(selectedPeriods)
 
-  // Client-side pagination for the active periods list (10 rows/page). Columns are
+  // Client-side pagination for the active periods list (6 rows/page). Columns are
   // a stub — rows render with custom markup below; the table only drives paging.
   const columns = useMemo<ColumnDef<PayrollPeriod>[]>(() => [{ id: "period" }], [])
   const table = useReactTable({
-    data: periods ?? [],
+    data: quarterPeriods,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: { pagination: { pageSize: 6 } },
   })
+  const visibleActivePeriodIds = table.getRowModel().rows.map((row) => row.original.a365_payrollperiodid)
   const archivedTable = useReactTable({
-    data: archived,
+    data: quarterArchived,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
+    initialState: { pagination: { pageSize: 6 } },
   })
 
   return (
@@ -152,10 +250,52 @@ export default function PayrollDashboardPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="size-4" aria-hidden />
-          New payroll period
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="size-4" aria-hidden />
+            New payroll period
+          </Button>
+        </div>
+      </div>
+
+      {exportProgress && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{exportProgress}</p>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Label id="payroll-year-filter-label">Year</Label>
+        <Select value={String(selectedYear)} onValueChange={(value) => {
+          setSelectedYear(value === "all" ? "all" : Number(value))
+          setSelectedIds([])
+          setPendingLargeExport(null)
+          table.setPageIndex(0)
+          archivedTable.setPageIndex(0)
+        }}>
+          <SelectTrigger aria-labelledby="payroll-year-filter-label" className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All years</SelectItem>
+            {availableYears.map((year) => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Label id="payroll-quarter-filter-label">Quarter</Label>
+        <Select value={String(selectedQuarter)} onValueChange={(value) => {
+          setSelectedQuarter(value === "all" ? "all" : Number(value) as PayrollQuarterFilter)
+          setSelectedIds([])
+          setPendingLargeExport(null)
+          table.setPageIndex(0)
+          archivedTable.setPageIndex(0)
+        }}>
+          <SelectTrigger aria-labelledby="payroll-quarter-filter-label" className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All quarters</SelectItem>
+            <SelectItem value="1">Quarter 1 (Jan–Mar)</SelectItem>
+            <SelectItem value="2">Quarter 2 (Apr–Jun)</SelectItem>
+            <SelectItem value="3">Quarter 3 (Jul–Sep)</SelectItem>
+            <SelectItem value="4">Quarter 4 (Oct–Dec)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isPending ? (
@@ -197,6 +337,21 @@ export default function PayrollDashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>
+                    <Checkbox
+                      aria-label="Select all periods on this page"
+                      checked={visibleActivePeriodIds.length > 0 && visibleActivePeriodIds.every((id) => selectedIds.includes(id))}
+                      onCheckedChange={(checked) => {
+                        setPendingLargeExport(null)
+                        setSelectedIds((ids) => {
+                          const visibleIds = new Set(visibleActivePeriodIds)
+                          return checked
+                            ? [...new Set([...ids, ...visibleActivePeriodIds])]
+                            : ids.filter((id) => !visibleIds.has(id))
+                        })
+                      }}
+                    />
+                  </TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
@@ -216,6 +371,10 @@ export default function PayrollDashboardPage() {
                       className="cursor-pointer"
                       onClick={() => navigate(`/payroll/${p.a365_payrollperiodid}`)}
                     >
+                      <TableCell onClick={(event) => event.stopPropagation()}><Checkbox aria-label={`Select ${p.a365_name}`} checked={selectedIds.includes(p.a365_payrollperiodid)} onCheckedChange={(checked) => {
+                        setPendingLargeExport(null)
+                        setSelectedIds((ids) => checked ? [...new Set([...ids, p.a365_payrollperiodid])] : ids.filter((id) => id !== p.a365_payrollperiodid))
+                      }} /></TableCell>
                       <TableCell className="font-medium">
                         <Link
                           to={`/payroll/${p.a365_payrollperiodid}`}
@@ -232,6 +391,7 @@ export default function PayrollDashboardPage() {
                         <PayrollStatusBadge status={p.a365_payrollstatus} />
                       </TableCell>
                       <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={(event) => { event.stopPropagation(); void exportPayroll([p]) }}><FileDown className="size-4" aria-hidden /></Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -248,9 +408,26 @@ export default function PayrollDashboardPage() {
                     </TableRow>
                   )
                 })}
+                {table.getRowModel().rows.length === 0 && <TableRow><TableCell colSpan={7} className="h-20 text-center text-muted-foreground">No payroll periods in this quarter.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
+
+          {selectedIds.length > 0 && (
+            <div className="space-y-3 rounded-md border bg-muted/30 p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>{selectedIds.length} periods selected</span>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => void exportPayroll(selectedPeriods)} disabled={!isAdmin || exportBusy}>
+                    <FileDown className="size-4" aria-hidden />
+                    Export to Excel
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setSelectedIds([]); setPendingLargeExport(null) }}>Clear</Button>
+                </div>
+              </div>
+              {selectedPeriodsNote && <p role="status" className="flex items-start gap-2 text-amber-800 dark:text-amber-300"><AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />{selectedPeriodsNote}. These periods may still change.</p>}
+            </div>
+          )}
 
           <TablePagination table={table} />
         </div>
@@ -268,6 +445,7 @@ export default function PayrollDashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead></TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
@@ -283,6 +461,7 @@ export default function PayrollDashboardPage() {
                   const p = row.original
                   return (
                     <TableRow key={p.a365_payrollperiodid} className="text-muted-foreground">
+                      <TableCell><Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={() => void exportPayroll([p])}><FileDown className="size-4" aria-hidden /></Button></TableCell>
                       <TableCell className="font-medium text-foreground">{p.a365_name}</TableCell>
                       <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
                       <TableCell>{formatDate(p.a365_periodend)}</TableCell>
@@ -304,6 +483,7 @@ export default function PayrollDashboardPage() {
                     </TableRow>
                   )
                 })}
+                {archivedTable.getRowModel().rows.length === 0 && <TableRow><TableCell colSpan={7} className="h-20 text-center text-muted-foreground">No archived payroll periods in this quarter.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
@@ -316,6 +496,16 @@ export default function PayrollDashboardPage() {
         onOpenChange={setDialogOpen}
         onCreated={(id) => navigate(`/payroll/${id}`)}
       />
+
+      {pendingLargeExport && (
+        <div role="alert" className="flex flex-col gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p>This export contains {pendingLargeExport.rows.length.toLocaleString()} detail rows, more than 5,000. Preparing it may take longer and use more memory.</p>
+          <div className="flex shrink-0 justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setPendingLargeExport(null)} disabled={exportBusy}>Cancel export</Button>
+            <Button type="button" onClick={() => void exportPayroll(pendingLargeExport.periods, true, pendingLargeExport.rows)} disabled={exportBusy}>Continue</Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={pendingArchive !== null} onOpenChange={(o) => !o && setPendingArchive(null)}>
         <DialogContent className="sm:max-w-md">
