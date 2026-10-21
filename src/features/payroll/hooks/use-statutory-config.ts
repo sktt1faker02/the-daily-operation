@@ -11,10 +11,10 @@ export const statutoryConfigKeys = {
 }
 
 /** Load the statutory config effective at `asOf` (ISO yyyy-mm-dd, typically the period end). */
-export function useStatutoryConfig(asOf: string) {
+export function useStatutoryConfig(asOf: string, enabled = true) {
   return useQuery({
     queryKey: statutoryConfigKeys.asOf(asOf),
     queryFn: () => getStatutoryConfig(asOf),
-    enabled: asOf.length > 0,
+    enabled: enabled && asOf.length > 0,
   })
 }

@@ -1,0 +1,11 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+  "SchemaName": "a365_systemuser_leave_issuedby",
+  "ReferencedEntity": "systemuser", "ReferencedAttribute": "systemuserid", "ReferencingEntity": "a365_leave",
+  "CascadeConfiguration": { "Assign": "NoCascade", "Delete": "Restrict", "Merge": "NoCascade", "Reparent": "NoCascade", "Share": "NoCascade", "Unshare": "NoCascade" },
+  "Lookup": {
+    "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "SchemaName": "a365_IssuedBy",
+    "DisplayName": { "LocalizedLabels": [{ "Label": "Issued By", "LanguageCode": 1033 }] },
+    "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true }
+  }
+}

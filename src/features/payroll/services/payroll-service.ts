@@ -11,6 +11,7 @@ import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./pay
 import type { PayrollEntryInputValues } from "../types"
 import { isPeriodEditable } from "../period-status"
 import { payrollPeriodService } from "./payroll-period-service"
+import { parsePayrollEntryInputs } from "./payroll-entry-preview"
 
 const ENTRY_TABLE = "a365_payrollentries"
 
@@ -81,14 +82,6 @@ export async function saveAndCalculateEntry(
   await calculateAndPersist(entryId, read.data, periodEndDate, calculatedByUserId, undefined, values)
 }
 
-function amountFromInput(value: string): number {
-  const trimmed = value.trim()
-  if (trimmed === "") return 0
-  const amount = Number(trimmed)
-  if (!Number.isFinite(amount) || amount < 0) throw new Error("Payroll inputs must be non-negative numbers.")
-  return amount
-}
-
 async function calculateAndPersist(
   entryId: string,
   entry: EntryReadModel,
@@ -102,14 +95,7 @@ async function calculateAndPersist(
   if (!employeeId) throw new Error("Payroll entry has no linked employee.")
   const employee = await employeeService.get(employeeId)
 
-  const edited = editedValues ? {
-    basicPay: amountFromInput(editedValues.a365_basicpay),
-    allowances: amountFromInput(editedValues.a365_allowances),
-    otherEarnings: amountFromInput(editedValues.a365_otherearnings),
-    otherDeductions: amountFromInput(editedValues.a365_otherdeductions),
-    unpaidLeaveDays: amountFromInput(editedValues.a365_unpaidleavedays),
-    withholdingTax: amountFromInput(editedValues.a365_withholdingtax),
-  } : null
+  const edited = editedValues ? parsePayrollEntryInputs(editedValues) : null
 
   const input: PayrollInput = {
     monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0,

@@ -1,0 +1,385 @@
+{
+    "VerifiedAt":  "2026-10-21T15:46:52.7271326Z",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "ConfigurationMatchesPlan":  true,
+    "Roles":  [
+                  {
+                      "Name":  "A365 - Payroll Admin",
+                      "RoleId":  "6217c17c-3ea8-f111-aaad-000d3a853079",
+                      "Checks":  [
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Create",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Read",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Write",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Delete",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Assign",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Share",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Append",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_employee",
+                                         "Privilege":  "Read",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_employee",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Create",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Read",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Write",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Delete",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Assign",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Share",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Append",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "systemuser",
+                                         "Privilege":  "Read",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "systemuser",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Create",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Read",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Write",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Delete",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Assign",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Share",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Append",
+                                         "Actual":  "Global",
+                                         "Expected":  "Global",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     }
+                                 ]
+                  },
+                  {
+                      "Name":  "A365 - Payroll Employee",
+                      "RoleId":  "6d654242-3ea8-f111-aaad-000d3a853079",
+                      "Checks":  [
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Create",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Read",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Write",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Delete",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Assign",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Share",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "Append",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecashconversion",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Create",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Read",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Write",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Delete",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Assign",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Share",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "Append",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leave",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Create",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Read",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Write",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Delete",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Assign",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Share",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "Append",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     },
+                                     {
+                                         "Table":  "a365_leavecredittransaction",
+                                         "Privilege":  "AppendTo",
+                                         "Actual":  "None",
+                                         "Expected":  "None",
+                                         "Matches":  true
+                                     }
+                                 ]
+                  }
+              ],
+    "RoleWritesByThisInspection":  "None",
+    "EffectiveAccess":  "Not verified: other user/team roles, sharing and direct requests as ordinary users require separate verification."
+}

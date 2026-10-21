@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Role id="{6217c17c-3ea8-f111-aaad-000d3a853079}" name="A365 - Payroll Admin" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <IsCustomizable>1</IsCustomizable>
   <IsAutoAssigned>0</IsAutoAssigned>
@@ -19,5 +19,19 @@
     <RolePrivilege name="prvSharea365_Employee" level="Global" />
     <RolePrivilege name="prvWritea365_Employee" level="Global" />
     <RolePrivilege name="prvWriteSharePointData" level="Global" />
+    <RolePrivilege name="prvCreatea365_Leave" level="Global" />
+    <RolePrivilege name="prvReada365_Leave" level="Global" />
+    <RolePrivilege name="prvWritea365_Leave" level="Global" />
+    <RolePrivilege name="prvAppenda365_Leave" level="Global" />
+    <RolePrivilege name="prvAppendToa365_Leave" level="Global" />
+    <RolePrivilege name="prvCreatea365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvReada365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvWritea365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvAppenda365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvAppendToa365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvCreatea365_LeaveCreditTransaction" level="Global" />
+    <RolePrivilege name="prvReada365_LeaveCreditTransaction" level="Global" />
+    <RolePrivilege name="prvAppenda365_LeaveCreditTransaction" level="Global" />
+    <RolePrivilege name="prvAppendToUser" level="Global" />
   </RolePrivileges>
 </Role>

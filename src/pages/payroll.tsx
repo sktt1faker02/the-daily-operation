@@ -122,6 +122,7 @@ export default function PayrollDashboardPage() {
   const unarchive = useUnarchivePeriod()
   const [pendingUnarchive, setPendingUnarchive] = useState<PayrollPeriod | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedArchivedIds, setSelectedArchivedIds] = useState<string[]>([])
   const [selectedQuarter, setSelectedQuarter] = useState<PayrollQuarterFilter>("all")
   const [selectedYear, setSelectedYear] = useState<PayrollYearFilter>("all")
   const [pendingLargeExport, setPendingLargeExport] = useState<PendingLargeExport | null>(null)
@@ -189,6 +190,8 @@ export default function PayrollDashboardPage() {
     archive.mutate(pendingArchive.a365_payrollperiodid, {
       onSuccess: () => {
         toast.success(`Archived ${pendingArchive.a365_name}.`)
+        setSelectedIds((ids) => ids.filter((id) => id !== pendingArchive.a365_payrollperiodid))
+        setPendingLargeExport(null)
         setPendingArchive(null)
       },
       onError: (err) => toast.error("Unable to archive.", { description: err.message }),
@@ -200,6 +203,8 @@ export default function PayrollDashboardPage() {
     unarchive.mutate(pendingUnarchive.a365_payrollperiodid, {
       onSuccess: () => {
         toast.success(`Restored ${pendingUnarchive.a365_name}.`)
+        setSelectedArchivedIds((ids) => ids.filter((id) => id !== pendingUnarchive.a365_payrollperiodid))
+        setPendingLargeExport(null)
         setPendingUnarchive(null)
       },
       onError: (err) => toast.error("Unable to unarchive.", { description: err.message }),
@@ -216,6 +221,8 @@ export default function PayrollDashboardPage() {
   const quarterArchived = useMemo(() => filterPayrollPeriodsByYearAndQuarter(archived, selectedYear, selectedQuarter), [archived, selectedYear, selectedQuarter])
   const selectedPeriods = useMemo(() => quarterPeriods.filter((period) => selectedIds.includes(period.a365_payrollperiodid)), [quarterPeriods, selectedIds])
   const selectedPeriodsNote = nonFinalPeriodsNote(selectedPeriods)
+  const selectedArchivedPeriods = useMemo(() => quarterArchived.filter((period) => selectedArchivedIds.includes(period.a365_payrollperiodid)), [quarterArchived, selectedArchivedIds])
+  const selectedArchivedPeriodsNote = nonFinalPeriodsNote(selectedArchivedPeriods)
 
   // Client-side pagination for the active periods list (6 rows/page). Columns are
   // a stub — rows render with custom markup below; the table only drives paging.
@@ -235,6 +242,9 @@ export default function PayrollDashboardPage() {
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 6 } },
   })
+  const visibleArchivedPeriodIds = archivedTable.getRowModel().rows.map((row) => row.original.a365_payrollperiodid)
+  const allVisibleArchivedSelected = visibleArchivedPeriodIds.length > 0 && visibleArchivedPeriodIds.every((id) => selectedArchivedIds.includes(id))
+  const someVisibleArchivedSelected = visibleArchivedPeriodIds.some((id) => selectedArchivedIds.includes(id))
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-6">
@@ -265,6 +275,7 @@ export default function PayrollDashboardPage() {
         <Select value={String(selectedYear)} onValueChange={(value) => {
           setSelectedYear(value === "all" ? "all" : Number(value))
           setSelectedIds([])
+          setSelectedArchivedIds([])
           setPendingLargeExport(null)
           table.setPageIndex(0)
           archivedTable.setPageIndex(0)
@@ -281,6 +292,7 @@ export default function PayrollDashboardPage() {
         <Select value={String(selectedQuarter)} onValueChange={(value) => {
           setSelectedQuarter(value === "all" ? "all" : Number(value) as PayrollQuarterFilter)
           setSelectedIds([])
+          setSelectedArchivedIds([])
           setPendingLargeExport(null)
           table.setPageIndex(0)
           archivedTable.setPageIndex(0)
@@ -334,7 +346,7 @@ export default function PayrollDashboardPage() {
       ) : (
         <div className="space-y-3">
           <div className="rounded-md border">
-            <Table>
+            <Table aria-label="Active payroll periods">
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -357,8 +369,8 @@ export default function PayrollDashboardPage() {
                   <TableHead>End</TableHead>
                   <TableHead>Pay date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">
-                    <span className="sr-only">Actions</span>
+                  <TableHead className="w-44 text-center">
+                    Action
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -390,7 +402,7 @@ export default function PayrollDashboardPage() {
                       <TableCell>
                         <PayrollStatusBadge status={p.a365_payrollstatus} />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={(event) => { event.stopPropagation(); void exportPayroll([p]) }}><FileDown className="size-4" aria-hidden /></Button>
                         <Button
                           variant="ghost"
@@ -442,17 +454,31 @@ export default function PayrollDashboardPage() {
             </p>
           </div>
           <div className="rounded-md border">
-            <Table>
+            <Table aria-label="Archived payroll periods">
               <TableHeader>
                 <TableRow>
-                  <TableHead></TableHead>
+                  <TableHead>
+                    <Checkbox
+                      aria-label="Select all archived periods on this page"
+                      checked={allVisibleArchivedSelected ? true : someVisibleArchivedSelected ? "indeterminate" : false}
+                      onCheckedChange={(checked) => {
+                        setPendingLargeExport(null)
+                        setSelectedArchivedIds((ids) => {
+                          const visibleIds = new Set(visibleArchivedPeriodIds)
+                          return checked
+                            ? [...new Set([...ids, ...visibleArchivedPeriodIds])]
+                            : ids.filter((id) => !visibleIds.has(id))
+                        })
+                      }}
+                    />
+                  </TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
                   <TableHead>Pay date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">
-                    <span className="sr-only">Actions</span>
+                  <TableHead className="w-44 text-center">
+                    Action
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -461,7 +487,18 @@ export default function PayrollDashboardPage() {
                   const p = row.original
                   return (
                     <TableRow key={p.a365_payrollperiodid} className="text-muted-foreground">
-                      <TableCell><Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={() => void exportPayroll([p])}><FileDown className="size-4" aria-hidden /></Button></TableCell>
+                      <TableCell>
+                        <Checkbox
+                          aria-label={`Select archived ${p.a365_name}`}
+                          checked={selectedArchivedIds.includes(p.a365_payrollperiodid)}
+                          onCheckedChange={(checked) => {
+                            setPendingLargeExport(null)
+                            setSelectedArchivedIds((ids) => checked
+                              ? [...new Set([...ids, p.a365_payrollperiodid])]
+                              : ids.filter((id) => id !== p.a365_payrollperiodid))
+                          }}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-foreground">{p.a365_name}</TableCell>
                       <TableCell>{formatDate(p.a365_periodstart)}</TableCell>
                       <TableCell>{formatDate(p.a365_periodend)}</TableCell>
@@ -469,7 +506,8 @@ export default function PayrollDashboardPage() {
                       <TableCell>
                         <PayrollStatusBadge status={p.a365_payrollstatus} />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={() => void exportPayroll([p])}><FileDown className="size-4" aria-hidden /></Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -487,6 +525,21 @@ export default function PayrollDashboardPage() {
               </TableBody>
             </Table>
           </div>
+          {selectedArchivedPeriods.length > 0 && (
+            <div className="space-y-3 rounded-md border bg-muted/30 p-3 text-sm" role="region" aria-label="Archived payroll selection">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>{selectedArchivedPeriods.length} archived periods selected</span>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => void exportPayroll(selectedArchivedPeriods)} disabled={!isAdmin || exportBusy}>
+                    <FileDown className="size-4" aria-hidden />
+                    Export to Excel
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setSelectedArchivedIds([]); setPendingLargeExport(null) }}>Clear</Button>
+                </div>
+              </div>
+              {selectedArchivedPeriodsNote && <p role="status" className="flex items-start gap-2 text-amber-800 dark:text-amber-300"><AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />{selectedArchivedPeriodsNote}. These periods may still change.</p>}
+            </div>
+          )}
           <TablePagination table={archivedTable} />
         </section>
       )}

@@ -26,6 +26,27 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "a365_leavecashconversions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_leavecashconversionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_leavecredittransactions": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_leavecredittransactionid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "a365_leaves": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_leaveid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "a365_payrollentries": {
     "tableId": "",
     "version": "",

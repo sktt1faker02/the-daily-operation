@@ -2,7 +2,7 @@
  * Editor for a single payroll entry's variable inputs (Basic Pay, Allowances,
  * Other Earnings, Withholding Tax, Other Deductions, Unpaid Leave days).
  * Withholding tax is a manual admin input (not computed). Calculated values
- * (Gross, SSS/PhilHealth/HDMF, Net) are shown read-only for context. Save
+ * (Gross, SSS/PhilHealth/HDMF, Net) preview the unsaved inputs. Save
  * disabled while pending; form not cleared until success (CLAUDE.md "Forms").
  */
 import { useEffect, useMemo, useState } from "react"
@@ -29,6 +29,7 @@ import {
 } from "./types"
 import { useUpdateEntryInputs } from "./hooks/use-payroll-entries"
 import { useCurrentSystemUserId } from "./hooks/use-current-system-user"
+import { useEntryPreview } from "./hooks/use-entry-preview"
 
 const FIELDS: { id: keyof PayrollEntryInputValues; label: string }[] = [
   { id: "a365_basicpay", label: "Basic Pay" },
@@ -44,7 +45,7 @@ function validate(values: PayrollEntryInputValues): string | null {
     const raw = values[id].trim()
     if (raw === "") continue
     const n = Number(raw)
-    if (Number.isNaN(n) || n < 0) return `${label} must be a non-negative number.`
+    if (!Number.isFinite(n) || n < 0) return `${label} must be a non-negative number.`
   }
   return null
 }
@@ -70,6 +71,7 @@ export function PayrollEntryDialog({
   const [error, setError] = useState<string | null>(null)
   const updateInputs = useUpdateEntryInputs(periodId)
   const systemUser = useCurrentSystemUserId()
+  const preview = useEntryPreview(entry, values, periodEndDate, open)
 
   useEffect(() => {
     if (open) {
@@ -92,6 +94,10 @@ export function PayrollEntryDialog({
     const msg = validate(values)
     setError(msg)
     if (msg) return
+    if (!preview.entry) {
+      setError(preview.error ?? "Please wait for the payroll preview to load.")
+      return
+    }
     if (!systemUser.data) {
       setError("Your Dataverse user could not be resolved. Please try again.")
       return
@@ -120,7 +126,7 @@ export function PayrollEntryDialog({
         <DialogHeader>
           <DialogTitle>{entry.a365_employeename ?? "Payroll entry"}</DialogTitle>
           <DialogDescription>
-            Saving recalculates this entry and updates its payroll totals.
+            Totals update as you type. Save changes to apply them to payroll.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,6 +140,7 @@ export function PayrollEntryDialog({
                   type="number"
                   step="0.01"
                   min="0"
+                  disabled={updateInputs.isPending}
                   value={values[id]}
                   onChange={(e) => set(id, e.target.value)}
                 />
@@ -141,22 +148,38 @@ export function PayrollEntryDialog({
             ))}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="a365_comment">Comment</Label>
-            <Textarea
-              id="a365_comment"
-              rows={3}
-              value={values.a365_comment}
-              onChange={(e) => set("a365_comment", e.target.value)}
-              placeholder="Reason for other deductions (shown to the employee on their payslip)"
-            />
-          </div>
+          {Number(values.a365_otherdeductions) > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="a365_comment">Comment</Label>
+              <Textarea
+                id="a365_comment"
+                rows={3}
+                disabled={updateInputs.isPending}
+                value={values.a365_comment}
+                onChange={(e) => set("a365_comment", e.target.value)}
+                placeholder="Reason for other deductions (shown to the employee on their payslip)"
+              />
+            </div>
+          )}
 
           <div className="rounded-md border bg-surface-subtle p-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Calculated (Auto)
+              Live preview (unsaved)
             </p>
-            <PayslipBreakdown entry={entry} />
+            {preview.entry ? (
+              <PayslipBreakdown entry={preview.entry} />
+            ) : preview.error ? (
+              <div role="alert" className="space-y-2 text-sm">
+                <p>{preview.error}</p>
+                {preview.canRetry && (
+                  <Button type="button" variant="outline" size="sm" onClick={preview.retry}>
+                    Retry preview
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p role="status" className="text-sm text-muted-foreground">Loading payroll preview…</p>
+            )}
           </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}
@@ -170,7 +193,7 @@ export function PayrollEntryDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={updateInputs.isPending || systemUser.isPending}>
+            <Button type="submit" disabled={updateInputs.isPending || systemUser.isPending || !preview.entry}>
               {updateInputs.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Save changes
             </Button>

@@ -72,6 +72,21 @@
           "entitySetName": "a365_payrolltemplatelines",
           "logicalName": "a365_payrolltemplateline",
           "isHidden": false
+        },
+        "leaves": {
+          "entitySetName": "a365_leaves",
+          "logicalName": "a365_leave",
+          "isHidden": false
+        },
+        "leavecashconversions": {
+          "entitySetName": "a365_leavecashconversions",
+          "logicalName": "a365_leavecashconversion",
+          "isHidden": false
+        },
+        "leavecredittransactions": {
+          "entitySetName": "a365_leavecredittransactions",
+          "logicalName": "a365_leavecredittransaction",
+          "isHidden": false
         }
       },
       "environmentVariableName": ""
