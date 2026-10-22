@@ -41,12 +41,25 @@ namespace A365.Leave.Plugins
             return date;
         }
         public static string Iso(DateTime value) { return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
-        public static DateTime Period(DateTime day) { return new DateTime(day.Month < 4 ? day.Year - 1 : day.Year, 4, 1); }
+        public static readonly DateTime JanuaryResetEffective = new DateTime(2027, 1, 5);
+        public static DateTime Period(DateTime day)
+        {
+            // Preserve the existing credit cycle until the owner's effective date.
+            if (day < JanuaryResetEffective) return new DateTime(day.Month < 4 ? day.Year - 1 : day.Year, 4, 1);
+            var reset = new DateTime(day.Year, 1, 5);
+            return day < reset ? reset.AddYears(-1) : reset;
+        }
+        public static DateTime PeriodEnd(DateTime period)
+        {
+            var end = period.AddYears(1).AddDays(-1);
+            return period < JanuaryResetEffective && end >= JanuaryResetEffective
+                ? JanuaryResetEffective.AddDays(-1) : end;
+        }
         public static decimal Accrual(int number) { return Math.Round(10m * number / 12m, 2, MidpointRounding.AwayFromZero) - Math.Round(10m * (number - 1) / 12m, 2, MidpointRounding.AwayFromZero); }
         public static decimal Days(DateTime start, DateTime end, Policy policy)
         {
             if (end < start) Fail("End Date cannot precede Start Date.");
-            if (Period(start) != Period(end)) Fail("Split leave at the April balance-period boundary.");
+            if (Period(start) != Period(end)) Fail("Split leave at the balance-period reset boundary.");
             var holidays = policy.holidays.ToDictionary(h => h.date, h => h.name);
             if (holidays.ContainsKey(Iso(start)) || holidays.ContainsKey(Iso(end))) Fail("Leave cannot start or end on a Philippine holiday.");
             if (Weekend(start) || Weekend(end)) Fail("Start and end dates must be Monday–Friday workdays.");
@@ -140,11 +153,11 @@ namespace A365.Leave.Plugins
             decimal vl = current.Where(r => Choice(r, "a365_creditpool") == 749910000).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
             decimal sl = current.Where(r => Choice(r, "a365_creditpool") == 749910001).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
             if (String.IsNullOrEmpty(request.startDate) && String.IsNullOrEmpty(request.endDate) && request.command == "preview")
-                return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(period.AddYears(1).AddDays(-1)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)null, benefit = (int?)null, pool = (string)null };
+                return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)null, benefit = (int?)null, pool = (string)null };
 
             var start = Rules.Day(request.startDate);
             var end = Rules.Day(request.endDate);
-            if (Rules.Period(start) != period || Rules.Period(end) != period) Rules.Fail("Leave must be within the current April–March balance period.");
+            if (Rules.Period(start) != period || Rules.Period(end) != period) Rules.Fail("Leave must be within the current balance period shown in the credit preview.");
             if (start < hired || end > ended) Rules.Fail("Leave dates must fall within the employee's employment dates.");
             var days = Rules.Days(start, end, policy);
             if (request.leaveType < 749910000 || request.leaveType > 749910002 || (request.benefit != 749910000 && request.benefit != 749910001)) Rules.Fail("Select a valid leave type and benefit.");
@@ -157,7 +170,7 @@ namespace A365.Leave.Plugins
             if (caller.RetrieveMultiple(overlap).Entities.Count != 0) Rules.Fail("These dates overlap an Issued leave record.");
             int pool = request.leaveType == 749910001 ? 749910001 : 749910000;
             int benefit = Rules.Benefit(request.benefit, pool == 749910000 ? vl : sl, days);
-            if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(period.AddYears(1).AddDays(-1)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL" };
+            if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL" };
 
             var leave = new Entity(Source, operationId);
             leave["a365_name"] = "Leave " + Rules.Iso(start) + " to " + Rules.Iso(end);
@@ -174,7 +187,7 @@ namespace A365.Leave.Plugins
             caller.Create(leave);
             if (benefit == 749910000)
             {
-                var deduction = Movement(employeeId, period, start.Year, pool, 749910002, -days, "LEAVE-" + operationId.ToString("D") + "-DEDUCTION", null);
+                var deduction = Movement(employeeId, period, period >= Rules.JanuaryResetEffective ? period.Year : start.Year, pool, 749910002, -days, "LEAVE-" + operationId.ToString("D") + "-DEDUCTION", null);
                 deduction["a365_leave"] = leave.ToEntityReference();
                 caller.Create(deduction);
             }
@@ -183,6 +196,13 @@ namespace A365.Leave.Plugins
 
         private static void EnsureCredits(IOrganizationService caller, List<Entity> rows, Guid employee, DateTime hired, DateTime period, DateTime today, bool persist)
         {
+            if (period >= Rules.JanuaryResetEffective)
+            {
+                // Full annual allocation; no monthly accrual or previous-period carryover.
+                Grant(caller, rows, employee, period, period.Year, 749910000, 749910001, 10m, "VL-" + Rules.Iso(period), persist);
+                Grant(caller, rows, employee, period, period.Year, 749910001, 749910001, 5m, "SL-" + Rules.Iso(period), persist);
+                return;
+            }
             Grant(caller, rows, employee, period, period.Year, 749910001, 749910001, 5m, "SL-" + Rules.Iso(period), persist);
             int earned = 0;
             for (int month = 0; month < 12; month++)
@@ -203,7 +223,9 @@ namespace A365.Leave.Plugins
                 return;
             }
             var row = Movement(employee, period, year, pool, type, days, key, key);
-            row["a365_note"] = "Automatic credit under policy 2026-10-22.1. Monthly VL is earned in arrears; SL is granted for the April period.";
+            row["a365_note"] = period >= Rules.JanuaryResetEffective
+                ? "Annual January 5 reset effective 2027: 10 VL and 5 SL; no carryover or monthly accrual."
+                : "Automatic credit under policy 2026-10-22.1. Monthly VL is earned in arrears; SL is granted for the April period.";
             if (persist) row.Id = service.Create(row);
             rows.Add(row);
         }

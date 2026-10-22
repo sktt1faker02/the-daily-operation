@@ -6,6 +6,41 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-22 - Separate annual Leave Conversion workspace
+
+Removed the Cash Conversions tab from Leave Management. Added the admin-gated
+Leave Conversion navigation and year list/detail routes, reusing existing
+Dataverse conversion history, pagination and immutable saved rates/amounts.
+Changed `leave.tsx`, `_layout.tsx`, `router.tsx`, `leave-service.ts` and added
+`leave-conversion.tsx`. Lint and build passed (existing bundle-size warning);
+functional testing remains with the owner. No deployment or business writes.
+
+Verification checklist:
+- [x] Cash Conversions tab removed; dedicated module and clickable years added.
+- [x] Existing admin access gate, loading/error states and saved details reused.
+- [x] Year validation, full pagination for year discovery, lint/build checks.
+- [x] Employee preview: owner confirmed monthly basic salary / 22 and current
+  available balance for the leave year. Round daily rate to cents, cap days by
+  available VL and remaining annual allowance (5 minus Recorded conversion days),
+  then round payout to cents. Current cycle uses the server Add Leave preview,
+  including pending grants; past years use posted ledger balances. Future years
+  are unavailable. Salary/balance failures display errors instead of zero.
+  Existing saved conversion snapshots remain unchanged. New helpers/components:
+  `conversion-rules.ts`, `conversion-employees.tsx`; Leave posting invalidates
+  conversion previews. Employee requests are paged with refresh/retry controls.
+- [ ] Functional UI/data checks by owner. No conversion posting/payment added.
+
+### 2026-10-22 — Annual Leave reset on January 5 from 2027
+
+Owner corrected the reset to January 5 annually, beginning January 5, 2027:
+full 10 VL and 5 SL, replacing monthly accrual from that date. Updated Leave
+server period boundaries, transitional period end, annual idempotent grants,
+deduction cycle-year tagging and preview wording. Existing balances continue
+under old rules until January 5; history and Payroll formulas are unchanged.
+Compiled and updated the existing signed Dev Leave assembly; no schema/role
+changes or financial transactions. Functional testing remains with the owner.
+See [implementation and limits](docs/leave-january-reset.md).
+
 ### 2026-10-22 - Reduce Codex context and routine work overhead
 
 **Outcome:** owner-authorized economical development defaults. Condensed root

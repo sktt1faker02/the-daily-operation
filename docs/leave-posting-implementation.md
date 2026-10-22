@@ -1,5 +1,10 @@
 # Leave submission implementation — 2026-10-22
 
+**Subsequent owner correction:** from January 5, 2027, use January 5–January 4
+cycles and full annual grants of 10 VL and 5 SL. This supersedes the original
+April/monthly policy described below from that effective date. The current
+cycle ends January 4, 2027. See [reset implementation](leave-january-reset.md).
+
 The owner authorized executing the recommended resolutions to the listed blockers
 and supplied an Inquirer 2027 holiday link, requesting its 2026 counterpart.
 This supersedes the earlier unresolved-policy/setup-only gates for this scoped

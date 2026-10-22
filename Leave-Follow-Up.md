@@ -6,6 +6,12 @@ See [implementation checklist](docs/leave-implementation-checklist.md),
 
 ## Latest delivery: submission enabled in source and Dev backend
 
+**Latest owner policy, 2026-10-22:** reset credits every January 5, starting
+January 5, 2027, to the full 10 VL and 5 SL. Annual cycles run January 5–January 4;
+the current April cycle ends January 4, 2027. This supersedes the April/monthly
+VL policy below from the effective date. Existing history is preserved. See
+[January reset implementation](docs/leave-january-reset.md).
+
 The owner's later instruction authorized the recommended blocker resolutions.
 The form now uses a read-only April–March credit/workday preview and a signed
 transactional server command for issuing Leave, automatic due credits and a
@@ -40,10 +46,9 @@ Remaining work is specific:
 - Payroll Admin issues/cancels directly; no approval workflow. Employees have
   no Leave table access or filing/self-service screen in this version.
 - Paid leave consumes credits; Unpaid requires none. Paid Emergency uses VL.
-- VL accrues monthly to 10 days annually; SL receives 5 days annually.
-- Automate credit processing. VL and SL reset at the start of April. This later
-  direction supersedes the earlier assumption of a calendar-year entitlement
-  reset; it does not authorize deleting/resetting historical ledger rows.
+- From January 5, 2027, grant 10 VL and 5 SL each January 5; no monthly accrual
+  or carryover. Until that date the previous April/monthly rules remain in force.
+  Existing credit/Leave records are not deleted or rewritten by the reset.
 - Zero/negative available credits lead to Unpaid leave. Do not allow a new
   deduction to create a negative balance and pretend it remains Paid.
 - Leave cannot be filed on Philippine holidays. Obtain an official, versioned

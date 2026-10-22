@@ -19,6 +19,7 @@ export function useIssueLeave() {
         client.invalidateQueries({ queryKey: ["leave", "list"] }),
         client.invalidateQueries({ queryKey: ["leave", "balances", variables.values.employee?.a365_employeeid] }),
         client.invalidateQueries({ queryKey: ["leave", "posting-preview", variables.values.employee?.a365_employeeid] }),
+        client.invalidateQueries({ queryKey: ["leave", "conversion-employees"] }),
       ])
     },
   })

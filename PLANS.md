@@ -170,3 +170,12 @@ requirements above remain the Add Leave scope; older blocker descriptions are
 historical. 2027 filing awaits separate Eid proclamations. No app publication,
 financial test transaction or test email was performed. Expanded cancellation,
 conversion and Payroll integration remain in [Leave follow-up](Leave-Follow-Up.md).
+
+## Owner correction — annual leave reset, 2026-10-22
+
+Reset to 10 VL and 5 SL every January 5, first effective January 5, 2027.
+Periods then run January 5–January 4; the current April cycle ends January 4,
+2027. This supersedes April and the intermediate January 1 request. Before
+the effective date, retain existing credits/accrual rules. Preserve historical
+records and existing eligibility, holiday and posting safeguards. See
+[implementation](docs/leave-january-reset.md). Functional testing is left to the owner.

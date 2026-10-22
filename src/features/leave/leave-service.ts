@@ -8,6 +8,9 @@ import { userService } from "@/features/employees/user-service"
 import { calculateBalances, requireGuid, validYear } from "./rules"
 import { benefitLabels, conversionStatusLabels, leaveStatusLabels, leaveTypeLabels, poolLabels, transactionTypeLabels } from "./types"
 import type { ConversionRecord, CreditRecord, LeaveEmployee, LeaveFilters, LeavePage, LeaveRecord, SourceReference } from "./types"
+import { postingService } from "./posting-service"
+import { emptyLeaveEntry } from "./entry-rules"
+import { calculateConversion, currentLeaveYear } from "./conversion-rules"
 
 const leaveSelect = ["a365_leaveid", "a365_name", "_a365_employee_value", "a365_leavetype", "a365_benefit", "a365_startdate", "a365_enddate", "a365_days", "a365_leavestatus", "a365_note", "_a365_issuedby_value", "a365_issuedon", "_a365_cancelledby_value", "a365_cancelledon", "a365_cancellationreason", "a365_notificationstatus", "a365_notifiedon"] satisfies (keyof LeaveRecord)[]
 const conversionSelect = ["a365_leavecashconversionid", "a365_name", "_a365_employee_value", "a365_year", "a365_days", "a365_dailyrateused", "a365_amount", "a365_conversionstatus", "_a365_convertedby_value", "a365_convertedon", "_a365_cancelledby_value", "a365_cancelledon", "a365_cancellationreason"] satisfies (keyof ConversionRecord)[]
@@ -70,6 +73,47 @@ async function employeeNames(ids: (string | undefined)[]): Promise<LeaveEmployee
 
 /** Read-only until policy and transactional server commands are authorized and verified. */
 export const leaveService = {
+  async conversionEmployees(year: number, skipToken?: string) {
+    if (!validYear(year)) throw new Error("Select a valid year.")
+    type ConversionEmployee = LeaveEmployee & { a365_basicmonthlysalary?: number }
+    const result = await dataClient.retrieveMultipleRecordsAsync<ConversionEmployee>("a365_employees", {
+      select: [...employeeSelect, "a365_basicmonthlysalary"], maxPageSize: 20, skipToken,
+      orderBy: ["a365_name asc", "a365_employeeid asc"],
+    })
+    const employees = checked(result)
+    const currentYear = currentLeaveYear()
+    const rows = await Promise.all(employees.map(async employee => {
+      try {
+        if (year > currentYear) throw new Error("This leave year has not started.")
+        const id = requireGuid(employee.a365_employeeid)
+        const conversions = await allPages<ConversionRecord>(options => A365_leavecashconversionsService.getAll(options), {
+          select: conversionSelect, filter: `_a365_employee_value eq ${id} and a365_year eq ${year}`,
+          orderBy: ["a365_leavecashconversionid asc"],
+        })
+        if (conversions.some(row => ![749910000, 749910001].includes(row.a365_conversionstatus) || !Number.isFinite(row.a365_days) || row.a365_days < 0)) throw new Error("Recorded conversion days could not be verified.")
+        const converted = conversions.filter(row => row.a365_conversionstatus === 749910000).reduce((total, row) => total + Math.round(row.a365_days * 100), 0) / 100
+        let availableVL: number
+        if (year === currentYear) {
+          const preview = await postingService.preview({ ...emptyLeaveEntry(), employee })
+          if (Number(preview.periodStart.slice(0, 4)) !== year) throw new Error("The leave year changed. Refresh to check the balance.")
+          availableVL = preview.VL
+        } else availableVL = (await leaveService.balances(id, year)).VL
+        return { employee, preview: { ...calculateConversion(employee.a365_basicmonthlysalary, availableVL, converted), availableVL, converted }, error: null }
+      } catch (error) {
+        // Only locally generated policy/validation errors are safe to display.
+        const message = error instanceof Error && (error.message === "This leave year has not started." || error.message === "Monthly basic salary is missing or invalid.") ? error.message : "Unable to verify this employee’s conversion balance. Refresh to retry."
+        return { employee, preview: null, error: message }
+      }
+    }))
+    return { rows, next: result.skipToken }
+  },
+  async conversionYears(): Promise<number[]> {
+    const rows = await allPages<Pick<ConversionRecord, "a365_year">>(options => A365_leavecashconversionsService.getAll(options), {
+      select: ["a365_year"], orderBy: ["a365_leavecashconversionid asc"],
+    })
+    if (rows.some(row => !validYear(row.a365_year))) throw new Error("Conversion history contains an invalid year.")
+    return [...new Set([new Date().getFullYear(), ...rows.map(row => row.a365_year)])].sort((a, b) => b - a)
+  },
   async searchEmployees(search: string, skipToken?: string) {
     const result = await dataClient.retrieveMultipleRecordsAsync<LeaveEmployee>("a365_employees", {
       select: employeeSelect, maxPageSize: 20, skipToken,

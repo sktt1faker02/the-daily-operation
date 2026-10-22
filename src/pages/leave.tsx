@@ -12,7 +12,7 @@ import { LeaveRecords } from "@/features/leave/leave-records"
 import { LeaveDetail } from "@/features/leave/leave-detail"
 import { AddLeaveDialog } from "@/features/leave/add-leave-dialog"
 import { validYear } from "@/features/leave/rules"
-import { benefitLabels, conversionStatusLabels, leaveStatusLabels, leaveTypeLabels, poolLabels, transactionTypeLabels } from "@/features/leave/types"
+import { benefitLabels, leaveStatusLabels, leaveTypeLabels, poolLabels, transactionTypeLabels } from "@/features/leave/types"
 import type { LeaveEmployee, LeaveFilters, LeaveSection, SourceReference } from "@/features/leave/types"
 
 function ChoiceFilter({ label, value, labels, onChange }: { label: string; value: string; labels: Readonly<Record<number, string>>; onChange: (value: string) => void }) {
@@ -30,8 +30,8 @@ function LeaveWorkspace() {
   const [addLeaveOpen, setAddLeaveOpen] = useState(false)
   const section = filters.section
   return <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-    <header className="flex flex-wrap items-start justify-between gap-4"><div className="space-y-2"><h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight"><CalendarDays className="size-6 text-primary" aria-hidden />Leave Management</h1><p className="text-sm text-muted-foreground">Employee leave, VL and SL credits, and cash conversion history.</p></div><Button onClick={() => setAddLeaveOpen(true)}><Plus className="size-4" aria-hidden />Add Leave</Button></header>
-    <div className="rounded-md border bg-muted/30 p-4 text-sm" role="note"><p className="font-medium">Admins record leave directly.</p><p className="mt-1 text-muted-foreground">Use Add Leave to review the current April–March credits and workdays. The history below preserves recorded ledger years. Cash conversion and cancellation are handled separately.</p></div>
+    <header className="flex flex-wrap items-start justify-between gap-4"><div className="space-y-2"><h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight"><CalendarDays className="size-6 text-primary" aria-hidden />Leave Management</h1><p className="text-sm text-muted-foreground">Employee leave and VL and SL credit history.</p></div><Button onClick={() => setAddLeaveOpen(true)}><Plus className="size-4" aria-hidden />Add Leave</Button></header>
+    <div className="rounded-md border bg-muted/30 p-4 text-sm" role="note"><p className="font-medium">Admins record leave directly.</p><p className="mt-1 text-muted-foreground">Use Add Leave to review current credits and workdays. The history below preserves recorded ledger years. View annual conversions in Leave Conversion.</p></div>
     <form className="flex flex-wrap items-end gap-4" onSubmit={event => {
       event.preventDefault()
       if (!validYear(Number(year))) { setValidation("Enter a whole year from 1900 to 9998."); return }
@@ -45,10 +45,10 @@ function LeaveWorkspace() {
     </form>
     <LeaveBalances employeeId={filters.employeeId} year={filters.year} />
     <Tabs value={section} onValueChange={value => setFilters(previous => ({ ...previous, section: value as LeaveSection, status: "all", type: "all", benefit: "all" }))} className="space-y-4">
-      <TabsList className="h-auto flex-wrap"><TabsTrigger value="leave">Leave</TabsTrigger><TabsTrigger value="credits">Credit History</TabsTrigger><TabsTrigger value="conversions">Cash Conversions</TabsTrigger></TabsList>
+      <TabsList className="h-auto flex-wrap"><TabsTrigger value="leave">Leave</TabsTrigger><TabsTrigger value="credits">Credit History</TabsTrigger></TabsList>
       <div className="flex flex-wrap gap-4">
-        <ChoiceFilter label={section === "credits" ? "Movement" : "Status"} value={filters.status} labels={section === "leave" ? leaveStatusLabels : section === "credits" ? transactionTypeLabels : conversionStatusLabels} onChange={status => setFilters(previous => ({ ...previous, status }))} />
-        {section !== "conversions" && <ChoiceFilter label={section === "credits" ? "Credit pool" : "Leave type"} value={filters.type} labels={section === "credits" ? poolLabels : leaveTypeLabels} onChange={type => setFilters(previous => ({ ...previous, type }))} />}
+        <ChoiceFilter label={section === "credits" ? "Movement" : "Status"} value={filters.status} labels={section === "leave" ? leaveStatusLabels : transactionTypeLabels} onChange={status => setFilters(previous => ({ ...previous, status }))} />
+        <ChoiceFilter label={section === "credits" ? "Credit pool" : "Leave type"} value={filters.type} labels={section === "credits" ? poolLabels : leaveTypeLabels} onChange={type => setFilters(previous => ({ ...previous, type }))} />
         {section === "leave" && <ChoiceFilter label="Benefit" value={filters.benefit} labels={benefitLabels} onChange={benefit => setFilters(previous => ({ ...previous, benefit }))} />}
       </div>
       <TabsContent value={section}><LeaveRecords key={JSON.stringify(filters)} filters={filters} onOpen={setSource} /></TabsContent>
