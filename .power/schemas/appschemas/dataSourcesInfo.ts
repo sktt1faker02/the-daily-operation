@@ -5,6 +5,81 @@
  */
 
 export const dataSourcesInfo = {
+  "a365_deleteemployee": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "",
+    "dataSourceType": "Dataverse",
+    "apis": {
+      "a365_DeleteEmployee": {
+        "path": "/api/data/v9.2/a365_DeleteEmployee",
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "Request",
+            "in": "body",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responseInfo": {
+          "200": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "a365_deletepayrollentry": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "",
+    "dataSourceType": "Dataverse",
+    "apis": {
+      "a365_DeletePayrollEntry": {
+        "path": "/api/data/v9.2/a365_DeletePayrollEntry",
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "Request",
+            "in": "body",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responseInfo": {
+          "200": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "a365_deletepayrollperiod": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "",
+    "dataSourceType": "Dataverse",
+    "apis": {
+      "a365_DeletePayrollPeriod": {
+        "path": "/api/data/v9.2/a365_DeletePayrollPeriod",
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "Request",
+            "in": "body",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responseInfo": {
+          "200": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
   "a365_departments": {
     "tableId": "",
     "version": "",

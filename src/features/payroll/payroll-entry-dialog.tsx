@@ -78,7 +78,7 @@ export function PayrollEntryDialog({
   const updateInputs = useUpdateEntryInputs(periodId)
   const systemUser = useCurrentSystemUserId()
   const unpaid = usePayrollUnpaidLeave(entry?._a365_employee_value ?? "", periodStartDate, periodEndDate, open && editable)
-  const effectiveValues = !unpaidEdited && unpaid.isSuccess && unpaid.data > 0
+  const effectiveValues = editable && !unpaidEdited && unpaid.isSuccess && unpaid.data > 0
     ? { ...values, a365_unpaidleavedays: String(unpaid.data) } : values
   const leaveReady = editable && unpaid.isSuccess && !unpaid.isFetching
   const preview = useEntryPreview(entry, effectiveValues, periodEndDate, open)

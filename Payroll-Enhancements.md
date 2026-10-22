@@ -6,6 +6,137 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-22 - Reduce Codex context and routine work overhead
+
+**Outcome:** owner-authorized economical development defaults. Condensed root
+`AGENTS.md` from 3,190 words to about 1,170 while preserving security,
+immutability, architecture and required checks. Detailed Payroll instructions
+moved to `docs/payroll-agent-guidance.md`, required for relevant tasks. Added
+narrow scope, concise output, no unsolicited delegation, targeted iteration
+checks and one final required verification pass.
+
+**Configuration:** `.codex/config.toml` sets project reasoning to Medium instead
+of inherited High and restricts Sites, Work Pets and Templates apps. This client
+applies skill overrides only from the user config: added 108 exact-path overrides
+there; confirmed 103 unrelated imported workflows disabled. Code Apps, Dataverse,
+Power Automate and Microsoft Learn remain available. Original user config backup:
+`C:/Users/Jomari/.codex/config.before-economy-20261022.toml`. No skill sources removed.
+
+**Verification:** strict-config app-server startup and read-only configuration/
+skill-list requests confirmed Medium, three app restrictions, 103 disabled
+imports and no skill-loading errors. Documentation links, guidance consistency
+and whitespace checked. No application/runtime behavior, business data, schema,
+permissions or unrelated work changed. Runtime tests/build not required.
+
+**Limits:** restart Codex and start a new chat for clean context/settings;
+explicit thread/model overrides can take precedence. Account plugins remain
+installed/enabled; local restrictions do not change account installation. Five
+optional cached plugin-skill overrides were absent from the skill listing and
+their effect is unverified. Paths are machine-specific and need updating after
+moving the repo/plugin cache. No measured credit-saving percentage is claimed.
+
+### 2026-10-22 — Fix shared deletion receipt guard
+
+All three deletion operations were blocked because receipt `CreateMultiple`
+was rejected, including Dataverse's merged pipeline for a single `Create`.
+`ProtectDeletionWrites.cs` now permits both creation events only under the
+matching transactional deletion API ancestor, without requiring a snapshot
+stage number. Direct deletion and receipt updates/deletes remain blocked.
+Compiled and updated only the existing signed Dev deletion assembly and its
+source binary. At the owner's request, no test suite, test deletions or unrelated
+checks were run; functional verification is left to the owner.
+
+### 2026-10-22 — Enable confirmed payroll, entry and employee deletion
+
+**Outcome:** completed the owner-authorized Dev setup and expanded deletion to
+individual employees' entries in Processing payrolls and unreferenced employee
+master records. Confirmations name the employee and/or cutoff, explain impact,
+perform no write on Cancel, prevent duplicate/in-flight dismissal, retain errors
+and a stable retry identity, and refresh rows/totals after confirmed success.
+Edit is icon-only with hover/accessibility labels in both affected tables.
+
+**Changed:** payroll/employee pages and tables; shared confirmation component;
+domain deletion dialogs/services; common validated transport; generated Custom
+API bindings; signed `A365.Payroll.Deletion` 1.0.1.0; three transactional APIs;
+organization-owned deletion receipt; eight synchronous direct-write guards;
+existing employee/template Delete reference tightened to Restrict; native source
+pulled for the affected metadata and its existing template-table dependencies,
+which were absent from the repository snapshot. Provisioning, server tests, preview-only
+verification and source-pull scripts are under `scripts/payroll-deletion/`.
+
+**Security:** live export revealed pre-existing Organization Delete grants on
+Payroll Admin's period/entry tables, contrary to the documented baseline.
+Roles were not changed. Server guards now reject direct deletes irrespective of
+existing privileges; finalized periods and entries remain protected. Employees
+with payroll, leave, credit, conversion or template references cannot be deleted.
+Validated operations record authenticated actor, target, period and count in an
+immutable receipt, without copying financial amounts or internal notes.
+
+**Verification:** 297 application tests across 32 files (including targeted
+transport checks), 41 server boundary checks, 13 synthetic Edge browser scenarios,
+live preview-only authorization/status/history/guard/hash checks, lint and build
+pass. The live binary matches the tested assembly; business/receipt counts are
+unchanged. Existing large-bundle warning remains. See
+[checklist and limits](docs/payroll-deletion-checklist.md) and
+[live verification](docs/payroll-deletion-verification.json).
+
+**Limits:** no live deletion/rollback/concurrent-race fixture test; a separate
+ordinary admin successful-delete test remains outstanding. No existing employee,
+payroll or leave record was deleted during verification. Backend registration is
+live in Dev; new UI is ready locally and the hosted Code App was not republished.
+No commit or Git push. This supersedes the setup blocker in the earlier
+preparation entry below.
+
+### 2026-10-22 — Payroll action icons and Processing deletion preparation
+
+**Request:** use icon-only Archive/Unarchive actions with hover labels and add
+Delete with a mandatory confirmation naming the period. Owner clarified that
+Processing periods and their entries are the deletion scope.
+
+**Changes:** `src/pages/payroll.tsx` and page tests; new `DeletePeriodDialog`,
+deletion transport service and their tests. Both lists offer Delete only for
+Processing periods to admins. Cancel performs no write. Confirmation explains
+permanent removal of entries, blocks duplicate submits/dismissal while pending,
+retains errors and the operation identity for retry, and invalidates payroll
+queries on confirmed success. New signed server draft and local build script
+prepare transactional deletion with exact-role authorization, current status
+validation, row-version checks and a durable receipt. See
+[scope, proposed metadata and verification](docs/payroll-deletion-checklist.md).
+
+**Verification:** 282 application tests in 29 files; five synthetic Edge browser
+scenarios; lint, build and signed server compilation pass. Existing bundle-size
+warning remains. No live deletion, schema/role change, registration, publication,
+commit or push performed.
+
+**Remaining:** Delete explicitly stays disabled until separately authorized
+Dataverse setup adds the Custom API, receipt table and generated API binding.
+Server rollback/concurrency and ordinary-admin direct-access checks remain
+pending an isolated approved environment test. Existing role Delete privileges
+remain withheld; the server draft is not represented as a deployed feature.
+
+### 2026-10-22 — Reflect issued unpaid Leave in Payroll
+
+**Outcome:** matching Issued Unpaid Leave fills the target cutoff's unpaid days
+for Load employees, Copy previous cutoff and Load template. Existing Processing
+entry editors load the derived days into the unsaved preview; Save explicitly
+persists and recalculates. Admin manual adjustment remains available.
+
+**Files:** `src/features/leave/payroll-unpaid-leave.ts` and tests;
+`src/features/payroll/hooks/use-payroll-unpaid-leave.ts`; Payroll entry dialog,
+period/template services, page props and regression tests;
+`scripts/payroll-unpaid-ui-check.mjs`. The shared allocation service handles
+employee/date overlap, approved holidays/weekends, complete paging and failures.
+Copied previous/template unpaid days are replaced by the new cutoff's result.
+
+**Verification:** 266 application tests across 27 files, five synthetic Edge
+browser scenarios, lint and build passed. Existing large-bundle warning remains.
+Source formulas, locked snapshots, generated services, schema and roles unchanged.
+No live payroll writes, test email, publication, commit or push.
+
+**Limits:** no background existing-entry sync; the editor persists only on Save.
+Incomplete holiday coverage or inconsistent stored Leave days block allocation
+for review. See [verification checklist](docs/unpaid-leave-payroll-checklist.md).
+
 ### 2026-10-22 — Deploy verified Leave assembly and PreOperation guards
 
 - Owner supplied a detailed audit/reproduction/repair request. Live audit found

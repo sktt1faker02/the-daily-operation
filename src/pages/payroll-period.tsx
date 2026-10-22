@@ -34,6 +34,7 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { PayrollEntryTable } from "@/features/payroll/payroll-entry-table"
 import { PayrollAuditTrail } from "@/features/payroll/payroll-audit-trail"
 import { PayrollEntryDialog } from "@/features/payroll/payroll-entry-dialog"
+import { DeleteEntryDialog } from "@/features/payroll/delete-entry-dialog"
 import {
   buildPayrollDetailRows,
   createPayrollWorkbook,
@@ -73,6 +74,7 @@ export default function PayrollPeriodPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState("")
   const [editing, setEditing] = useState<PayrollEntry | null>(null)
+  const [deleting, setDeleting] = useState<PayrollEntry | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false)
   const [confirmCopyOpen, setConfirmCopyOpen] = useState(false)
@@ -538,6 +540,7 @@ export default function PayrollPeriodPage() {
           <PayrollEntryTable
             entries={filtered}
             onEdit={openEditor}
+            onDelete={isAdmin && editable ? setDeleting : undefined}
             editable={editable}
             onViewPayslip={canViewPayslip ? handleViewPayslip : undefined}
             viewingId={viewingId}
@@ -550,6 +553,7 @@ export default function PayrollPeriodPage() {
 
       <PayrollAuditTrail period={period.data} />
 
+      {deleting && period.data && <DeleteEntryDialog key={deleting.a365_payrollentryid} entry={deleting} period={period.data} isAdmin={isAdmin} onClose={() => setDeleting(null)} onDeleted={() => { setDeleting(null); setPendingLargeExport(false) }} />}
       <PayrollEntryDialog
         open={editorOpen}
         onOpenChange={setEditorOpen}

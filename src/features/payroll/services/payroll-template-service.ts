@@ -150,7 +150,7 @@ export const payrollTemplateService = {
     ])
     if (!template.success) throw template.error ?? new Error("Unable to load the template.")
     if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
-    const unpaid = await payrollUnpaidLeaveService.daysForEmployees(lines.map(line => line.employeeId), period.a365_periodstart, period.a365_periodend)
+    const unpaid = await payrollUnpaidLeaveService.daysForEmployees([...lines.map(line => line.employeeId), ...active.map(employee => employee.a365_employeeid)], period.a365_periodstart, period.a365_periodend)
 
     const sourceByEmployee = new Map<string, CopiedInputs>()
     for (const l of lines) sourceByEmployee.set(l.employeeId, { ...l.inputs, unpaidLeaveDays: unpaid.get(l.employeeId.toLowerCase()) ?? 0 })
@@ -175,7 +175,7 @@ export const payrollTemplateService = {
       )
       if (!res.success) throw res.error ?? new Error("Unable to update payroll entry from template.")
     }
-    const created = await payrollPeriodService.createEntriesFromPlans(periodId, plan.creates)
+    const created = await payrollPeriodService.createEntriesFromPlans(periodId, plan.creates, unpaid)
     return {
       created,
       updated: plan.updates.length,

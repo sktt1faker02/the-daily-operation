@@ -39,5 +39,6 @@ __pycache__/
 solutions/*.zip
 plugins/**/bin/
 plugins/**/obj/
+scripts/payroll-deletion/.work/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/

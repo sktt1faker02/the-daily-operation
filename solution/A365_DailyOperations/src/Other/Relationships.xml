@@ -85,4 +85,16 @@
   <EntityRelationship Name="lk_a365_leavecoordination_modifiedby" />
   <EntityRelationship Name="lk_a365_leavepolicy_createdby" />
   <EntityRelationship Name="lk_a365_leavepolicy_modifiedby" />
+  <EntityRelationship Name="organization_a365_payrolldeletionreceipt" />
+  <EntityRelationship Name="lk_a365_payrolldeletionreceipt_createdby" />
+  <EntityRelationship Name="lk_a365_payrolldeletionreceipt_modifiedby" />
+  <EntityRelationship Name="a365_employee_a365_payrolltemplateline" />
+  <EntityRelationship Name="a365_payrolltemplate_a365_payrolltemplateline" />
+  <EntityRelationship Name="organization_a365_payrolltemplate" />
+  <EntityRelationship Name="organization_a365_payrolltemplateline" />
+  <EntityRelationship Name="lk_a365_payrolltemplate_createdby" />
+  <EntityRelationship Name="lk_a365_payrolltemplate_modifiedby" />
+  <EntityRelationship Name="lk_a365_payrolltemplateline_createdby" />
+  <EntityRelationship Name="lk_a365_payrolltemplateline_modifiedby" />
+  <EntityRelationship Name="TransactionCurrency_a365_payrolltemplateline" />
 </EntityRelationships>

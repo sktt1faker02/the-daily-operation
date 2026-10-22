@@ -35,13 +35,13 @@ const entry: PayrollEntry = {
   a365_calculatedon: "2026-10-20T00:00:00Z", a365_comment: "Late",
 }
 
-function renderDialog(selectedEntry = entry, open = true) {
+function renderDialog(selectedEntry = entry, open = true, editable = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } })
   const onOpenChange = vi.fn()
   const result = render(
     <QueryClientProvider client={client}>
       <PayrollEntryDialog open={open} onOpenChange={onOpenChange} entry={selectedEntry}
-        periodId="period-1" periodStartDate="2026-10-01" periodEndDate="2026-10-15" editable />
+        periodId="period-1" periodStartDate="2026-10-01" periodEndDate="2026-10-15" editable={editable} />
     </QueryClientProvider>,
   )
   return { ...result, onOpenChange }
@@ -57,6 +57,13 @@ beforeEach(() => {
 })
 
 describe("PayrollEntryDialog live calculation", () => {
+  it("does not load Leave or allow edits for a non-Processing period", async () => {
+    renderDialog(entry, true, false)
+    await screen.findByText("₱34,400.00")
+    expect(payrollUnpaidLeaveService.daysForEmployees).not.toHaveBeenCalled()
+    expect(screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })).toHaveValue(0)
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
+  })
   it("loads 2 unpaid days into the editor and calculation, without writing until Save", async () => {
     vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockResolvedValue(new Map([["employee-1", 2]]))
     const user = userEvent.setup()
@@ -172,7 +179,7 @@ describe("PayrollEntryDialog live calculation", () => {
     let resolveConfig!: (value: StatutoryConfig) => void
     vi.mocked(getStatutoryConfig).mockReturnValue(new Promise((resolve) => { resolveConfig = resolve }))
     renderDialog()
-    expect(screen.getByRole("status")).toHaveTextContent("Loading payroll preview")
+    expect(screen.getByText(/Loading payroll preview/)).toHaveAttribute("role", "status")
     expect(screen.queryByText("₱34,400.00")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
     await waitFor(() => expect(getStatutoryConfig).toHaveBeenCalledTimes(1))

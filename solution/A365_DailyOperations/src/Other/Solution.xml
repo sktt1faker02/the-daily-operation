@@ -6,7 +6,7 @@
       <LocalizedName description="A365-DailyOperations" languagecode="1033" />
     </LocalizedNames>
     <Descriptions>
-      <Description description="The Daily Operation â€” Automations 365 operational hub (Payroll, Leave, Accounting)." languagecode="1033" />
+      <Description description="The Daily Operation ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Automations 365 operational hub (Payroll, Leave, Accounting)." languagecode="1033" />
     </Descriptions>
     <Version>1.0</Version>
     <Managed>0</Managed>
@@ -125,6 +125,18 @@
       <RootComponent type="92" id="{d831c8d1-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
       <RootComponent type="92" id="{e5c0edc1-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
       <RootComponent type="92" id="{ea0c83b5-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="1" schemaName="a365_payrolldeletionreceipt" behavior="0" />
+      <RootComponent type="1" schemaName="a365_payrolltemplate" behavior="0" />
+      <RootComponent type="1" schemaName="a365_payrolltemplateline" behavior="0" />
+      <RootComponent type="91" id="{fb5a7a10-0dce-f111-a05a-000d3a8014e4}" schemaName="A365.Payroll.Deletion, Version=1.0.1.0, Culture=neutral, PublicKeyToken=e4ce76ce80b15de4" behavior="0" />
+      <RootComponent type="92" id="{0ff5027f-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{1ff5027f-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{2a70b993-0fce-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{640e0975-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{6d2de78b-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{8b5aab99-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{8e5aab99-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{f7378f85-0fce-f111-a05a-000d3a8014e4}" behavior="0" />
     </RootComponents>
     <MissingDependencies>
       <MissingDependency>

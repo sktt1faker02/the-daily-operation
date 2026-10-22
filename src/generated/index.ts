@@ -4,6 +4,9 @@
  */
 
 // Models
+export * as A365_DeleteEmployeeModel from './models/A365_DeleteEmployeeModel';
+export * as A365_DeletePayrollEntryModel from './models/A365_DeletePayrollEntryModel';
+export * as A365_DeletePayrollPeriodModel from './models/A365_DeletePayrollPeriodModel';
 export * as A365_LeaveCommandModel from './models/A365_LeaveCommandModel';
 export * as A365_departmentsModel from './models/A365_departmentsModel';
 export * as A365_employeesModel from './models/A365_employeesModel';
@@ -26,6 +29,9 @@ export * as SystemusersModel from './models/SystemusersModel';
 export * as WhoAmIModel from './models/WhoAmIModel';
 
 // Services
+export * from './services/A365_DeleteEmployeeService';
+export * from './services/A365_DeletePayrollEntryService';
+export * from './services/A365_DeletePayrollPeriodService';
 export * from './services/A365_LeaveCommandService';
 export * from './services/A365_departmentsService';
 export * from './services/A365_employeesService';

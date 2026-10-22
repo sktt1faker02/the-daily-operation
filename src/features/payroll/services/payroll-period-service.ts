@@ -372,10 +372,10 @@ export const payrollPeriodService = {
    * Populate a period by copying the previous cutoff. Source = the most recent
    * most recent Locked period that starts before the target; Processing and
    * Ready periods are skipped, since their inputs aren't
-   * settled. Each returning employee's ALL inputs are carried forward — Basic Pay,
-   * Allowances, Other Earnings, Other Deductions, Unpaid Leave days, and
-   * Withholding Tax — so the admin starts from a full copy and manually adjusts
-   * only what changed. Employees not yet in the period are added; employees
+   * settled. Basic Pay, Allowances, Other Earnings, Other Deductions and
+   * Withholding Tax carry forward; unpaid days come from Issued Unpaid Leave
+   * in the target cutoff rather than the previous cutoff. Employees not yet
+   * in the period are added; employees
    * already present are **updated** (overwritten) with the source values.
    * Calculated results (gross, statutory, total deductions, net) are never copied
    * — the caller recalculates afterward. Employees absent from the source (e.g.
@@ -417,8 +417,8 @@ export const payrollPeriodService = {
 
   /** Create entries from precomputed plans. Exposed so payroll-template-service
    *  can reuse the shared create logic when applying a template. */
-  async createEntriesFromPlans(periodId: string, plans: NewEntryPlan[]): Promise<number> {
-    return createPlannedEntries(periodId, plans)
+  async createEntriesFromPlans(periodId: string, plans: NewEntryPlan[], preparedUnpaidDays?: Map<string, number>): Promise<number> {
+    return createPlannedEntries(periodId, plans, preparedUnpaidDays)
   },
 }
 
@@ -436,7 +436,7 @@ async function applyInputsToPeriod(
 ): Promise<{ created: number; updated: number; skipped: number }> {
   const period = await payrollPeriodService.getPeriod(periodId)
   if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
-  const unpaid = await payrollUnpaidLeaveService.daysForEmployees([...sourceByEmployee.keys()], period.a365_periodstart, period.a365_periodend)
+  const unpaid = await payrollUnpaidLeaveService.daysForEmployees([...sourceByEmployee.keys(), ...active.map(employee => employee.a365_employeeid)], period.a365_periodstart, period.a365_periodend)
   const inputsForCutoff = new Map([...sourceByEmployee].map(([id, inputs]) => [id, { ...inputs, unpaidLeaveDays: unpaid.get(id.toLowerCase()) ?? 0 }]))
   const plan = planApplyInputs(inputsForCutoff, existing, active, { id: periodId, name: periodName })
   for (const { entryId, inputs } of plan.updates) {
@@ -455,7 +455,7 @@ async function applyInputsToPeriod(
     )
     if (!result.success) throw result.error ?? new Error("Unable to update payroll entry.")
   }
-  const created = await createPlannedEntries(periodId, plan.creates)
+  const created = await createPlannedEntries(periodId, plan.creates, unpaid)
   return { created, updated: plan.updates.length, skipped: plan.skipped }
 }
 
@@ -464,13 +464,13 @@ async function applyInputsToPeriod(
  * copyFromPreviousCutoff. Stops on the first failure and reports how many were
  * added before it (partial-write visibility). Returns the created count.
  */
-async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Promise<number> {
+async function createPlannedEntries(periodId: string, plans: NewEntryPlan[], preparedUnpaidDays?: Map<string, number>): Promise<number> {
   if (!plans.length) return 0
   const period = await payrollPeriodService.getPeriod(periodId)
   if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
   // Complete all Leave reads before the first entry write; a failed lookup
   // must never produce apparently valid zero-day inputs.
-  const unpaid = await payrollUnpaidLeaveService.daysForEmployees(plans.map(plan => plan.employeeId), period.a365_periodstart, period.a365_periodend)
+  const unpaid = preparedUnpaidDays ?? await payrollUnpaidLeaveService.daysForEmployees(plans.map(plan => plan.employeeId), period.a365_periodstart, period.a365_periodend)
   let created = 0
   for (const plan of plans) {
     const payload: Record<string, unknown> = {

@@ -23,6 +23,7 @@ import {
   FileDown,
   Loader2,
   Plus,
+  Trash2,
   Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -51,6 +52,8 @@ import {
   useUnarchivePeriod,
 } from "@/features/payroll/hooks/use-payroll-periods"
 import { CreatePeriodDialog } from "@/features/payroll/create-period-dialog"
+import { DeletePeriodDialog } from "@/features/payroll/delete-period-dialog"
+import { isPeriodEditable } from "@/features/payroll/period-status"
 import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import type { PayrollPeriod } from "@/features/payroll/types"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -115,6 +118,7 @@ function TablePagination({ table }: { table: TableInstance<PayrollPeriod> }) {
 export default function PayrollDashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingArchive, setPendingArchive] = useState<PayrollPeriod | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<PayrollPeriod | null>(null)
   const navigate = useNavigate()
   const { data: periods, isPending, isError, error, refetch } = usePayrollPeriods()
   const archivedQuery = useArchivedPeriods()
@@ -406,16 +410,17 @@ export default function PayrollDashboardPage() {
                         <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={(event) => { event.stopPropagation(); void exportPayroll([p]) }}><FileDown className="size-4" aria-hidden /></Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          title="Archive"
                           onClick={(e) => {
                             e.stopPropagation()
                             setPendingArchive(p)
                           }}
                           aria-label={`Archive ${p.a365_name}`}
                         >
-                          <Archive className="size-3.5" aria-hidden />
-                          Archive
+                          <Archive className="size-4" aria-hidden />
                         </Button>
+                        {isAdmin && isPeriodEditable(p.a365_payrollstatus) && <Button variant="ghost" size="icon" title="Delete" aria-label={`Delete ${p.a365_name}`} className="text-destructive" onClick={(event) => { event.stopPropagation(); setPendingDelete(p) }}><Trash2 className="size-4" aria-hidden /></Button>}
                       </TableCell>
                     </TableRow>
                   )
@@ -510,13 +515,14 @@ export default function PayrollDashboardPage() {
                         <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={() => void exportPayroll([p])}><FileDown className="size-4" aria-hidden /></Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          title="Unarchive"
                           onClick={() => setPendingUnarchive(p)}
                           aria-label={`Unarchive ${p.a365_name}`}
                         >
-                          <ArchiveRestore className="size-3.5" aria-hidden />
-                          Unarchive
+                          <ArchiveRestore className="size-4" aria-hidden />
                         </Button>
+                        {isAdmin && isPeriodEditable(p.a365_payrollstatus) && <Button variant="ghost" size="icon" title="Delete" aria-label={`Delete ${p.a365_name}`} className="text-destructive" onClick={(event) => { event.stopPropagation(); setPendingDelete(p) }}><Trash2 className="size-4" aria-hidden /></Button>}
                       </TableCell>
                     </TableRow>
                   )
@@ -559,6 +565,13 @@ export default function PayrollDashboardPage() {
           </div>
         </div>
       )}
+
+      {pendingDelete && <DeletePeriodDialog key={pendingDelete.a365_payrollperiodid} period={pendingDelete} isAdmin={isAdmin} onClose={() => setPendingDelete(null)} onDeleted={() => {
+        setSelectedIds((ids) => ids.filter((id) => id !== pendingDelete.a365_payrollperiodid))
+        setSelectedArchivedIds((ids) => ids.filter((id) => id !== pendingDelete.a365_payrollperiodid))
+        setPendingLargeExport(null)
+        setPendingDelete(null)
+      }} />}
 
       <Dialog open={pendingArchive !== null} onOpenChange={(o) => !o && setPendingArchive(null)}>
         <DialogContent className="sm:max-w-md">

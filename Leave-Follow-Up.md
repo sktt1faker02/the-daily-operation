@@ -25,9 +25,11 @@ Remaining work is specific:
   projects credits without persisting them.
 - Implement admin cancellation and immutable VL cash conversion separately,
   including the annual five-day limit and approved valuation rules.
-- Integrate Issued Unpaid Leave into new entries from all three Payroll creation
-  paths, after the day-to-payroll-amount rule is supplied. Do not alter formulas
-  or existing entries.
+- Issued Unpaid Leave now supplies all three Payroll population paths and the
+  existing Processing editor's unsaved input/preview. The latest owner request
+  authorizes explicit Save to apply this input to existing entries. No formulas
+  changed and no background existing-entry sync was added. See
+  [Payroll integration verification](docs/unpaid-leave-payroll-checklist.md).
 - Verify live concurrent posting/rollback and direct ordinary-account security
   using explicitly approved test identities/records. Verify a real email only
   with an approved recipient. No such records or messages were created here.
@@ -50,9 +52,11 @@ Remaining work is specific:
   explicit days limit. Conversions are fixed and cannot be cancelled. The latest
   phrase "5 VL conversions" is recorded in that context, not reinterpreted as
   five separate five-day conversion records.
-- Issued Unpaid leave populates only **new** Payroll entries through Load Active
-  Employees, Copy Previous Cutoff and Load Template. Preserve formulas and do not
-  automatically recalculate/update existing entries when Leave changes.
+- Issued Unpaid leave populates Payroll through Load Active Employees, Copy
+  Previous Cutoff and Load Template. The owner's later request extends this to
+  the existing Processing entry editor: show derived days before Save, permit
+  manual adjustment, and persist/recalculate only on explicit Save. Preserve
+  formulas and do not background-update existing entries when Leave changes.
 - Notifications occur after the committed Leave operation. Failure does not
   roll Leave back; support explicit retry. Never claim delivery on form save.
 

@@ -63,6 +63,29 @@ beforeEach(() => {
 })
 
 describe("Archived payroll export", () => {
+  it("offers Delete only for Processing periods in active and archived lists", async () => {
+    vi.mocked(payrollPeriodService.listPeriods).mockResolvedValue([active, { ...period("Processing cutoff"), a365_payrollstatus: PayrollStatus.Processing }])
+    vi.mocked(payrollPeriodService.listArchivedPeriods).mockResolvedValue([archived[0], { ...period("Archived processing", true), a365_payrollstatus: PayrollStatus.Processing }])
+    await renderPage()
+    expect(screen.getByRole("button", { name: "Delete Processing cutoff" })).toHaveAttribute("title", "Delete")
+    expect(screen.getByRole("button", { name: "Delete Archived processing" })).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Delete Active cutoff" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Delete Archived cutoff 1" })).not.toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: "Delete Processing cutoff" }))
+    expect(screen.getByRole("dialog", { name: "Delete this payroll period?" })).toHaveTextContent("Processing cutoff")
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+  it("uses icon-only Archive and Unarchive actions with hover and accessible labels", async () => {
+    await renderPage()
+    const archive = screen.getByRole("button", { name: "Archive Active cutoff" })
+    const unarchive = screen.getByRole("button", { name: "Unarchive Archived cutoff 1" })
+    expect(archive).toHaveAttribute("title", "Archive")
+    expect(unarchive).toHaveAttribute("title", "Unarchive")
+    expect(archive.textContent).toBe("")
+    expect(unarchive.textContent).toBe("")
+  })
   it("places export beside Unarchive under the Action header", async () => {
     await renderPage()
     for (const name of ["Active payroll periods", "Archived payroll periods"]) {
