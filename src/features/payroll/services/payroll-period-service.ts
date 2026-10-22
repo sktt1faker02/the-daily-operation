@@ -4,12 +4,13 @@
  * this module. Business decisions live in the pure helpers (period-utils).
  */
 import { dataClient } from "@/lib/power/data-client"
+import { payrollUnpaidLeaveService } from "@/features/leave/payroll-unpaid-leave"
 import { employeeService } from "@/features/employees/employee-service"
 import { referenceService } from "@/features/employees/reference-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
-import { canTransition, PayrollStatus, payrollStatusLabel } from "../period-status"
+import { canTransition, isPeriodEditable, PayrollStatus, payrollStatusLabel } from "../period-status"
 import {
   PAYROLL_PERIOD_TABLE,
   PAYROLL_ENTRY_TABLE,
@@ -433,7 +434,11 @@ async function applyInputsToPeriod(
   active: Employee[],
   existing: PayrollEntry[],
 ): Promise<{ created: number; updated: number; skipped: number }> {
-  const plan = planApplyInputs(sourceByEmployee, existing, active, { id: periodId, name: periodName })
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
+  const unpaid = await payrollUnpaidLeaveService.daysForEmployees([...sourceByEmployee.keys()], period.a365_periodstart, period.a365_periodend)
+  const inputsForCutoff = new Map([...sourceByEmployee].map(([id, inputs]) => [id, { ...inputs, unpaidLeaveDays: unpaid.get(id.toLowerCase()) ?? 0 }]))
+  const plan = planApplyInputs(inputsForCutoff, existing, active, { id: periodId, name: periodName })
   for (const { entryId, inputs } of plan.updates) {
     const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
       PAYROLL_ENTRY_TABLE,
@@ -460,6 +465,12 @@ async function applyInputsToPeriod(
  * added before it (partial-write visibility). Returns the created count.
  */
 async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Promise<number> {
+  if (!plans.length) return 0
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
+  // Complete all Leave reads before the first entry write; a failed lookup
+  // must never produce apparently valid zero-day inputs.
+  const unpaid = await payrollUnpaidLeaveService.daysForEmployees(plans.map(plan => plan.employeeId), period.a365_periodstart, period.a365_periodend)
   let created = 0
   for (const plan of plans) {
     const payload: Record<string, unknown> = {
@@ -471,7 +482,7 @@ async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Pr
       a365_allowances: plan.allowances,
       a365_otherearnings: plan.otherEarnings,
       a365_otherdeductions: plan.otherDeductions,
-      a365_unpaidleavedays: plan.unpaidLeaveDays,
+      a365_unpaidleavedays: unpaid.get(plan.employeeId.toLowerCase()) ?? 0,
       a365_withholdingtax: plan.withholdingTax,
       a365_comment: plan.comment || null,
     }

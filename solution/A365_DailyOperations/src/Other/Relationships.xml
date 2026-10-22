@@ -79,4 +79,10 @@
   <EntityRelationship Name="team_a365_leavecashconversion" />
   <EntityRelationship Name="team_a365_leavecredittransaction" />
   <EntityRelationship Name="TransactionCurrency_a365_LeaveCashConversion" />
+  <EntityRelationship Name="organization_a365_leavecoordination" />
+  <EntityRelationship Name="organization_a365_leavepolicy" />
+  <EntityRelationship Name="lk_a365_leavecoordination_createdby" />
+  <EntityRelationship Name="lk_a365_leavecoordination_modifiedby" />
+  <EntityRelationship Name="lk_a365_leavepolicy_createdby" />
+  <EntityRelationship Name="lk_a365_leavepolicy_modifiedby" />
 </EntityRelationships>

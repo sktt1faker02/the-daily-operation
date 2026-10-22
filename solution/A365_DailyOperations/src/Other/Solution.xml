@@ -6,7 +6,7 @@
       <LocalizedName description="A365-DailyOperations" languagecode="1033" />
     </LocalizedNames>
     <Descriptions>
-      <Description description="The Daily Operation — Automations 365 operational hub (Payroll, Leave, Accounting)." languagecode="1033" />
+      <Description description="The Daily Operation â€” Automations 365 operational hub (Payroll, Leave, Accounting)." languagecode="1033" />
     </Descriptions>
     <Version>1.0</Version>
     <Managed>0</Managed>
@@ -102,6 +102,29 @@
       <RootComponent type="1" schemaName="a365_leave" behavior="0" />
       <RootComponent type="1" schemaName="a365_leavecashconversion" behavior="0" />
       <RootComponent type="1" schemaName="a365_leavecredittransaction" behavior="0" />
+      <RootComponent type="1" schemaName="a365_leavecoordination" behavior="0" />
+      <RootComponent type="1" schemaName="a365_leavepolicy" behavior="0" />
+      <RootComponent type="91" id="{1d8034c7-e2cd-f111-a05a-000d3a8014e4}" schemaName="A365.Leave.Plugins, Version=1.0.0.0, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d" behavior="0" />
+      <RootComponent type="92" id="{1131c3d7-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{1d4e1ae3-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{3efa95d4-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{43ccd8bb-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{44e7fdae-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{4b73f6f7-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{4ee03abe-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{55f1b501-e5cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{6fb66fe5-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{7e1edaf1-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{7ff0a0c9-e4cd-f111-a05a-00224819cffa}" behavior="0" />
+      <RootComponent type="92" id="{88be78e9-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{8c1edaf1-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{9530b6fb-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{a15d88dc-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{af5d88dc-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{bbf392aa-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{d831c8d1-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
+      <RootComponent type="92" id="{e5c0edc1-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
+      <RootComponent type="92" id="{ea0c83b5-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
     </RootComponents>
     <MissingDependencies>
       <MissingDependency>

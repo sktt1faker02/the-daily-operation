@@ -41,6 +41,9 @@ export interface A365_leavesBase {
   "a365_CancelledBy@odata.bind"?: string;
   a365_cancelledon?: string;
   a365_days: number;
+  a365_emailattempt?: string;
+  a365_emailoutcome?: string;
+  a365_emailstartedon?: string;
   "a365_Employee@odata.bind": string;
   a365_enddate: string;
   "a365_IssuedBy@odata.bind": string;
@@ -52,6 +55,7 @@ export interface A365_leavesBase {
   a365_note?: string;
   a365_notificationstatus: A365_leavesa365_notificationstatus;
   a365_notifiedon?: string;
+  a365_requestedbenefit?: number;
   a365_startdate: string;
   importsequencenumber?: number;
   overriddencreatedon?: string;

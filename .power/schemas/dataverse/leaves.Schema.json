@@ -90,6 +90,29 @@
           "x-ms-schema-name": "a365_Days",
           "required": true
         },
+        "a365_emailattempt": {
+          "type": "string",
+          "title": "Email Attempt",
+          "x-ms-dataverse-attribute": "a365_emailattempt",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-schema-name": "a365_EmailAttempt",
+          "maxLength": 36
+        },
+        "a365_emailoutcome": {
+          "type": "string",
+          "title": "Email Outcome",
+          "x-ms-dataverse-attribute": "a365_emailoutcome",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-schema-name": "a365_EmailOutcome",
+          "maxLength": 16
+        },
+        "a365_emailstartedon": {
+          "type": "string",
+          "title": "Email Started On",
+          "x-ms-dataverse-attribute": "a365_emailstartedon",
+          "x-ms-dataverse-type": "DateTimeType",
+          "x-ms-schema-name": "a365_EmailStartedOn"
+        },
         "a365_employee": {
           "type": "string",
           "title": "Employee",
@@ -285,6 +308,13 @@
           "x-ms-dataverse-attribute": "a365_notifiedon",
           "x-ms-dataverse-type": "DateTimeType",
           "x-ms-schema-name": "a365_NotifiedOn"
+        },
+        "a365_requestedbenefit": {
+          "type": "string",
+          "title": "Requested Benefit",
+          "x-ms-dataverse-attribute": "a365_requestedbenefit",
+          "x-ms-dataverse-type": "IntegerType",
+          "x-ms-schema-name": "a365_RequestedBenefit"
         },
         "a365_startdate": {
           "type": "string",

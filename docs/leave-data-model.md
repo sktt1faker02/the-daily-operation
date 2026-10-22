@@ -7,6 +7,40 @@ of [data-model.md](data-model.md). The owner requirements are in
 [security model](security-model.md) provides the data-layer security principles;
 the Leave-specific privileges below come from PLANS.md.
 
+## Current submission extension — 2026-10-22
+
+The owner subsequently authorized resolving the recommended submission blockers.
+The original schema phase and application-blocked sections below are historical.
+Verified new Dev definitions, exported under `solution/A365_DailyOperations/src`:
+
+| Actual schema / logical name | Definition / purpose |
+|---|---|
+| `a365_LeavePolicy` / `a365_leavepolicy` | Organization-owned server configuration; `a365_Name` and `a365_PolicyJson` (Memo, 100000). One active versioned national-calendar/policy record. |
+| `a365_LeaveCoordination` / `a365_leavecoordination` | Organization-owned server coordination; primary GUID is the employee GUID, technical `a365_Name`, `a365_Token` (Text, 36). Serializes Leave operations; stores no balance. |
+| Ledger `a365_CreditPeriod` / `a365_creditperiod` | Text, 10; April-period identifier `YYYY-04-01`. Existing `a365_year` remains the calendar-year dimension. No historical migration. |
+| Leave `a365_RequestedBenefit` / `a365_requestedbenefit` | Integer, 749910000–749910001; preserves original requested benefit for idempotent replay when effective benefit becomes Unpaid. |
+| Leave `a365_EmailAttempt` / `a365_emailattempt` | Text, 36; current notification attempt identity. |
+| Leave `a365_EmailOutcome` / `a365_emailoutcome` | Text, 16; sending/accepted/failed/unknown, validated by the server command. |
+| Leave `a365_EmailStartedOn` / `a365_emailstartedon` | DateTime, User Local; prevents overlapping send attempts. Existing Notification Status and Notified On retain their verified values/meaning. |
+
+`a365_LeaveCommand` is an unbound action with String `Request` / `Response`,
+backed by the signed `A365.Leave.Plugins` assembly. 20 synchronous guards reject
+direct supported source/ledger/coordination writes outside that command. The
+command checks direct/team Payroll Admin membership and uses caller privileges
+for business reads/writes. Server-only configuration/coordination uses elevated
+service access. No new role privileges were added. No environment auditing change.
+
+Read-only preview projects due April-period grants; Issue materializes them with
+the source/debit in one transaction. Untagged historical credits block posting
+for review rather than being silently reclassified. No unattended scheduler.
+The Code App uses generated Custom API and Office 365 Outlook bindings. Source
+metadata was pulled from a native export and successfully repacked; none of the
+generated services/schema was hand-edited. See
+[implementation](leave-posting-implementation.md) and
+[runtime evidence](leave-posting-verification.json) for configuration and limits.
+
+## Original schema phase
+
 **Status: Stages 1–3 complete in The Daily Operation - Dev; Stage 3 verified on
 2026-10-22.** All three tables, 39 specified columns, nine business relationships,
 required choice defaults and both Active composite alternate keys exist in
@@ -500,8 +534,9 @@ import type { A365_leaves } from '../generated/models/A365_leavesModel';
 import { A365_leavesService } from '../generated/services/A365_leavesService';
 ```
 
-These imports illustrate the generated surface; no Leave feature currently
-calls it. Binding values are strings such as `/a365_employees(<guid>)` and
+These imports illustrate the generated surface. The application phase now uses
+these services for read-only Leave/history/balance screens; see the application
+phase note below. Binding values are strings such as `/a365_employees(<guid>)` and
 `/systemusers(<guid>)`, so later services must validate target paths. Date Only
 behavior, decimal bounds/precision, permissions and operation uniqueness remain
 server concerns; generated types alone do not enforce business rules.
@@ -643,3 +678,43 @@ items forward without deciding them in metadata:
 Future Payroll integration should consume a defined unpaid-leave result through
 the module boundary. Do not add Payroll links, deductions, salary formulas,
 notifications or an approval queue as part of this schema documentation.
+
+## Application phase — 2026-10-22
+
+The current Add Leave phase extends the admin page with an entry dialog and
+read-only recorded-credit preview. It deliberately blocks Submit until the
+required counting/holiday/April-period and transactional-posting prerequisites
+are met. The pure email composer uses verified `a365_employeeid`, `a365_name`
+and `a365_workemail` from the linked Employee and an Issued Leave snapshot;
+it excludes `a365_note`. No connector, sending, notification field updates or
+source/ledger mutation is implemented. `a365_notificationstatus` remains Not
+sent/Sent/Failed with the existing numeric values; schema and roles are unchanged.
+
+The earlier no-screen statements describe the completed schema task. The new
+`src/features/leave` module and `/leave` page reuse all three generated sources
+for admin-only lists, details, credit history and employee/ledger-year balances.
+Balances follow every scoped ledger page; later-page errors, repeated cursors,
+duplicate IDs, invalid precision or employee/year mismatches cannot yield a
+partial or fabricated zero. Date Only rendering preserves the calendar portion
+across offsets. Failed role resolution never grants Leave access.
+
+No source, ledger, salary, employee, notification or money writes are implemented.
+The live two-named-role inspection still matches the approved matrix, but
+ordinary-account effective access remains unverified. Environment auditing has
+not been enabled. No generated source or schema was hand-edited.
+
+The owner subsequently confirmed monthly VL totaling 10 annually, annual SL 5,
+Emergency from VL, automatic processing, Unpaid fallback at zero/negative
+credits, Philippine-holiday restrictions, April-start VL/SL resets and
+non-cancellable conversions with the earlier annual five-VL-day limit.
+**The stored `a365_year` remains a calendar-year dimension.** An April entitlement
+period/reset is not implemented by relabelling or altering historical rows.
+
+The owner also expanded scope to new-entry-only unpaid Payroll filling across
+all three paths and independently retryable notifications. These supersede
+earlier future-scope exclusions for the upcoming implementation; neither is
+currently enabled. No schema or role changes have been applied for them.
+See [application checklist](leave-implementation-checklist.md) and the owner's
+requested [follow-up](../Leave-Follow-Up.md) for concrete dependencies and tests.
+The schema acceptance table above is historical; its numbering is separate from
+the active application criteria.

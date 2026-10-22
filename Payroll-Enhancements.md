@@ -6,6 +6,199 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-22 — Deploy verified Leave assembly and PreOperation guards
+
+- Owner supplied a detailed audit/reproduction/repair request. Live audit found
+  a stale 1.0.0.0 marker-dependent DLL and 20 enabled PreValidation guards.
+  Downloaded-DLL replay confirms the stale marker dependency. Runtime traces
+  disproved the earlier false-transaction hypothesis for nested stage-10 writes.
+- Deployed signed Leave assembly 1.0.1.0 with the requested transaction/API
+  ancestry guard and context-only tracing; moved all 20 guards to synchronous
+  PreOperation. No bypass flags, role/schema or Payroll changes.
+- Readback verifies matching local/live/export hashes, correct API binding and
+  diagnostics. Six guard checks, 17 policy checks and live rollback verification
+  pass. Native Leave assembly/step source was pulled and successfully repacked.
+- Tracing restored to Off. No retained Leave test records or actual email.
+  Automatic approval review blocked two lasting own-employee test records and
+  an SL debit pending explicit approval. Read-only preflight passed.
+- Full evidence and per-test status: [Leave submission fix](docs/leave-submission-fix.md).
+  This supersedes the pending deployment status in the preparation entry below.
+  No frontend publication, commit or Git push.
+
+### 2026-10-22 — Prepare Leave submission guard fix (deployment pending)
+
+- Request: resolve the Add Leave error rejecting the validated command's writes.
+- Changed `plugins/A365.Leave.Plugins/LeaveCommand.cs`: recognize transactional
+  Custom API ancestry without depending on a later SharedVariables mutation
+  being included in a parent-context snapshot. Direct writes remain rejected.
+- Added six executable guard regression cases in `ProtectLeaveWrites.Tests.cs`
+  and `scripts/leave-schema/test-write-guard.ps1`. The valid API context without
+  the shared marker fails against the old assembly and passes after rebuilding.
+- Added `verify-write-guard.ps1` for an intentional rollback probe; it is not
+  executed yet. It exercises coordination/credit writes then rejects invalid
+  dates before creating Leave or sending email, checking record counts afterward.
+- Verification: signed assembly builds; six guard and 17 policy checks pass;
+  lint and production build pass (existing chunk-size warning). Initial parallel
+  application checks had timeout/UI failures under parallel load. Serial rerun
+  with one worker and a 60-second timeout passed all 240 tests in 25 files.
+- Limitation: the Dev assembly has NOT been updated. Automatic approval review
+  rejected deployment because this changes a write-protection boundary and
+  requires explicit approval of the exact guard change. No environment, schema,
+  security-role, financial-record or email changes were made. Live parent-context
+  behavior and rollback probe remain unverified; source fix is locally tested.
+
+### 2026-10-22 — Resolve Add Leave submission and notification blockers
+
+**Request / outcome**
+
+Execute the owner's recommended policy/setup resolutions and find the 2026
+Inquirer holiday list. Admins can preview April-period credits/workdays and issue
+Leave with atomic due-credit/debit posting, automatic Unpaid fallback and
+post-commit email retry. No approval workflow introduced.
+
+**Files / behavior**
+
+- `src/features/leave`: server preview, stable operation retries, pending-form
+  protection, committed-source email and notification-only retry. Pending earned
+  credits are labelled; cancelling the form creates no records.
+- `plugins/A365.Leave.Plugins`, `scripts/leave-schema/*posting*.ps1`: signed
+  synchronous command, direct/team admin checks, caller business privileges,
+  per-employee coordination and direct-write guards. Scoped new metadata was
+  read back, exported and merged into native solution source.
+- CLI-generated Custom API and Outlook sources/configuration; connected sender
+  `jomari@automations365.com`. No test email or financial fixture created.
+- Versioned 2026 national holiday calendar plus provisional 2027 proclamations;
+  2027 filing remains blocked pending the separately declared Eid dates.
+- Updated implementation checklist, schema register and requested follow-up.
+  Payroll calculations, existing business rows and role grants unchanged.
+
+**Verification**
+
+- 240 application tests in 25 files; 17 local C# policy checks; 22 synthetic Edge
+  browser checks; lint and production build passed (existing chunk-size warning).
+- Live transaction context and 20 active synchronous write guards verified.
+- Live existing-employee preview passed with unchanged ledger count; no employee
+  identity or balance is stored in verification evidence.
+- Native unmanaged solution source repacks successfully.
+
+**Remaining limits**
+
+- Live concurrent financial posting/rollback, ordinary-account direct access,
+  actual email sending and published-host behavior were not exercised.
+- Credits catch up automatically on Issue; no unattended monthly scheduler.
+- Cancellation, cash conversion and three-path new-entry Payroll filling remain
+  documented follow-up work. No historical backfill or app publication performed;
+  no commit/push.
+
+### 2026-10-22 — Add the Leave entry modal and safe email composition
+
+**Request / outcome**
+
+Execute the updated Add Leave/modal/email PLANS.md within existing authorization.
+Admins can open a concrete entry form and review recorded credits; unavailable
+posting and notification prerequisites are visible and remain blocked.
+
+**Files / behavior**
+
+- `src/pages/leave.tsx`, `src/features/leave/add-leave-dialog.tsx`: Add Leave
+  action and accessible modal with Employee, VL/SL/Emergency, Paid/Unpaid, separate
+  date fields, unavailable-count explanation, optional internal note, Cancel and
+  disabled Submit. Reopening resets values; the handler rechecks admin access.
+- `employee-picker.tsx`: reusable required-employee mode preserves list-filter
+  All employees behavior. `entry-rules.ts`: strict date/choice/note validation,
+  approved pool mapping and centralized two-decimal credit formatting.
+- `notification-template.ts`: safe composition from the Issued snapshot and
+  linked Employee Work Email; exact subject, escaped contents, no internal notes,
+  arbitrary recipient, unverified balances or notification status mutation.
+- Colocated rules/template tests, expanded page tests and Edge harness cover the
+  modal, validation, retained values, reset, credit read errors and late responses.
+- Existing checklist/data-model/follow-up documentation records current scope,
+  live prerequisite discovery, incomplete criteria and manual setup steps.
+
+**Verification / limitations**
+
+All 229 application tests pass with two workers and the existing export-friendly
+timeout; 58 are Leave tests. Lint and production build pass (existing large-chunk
+warning); 21 Edge UI checks pass with synthetic responses, including the new
+modal and mobile layout. Live read-only discovery found no Outlook connection
+or invokable Leave flow; the only matching action was unrelated `LeaveGroup`
+bound to `flowmachine`. Leave/Employee field contracts were rechecked live.
+
+Calculated days, current April-period spendable balances, atomic posting,
+notification sending/Failed persistence/retry and ordinary-account direct-data
+tests remain incomplete. No schema/security/config/generated-source edits,
+Payroll/cash-conversion changes, financial test records, emails, deployment,
+commit or push were performed. Existing working-tree changes were preserved.
+
+### 2026-10-22 — Add Leave browsing, balances and the follow-up backlog
+
+**Request / business outcome**
+
+Execute the Leave application plan, then incorporate the owner's entitlement,
+April-reset, holiday, Unpaid-fallback, conversion, Payroll-input and notification
+directions. The owner requested a later follow-up for remaining work.
+
+**Files / behavior**
+
+- `src/features/leave/` and `src/pages/leave.tsx`: distinct Leave types/rules,
+  generated-service read layer, TanStack Query hooks, searchable employee picker,
+  employee/year balances, cursor-paged filtered history/record tables, and
+  historical Leave/Conversion detail dialogs. Complete balance reads reject
+  partial/failed/repeated pages and inconsistent scope/precision.
+- `src/router.tsx`, `src/pages/_layout.tsx`: admin Leave navigation with successful
+  role resolution required; existing Payroll access/formulas remain unchanged.
+  Mobile navigation wraps to accommodate the new link.
+- Colocated Leave rules/service/page tests and `scripts/leave-ui-check.mjs`:
+  automated behavior and synthetic-boundary Edge browser checks. Temporary
+  Playwright runner only; no new app dependency or lockfile changes.
+- `PLANS.md`, `docs/leave-data-model.md`,
+  `docs/leave-implementation-checklist.md`, `Leave-Follow-Up.md`: recorded owner
+  decisions, delivered read-only scope, exact verification and pending work.
+  Read-only role evidence timestamp refreshed; both named roles still match.
+
+**Verification**
+
+- All 36 new Leave tests pass. Required `npm test -- src` initially encountered
+  the known Excel export 5-second timeout under concurrent load (206 passed).
+  Rerun with `--maxWorkers=2 --testTimeout=60000`: all 207 tests in 22 files pass.
+  No global test configuration change or unrelated skill-source tests collected.
+- Lint and production build pass; existing Vite large-chunk warning remains.
+- 13 Playwright checks pass in installed Edge with synthetic service/role
+  responses: desktop/mobile, navigation, paging, historical date-only details,
+  keyboard close, balances, tabs, empty/error/retry controls and employee denial.
+- Live three-table metadata agrees with generated contracts; both named role
+  matrices have zero differences. Scoped Leave Custom API discovery returned no
+  matching operations. No Dataverse business-record writes or role changes.
+- Documentation paths reviewed and `git diff --check` passes.
+
+**Remaining limitations**
+
+Posting forms, atomic server commands/concurrency guards, ordinary-account
+direct-data tests, automatic accrual/April resets/holiday validation,
+new-entry-only unpaid Payroll filling and retryable notifications remain
+incomplete. Existing calendar-year ledger history was preserved rather than
+reinterpreted as an April entitlement period. Conversion cancellation is
+excluded by the latest owner decision; historical cancelled records stay
+readable. Follow-up includes rate/counting/allocation/calendar dependencies and
+additional metadata authorization. Environment auditing remains unchanged
+(last inspected disabled). No deployment, commit, push, sample records,
+notifications or payments.
+
+### 2026-10-22 — Prepare the Leave application implementation prompt
+
+Created `docs/leave-implementation-prompt.md` using the structure of `PLANS.md`
+and the verified Leave data-model/setup evidence. The prompt reuses the three
+existing tables and generated services, defines the admin screens and business
+operations, lists unresolved credit/date/conversion policies, and includes
+acceptance checks for retries, concurrent changes and direct-data permissions.
+Its workflow advances independent read-only work while keeping policy-dependent
+financial actions incomplete until their prerequisites are settled.
+
+Verification: relative paths and generated artifact references checked;
+requirement/acceptance coverage and scope reviewed; `git diff --check` passed.
+Documentation only: no feature, Dataverse, security-role or generated-source
+changes; runtime tests were not rerun. This prompt does not start implementation.
+
 ### 2026-10-22 — Grant Payroll Admin Leave access and complete Stage 3
 
 **Request / business outcome**

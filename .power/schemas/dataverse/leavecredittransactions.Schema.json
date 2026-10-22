@@ -26,6 +26,14 @@
           "x-ms-read-only": true,
           "maxLength": 200
         },
+        "a365_creditperiod": {
+          "type": "string",
+          "title": "Credit Period",
+          "x-ms-dataverse-attribute": "a365_creditperiod",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-schema-name": "a365_CreditPeriod",
+          "maxLength": 10
+        },
         "a365_creditpool": {
           "type": "string",
           "title": "Credit Pool",

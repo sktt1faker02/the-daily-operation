@@ -9,6 +9,7 @@ import PayrollTemplatesPage from "@/pages/payroll-templates"
 import MyPayrollPage from "@/pages/my-payroll"
 import PayslipPage from "@/pages/payslip"
 import NotFoundPage from "@/pages/not-found"
+import LeavePage from "@/pages/leave"
 import { AdminOnly } from "@/features/payroll/role-gate"
 
 // IMPORTANT: Do not remove or modify the code below!
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "overview", element: <AdminOnly><OverviewPage /></AdminOnly> },
       { path: "employees", element: <AdminOnly><EmployeesPage /></AdminOnly> },
+      { path: "leave", element: <LeavePage /> },
       { path: "payroll", element: <AdminOnly><PayrollDashboardPage /></AdminOnly> },
       { path: "payroll/templates", element: <AdminOnly><PayrollTemplatesPage /></AdminOnly> },
       { path: "payroll/:periodId", element: <AdminOnly><PayrollPeriodPage /></AdminOnly> },

@@ -10,6 +10,8 @@ import { saveAndCalculateEntry } from "./services/payroll-service"
 import type { StatutoryConfig } from "./services/payroll-calculation"
 import { PayrollEntryDialog } from "./payroll-entry-dialog"
 import type { PayrollEntry } from "./types"
+import { payrollUnpaidLeaveService } from "@/features/leave/payroll-unpaid-leave"
+vi.mock("@/features/leave/payroll-unpaid-leave", () => ({ payrollUnpaidLeaveService: { daysForEmployees: vi.fn() } }))
 
 vi.mock("@/features/employees/employee-service", () => ({ employeeService: { get: vi.fn() } }))
 vi.mock("./services/statutory-config-service", () => ({ getStatutoryConfig: vi.fn() }))
@@ -39,7 +41,7 @@ function renderDialog(selectedEntry = entry, open = true) {
   const result = render(
     <QueryClientProvider client={client}>
       <PayrollEntryDialog open={open} onOpenChange={onOpenChange} entry={selectedEntry}
-        periodId="period-1" periodEndDate="2026-10-15" />
+        periodId="period-1" periodStartDate="2026-10-01" periodEndDate="2026-10-15" editable />
     </QueryClientProvider>,
   )
   return { ...result, onOpenChange }
@@ -47,6 +49,7 @@ function renderDialog(selectedEntry = entry, open = true) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockResolvedValue(new Map([["employee-1", 0]]))
   vi.mocked(employeeService.get).mockResolvedValue({ a365_employeeid: "employee-1", a365_basicmonthlysalary: 50000 } as Employee)
   vi.mocked(getStatutoryConfig).mockResolvedValue(config)
   vi.mocked(WhoAmIService.WhoAmI).mockResolvedValue({ success: true, data: { UserId: "admin-1" } })
@@ -54,6 +57,40 @@ beforeEach(() => {
 })
 
 describe("PayrollEntryDialog live calculation", () => {
+  it("loads 2 unpaid days into the editor and calculation, without writing until Save", async () => {
+    vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockResolvedValue(new Map([["employee-1", 2]]))
+    const user = userEvent.setup()
+    renderDialog()
+    await waitFor(() => expect(screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })).toHaveValue(2))
+    await screen.findByText(/2.00 unpaid leave days recorded/)
+    expect(saveAndCalculateEntry).not.toHaveBeenCalled()
+    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await waitFor(() => expect(saveAndCalculateEntry).toHaveBeenCalledWith("entry-1", "period-1", "2026-10-15", "admin-1", expect.objectContaining({ a365_unpaidleavedays: "2" })))
+  })
+
+  it("preserves a manual adjustment after automatic Leave loading", async () => {
+    vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockResolvedValue(new Map([["employee-1", 2]]))
+    const user = userEvent.setup()
+    renderDialog()
+    const input = screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })
+    await waitFor(() => expect(input).toHaveValue(2))
+    await user.clear(input)
+    await user.type(input, "1.5")
+    expect(input).toHaveValue(1.5)
+    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await waitFor(() => expect(saveAndCalculateEntry).toHaveBeenCalledWith("entry-1", "period-1", "2026-10-15", "admin-1", expect.objectContaining({ a365_unpaidleavedays: "1.5" })))
+  })
+
+  it("blocks saving on Leave read failure and allows retry", async () => {
+    vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValue(new Map([["employee-1", 2]]))
+    const user = userEvent.setup()
+    renderDialog()
+    await screen.findByText(/Unable to load unpaid leave/)
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
+    await user.click(screen.getByRole("button", { name: "Retry unpaid leave" }))
+    await waitFor(() => expect(screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })).toHaveValue(2))
+    expect(saveAndCalculateEntry).not.toHaveBeenCalled()
+  })
   it("updates deductions and net pay before saving, without writing or reloading on each keystroke", async () => {
     const user = userEvent.setup()
     renderDialog()

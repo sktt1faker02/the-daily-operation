@@ -28,6 +28,7 @@ export type A365_leavecredittransactionsstatuscode = keyof typeof A365_leavecred
 
 export interface A365_leavecredittransactionsBase {
   "a365_CashConversion@odata.bind"?: string;
+  a365_creditperiod?: string;
   a365_creditpool: A365_leavecredittransactionsa365_creditpool;
   a365_days: number;
   "a365_Employee@odata.bind": string;

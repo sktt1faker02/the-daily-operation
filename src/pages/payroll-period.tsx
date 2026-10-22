@@ -555,7 +555,9 @@ export default function PayrollPeriodPage() {
         onOpenChange={setEditorOpen}
         entry={editing}
         periodId={periodId}
+        periodStartDate={period.data?.a365_periodstart ?? ""}
         periodEndDate={period.data?.a365_periodend ?? ""}
+        editable={editable}
       />
 
       <Dialog open={confirmLoadOpen} onOpenChange={setConfirmLoadOpen}>

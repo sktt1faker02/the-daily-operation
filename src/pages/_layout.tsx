@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { LayoutGrid, Wallet, Users, FileText, LayoutTemplate, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Wallet, Users, FileText, LayoutTemplate, CalendarDays, type LucideIcon } from "lucide-react";
 import { usePowerContext } from "@/hooks/use-power-context";
 import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile";
+import { leaveAccessState } from "@/features/leave/rules";
 
 const logoUrl = `${import.meta.env.BASE_URL}a365-dark-logo.png`;
 
@@ -41,12 +42,16 @@ const EMPLOYEE_GROUPS: NavGroup[] = [{ items: [MY_PAYROLL_ITEM] }];
 const MY_PORTAL_GROUP: NavGroup = { label: "My Portal", items: [MY_PAYROLL_ITEM] };
 
 function useNav() {
-  const { isAdmin, showMyPayroll, ready } = useAccessProfile();
+  const access = useAccessProfile();
+  const { isAdmin, showMyPayroll, ready } = access;
   const brandTo = isAdmin ? "/overview" : "/my-payroll";
   if (!ready) return { groups: [] as NavGroup[], brandTo };
   if (isAdmin) {
     // Admins who are also on payroll get their own portal alongside admin tools.
-    const groups = showMyPayroll ? [...ADMIN_GROUPS, MY_PORTAL_GROUP] : ADMIN_GROUPS;
+    const leaveGroups: NavGroup[] = leaveAccessState(access) === "allowed"
+      ? [{ label: "Leave", items: [{ to: "/leave", label: "Leave Management", icon: CalendarDays }] }]
+      : [];
+    const groups = [...ADMIN_GROUPS, ...leaveGroups, ...(showMyPayroll ? [MY_PORTAL_GROUP] : [])];
     return { groups, brandTo };
   }
   return { groups: showMyPayroll ? EMPLOYEE_GROUPS : [], brandTo };
@@ -133,7 +138,7 @@ export default function Layout() {
           <NavLink to={brandTo} className="flex items-center">
             <img src={logoUrl} alt="Automations 365" className="h-6 w-auto" />
           </NavLink>
-          <nav className="ml-auto flex items-center gap-3 text-sm">
+          <nav className="ml-auto flex flex-wrap items-center justify-end gap-3 text-sm">
             {mobileItems.map(({ to, label, end }) => (
               <NavLink key={label} to={to as string} end={end} className={({ isActive }) => (isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
                 {label}

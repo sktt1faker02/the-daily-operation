@@ -5,6 +5,7 @@
  * the caller recalculates. Saving is restricted to Locked periods.
  */
 import { dataClient } from "@/lib/power/data-client"
+import { payrollUnpaidLeaveService } from "@/features/leave/payroll-unpaid-leave"
 import { employeeService } from "@/features/employees/employee-service"
 import { EmploymentStatus } from "@/features/employees/types"
 import { planApplyInputs, type CopiedInputs } from "../period-utils"
@@ -17,7 +18,7 @@ import {
   type PayrollTemplateLineRow,
   type PayrollEntry,
 } from "../types"
-import { isFinalized } from "../period-status"
+import { isFinalized, isPeriodEditable } from "../period-status"
 
 
 export interface PayrollTemplateSummary {
@@ -148,9 +149,11 @@ export const payrollTemplateService = {
       payrollPeriodService.getPeriod(periodId),
     ])
     if (!template.success) throw template.error ?? new Error("Unable to load the template.")
+    if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
+    const unpaid = await payrollUnpaidLeaveService.daysForEmployees(lines.map(line => line.employeeId), period.a365_periodstart, period.a365_periodend)
 
     const sourceByEmployee = new Map<string, CopiedInputs>()
-    for (const l of lines) sourceByEmployee.set(l.employeeId, l.inputs)
+    for (const l of lines) sourceByEmployee.set(l.employeeId, { ...l.inputs, unpaidLeaveDays: unpaid.get(l.employeeId.toLowerCase()) ?? 0 })
 
     const plan = planApplyInputs(sourceByEmployee, existing, active, {
       id: periodId,
