@@ -133,6 +133,13 @@ export const dataSourcesInfo = {
       }
     }
   },
+  "a365_leaveconversionyears": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "a365_leaveconversionyearid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "a365_leavecredittransactions": {
     "tableId": "",
     "version": "",

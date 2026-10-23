@@ -96,6 +96,11 @@
           "entitySetName": "a365_leavecredittransactions",
           "logicalName": "a365_leavecredittransaction",
           "isHidden": false
+        },
+        "leaveconversionyears": {
+          "entitySetName": "a365_leaveconversionyears",
+          "logicalName": "a365_leaveconversionyear",
+          "isHidden": false
         }
       },
       "environmentVariableName": ""

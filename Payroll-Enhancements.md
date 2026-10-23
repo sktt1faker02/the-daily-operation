@@ -6,6 +6,137 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-23 - Style new Leave Conversion confirmation and align header action
+
+Replaced new-transaction native confirm with the existing compact in-app Dialog.
+It displays the automatic year and Cancel/Add new transaction buttons, blocks
+dismissal and repeated submits while creating, keeps failures inline and preserves
+the stable retry identity. Moved Add new transaction to the right of the landing
+header, matching Payroll's header layout and wrapping responsively. Detail-page
+layout and server operations are unchanged.
+
+Changed `conversion-year-list.tsx`, `leave-conversion.tsx`, page tests and the
+synthetic browser check. Acceptance checks cover no native creation prompt,
+cancel without writes, automatic-year confirmation, failure/retry and header
+button positioning. No backend/schema/role or financial records changed. This
+UI follow-up is local and not deployed.
+Verification passed: all 327 app tests, 12 synthetic Edge checks including right
+header placement, lint/build (existing bundle-size warning), documentation links
+and `git diff --check`. No real conversion was created during verification.
+
+### 2026-10-23 - Use an in-app Leave Conversion payment confirmation
+
+Replaced the Mark as paid browser confirmation with the existing Radix/shadcn
+Dialog style used by Payroll: compact width, title/description, Cancel, close
+control and primary Mark as Paid action. Payment starts only from confirmation.
+The dialog blocks dismissal and duplicate submits while pending, keeps failures
+visible for retry and closes after success. Existing server payment/locking
+behavior, Save and new-transaction confirmations are unchanged.
+
+Changed `conversion-employees.tsx`, its page tests and the synthetic browser
+check. Verification covers no native payment prompt, cancel without writes,
+success, failure/retry and pending dismissal protection. No backend, schema,
+roles or live financial records changed; this UI follow-up is not deployed.
+All 326 app tests, 12 synthetic Edge checks, lint and build passed (existing
+bundle-size warning). Documentation links and `git diff --check` passed.
+
+### 2026-10-23 - Add Mark as paid and lock conversion years
+
+Owner declined extra fields/permissions and confirmed that paid years must lock.
+Added only the year-detail payment button and its required client/server support.
+The implementation uses the existing annual header Inactive state/status as the
+paid lock. Confirmation records an already completed payment; it does not transfer
+money or change employee conversion values, credits or payroll. Dirty/active edits
+block payment. Success shows Paid (locked), disables editing and removes Save.
+Server checks admin, identity and version, serializes payment against Save, rejects
+all later saves and makes repeated payment requests no-ops. Guard authorization
+for payment is restricted to Update/SetState of the annual header.
+
+Changed conversion types/service/hook/employee section, existing Leave command
+and ConversionCommands/guard, plus focused tests/browser check. Local Leave
+assembly 1.0.3.0 was subsequently deployed with the Code App after separate explicit
+approval. Live DLL hash, 14 active guards and payment-status read verified; native
+solution source synchronized and repacked. No actual year marked paid. No schema, role,
+generated-source or live financial-record changes. Dedicated Paid By/On tracking
+was deliberately excluded; existing normal Modified metadata remains available.
+
+Verification: 325 app tests, 56 conversion server checks, 19 guard checks,
+20 policy checks and 12 synthetic Edge checks passed. Lint/build/server compilation
+passed (existing bundle-size warning). A browser navigation timeout under parallel
+check load cleared on an isolated rerun without code changes. Live paid writes,
+concurrent financial operations and ordinary-account access remain unverified.
+
+### 2026-10-23 - Inspect year-level Mark as paid prerequisites
+
+Owner requested recording payment for a whole Leave Conversion year. Verified
+live year metadata has no payment fields; existing conversion status only has
+Recorded/Cancelled. Prepared a scoped status/actor/time proposal and verification
+checklist in [conversion plan](docs/leave-conversion-editing-plan.md). Separate
+schema/minimal Append authorization and the paid-year editing decision are
+pending. No application, schema, role, deployment or financial-record changes.
+
+### 2026-10-23 - Repair Leave Conversion loading and deploy to Dev
+
+Reproduced `LEAVE: Unknown Leave command.` from live `conversionYears`: Dev's
+Leave 1.0.1.0 did not support the new UI commands, so loading failed and creation
+stayed disabled. Added a specific compatibility error and safe error details to
+year/employee load views; regression tests cover retrying loads, restoring the
+button and opening stored-year employees. Changed conversion service, YearList,
+ConversionEmployees and related tests.
+
+After separate explicit owner approval, updated only the signed Leave plugin to
+1.0.2.0, registered 14 supported conversion guards and published the Code App to
+Dev. Verified live DLL hash, enabled synchronous stage-20 guards and successful
+year read (`years: []`, next year 2026). Both tables remain empty. Exported native
+Leave assembly/guard metadata into solution source; packing passed. Added
+read-only release verification and native source-pull scripts/evidence.
+
+Verification: 320 app tests, 10 synthetic Edge checks, 43 conversion server,
+14 write-guard and 20 policy checks passed; lint, build and server compilation
+passed (existing bundle-size warning). No schema/role changes or financial test
+records in this repair. Actual create/save, concurrent rollback, hosted navigation
+and ordinary-account effective access still require approved live checks.
+See [release details](docs/leave-conversion-editing-plan.md).
+
+### 2026-10-23 - Implement annual Leave Conversion transactions
+
+Implemented automatic next-year creation, paged saved employee rows, 10.00 VL /
+5.00 conversion defaults, inline admin editing, live amounts, validation,
+Done/Cancel, dirty navigation warnings and retry-safe Save. Removed Refresh
+balances per the owner's correction. Saving records conversion snapshots without
+deducting credits or making payments.
+
+Changed the Leave Conversion page and conversion components/hook/service/types;
+added server `ConversionCommands`, strengthened command-scoped write guards,
+and added focused app/server/browser tests. Applied the separately approved Dev
+year-parent table, Available VL field, parent lookup, uniqueness keys, zero-day
+minimum and four parent-table Payroll Admin privileges. Regenerated data sources
+with the CLI and pulled native solution schema/role source from export.
+Both uniqueness indexes are Active; live parent/detail record counts remain zero.
+
+Verification: 315 app tests, 10 synthetic Edge checks, 43 conversion server
+checks, 14 write-guard checks and 20 policy checks passed. Lint, build, server
+compilation and native solution packing passed (existing app bundle-size warning).
+See [acceptance checklist](docs/leave-implementation-checklist.md) and
+[schema evidence and release details](docs/leave-conversion-editing-plan.md).
+
+Not deployed: local Leave assembly 1.0.2.0, new conversion guard registrations
+and Code App. The schema export still contains deployed assembly 1.0.1.0;
+re-export/repack after authorized deployment. Live persistence, rollback,
+concurrency, ordinary-account effective access and embedded-host navigation
+checks remain pending. No financial test records, notifications or payment writes.
+
+### 2026-10-23 - Inspect editable Leave Conversion prerequisites
+
+Inspected existing UI, generated conversion model/service, Leave command and
+live Dataverse metadata. Confirmed the conversion table exists, has zero records,
+no Available VL field and no uniqueness keys; Days currently has a 0.50 minimum.
+Prepared [schema/save-boundary proposal and acceptance checklist](docs/leave-conversion-editing-plan.md).
+Required year-parent storage, editable allowance storage, zero-day support and
+refresh semantics await owner approval. Changed documentation only; path/link
+checks and `git diff --check` passed. No runtime tests, application changes,
+metadata/role writes, financial records or deployment for this inspection.
+
 ### 2026-10-23 - Remove Credit History module
 
 Owner cancelled Credit History. Removed its page, route, navigation item,

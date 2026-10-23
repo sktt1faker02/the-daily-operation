@@ -1,5 +1,56 @@
 # Leave application implementation — 2026-10-22
 
+## Annual Leave Conversion editing — 2026-10-23
+
+New-transaction UI follow-up: creation now uses the compact in-app confirmation
+dialog and the Add new transaction action sits on the right of the landing
+header. Local tests cover Cancel, automatic-year confirmation and stable retries;
+browser checks include header placement. No backend changes; not deployed.
+
+Payment-confirmation UI follow-up: the Mark as paid native prompt is replaced
+locally with the existing Payroll-style Dialog, including Cancel, confirm,
+pending-state dismissal protection and inline retryable errors. All 326 app
+tests, 12 synthetic Edge checks, lint and build pass. This UI follow-up is not
+deployed; existing server behavior is unchanged.
+
+Mark as paid follow-up: implemented locally, with no new fields or privileges.
+Uses the existing annual header Inactive state as Paid (locked). Confirmation,
+dirty-state blocking, optimistic concurrency, retry/no-op and server save rejection
+are covered by local tests. Existing year-list layout and employee statuses stay
+unchanged. Assembly 1.0.3.0 and the updated app are deployed to Dev after separate
+approval; verified DLL hash, guards and live payment-status read. No conversion
+was marked paid during deployment. Live ordinary-account and paid-write checks
+remain unverified. See the detailed checklist linked below.
+
+Approved Dev schema is applied and verified. The updated year list, creation,
+defaults, inline editing, validation, Save and dirty-navigation safeguards are
+implemented in local UI/server source. Owner removed Refresh balances.
+Subsequent owner-approved Dev release repaired the reproduced unknown-command
+loading failure: Leave 1.0.2.0, 14 active conversion guards and Code App are now
+deployed. The live year-list read succeeds. The later 1.0.3.0 release check reads
+two existing years and 12 employee conversion rows; no agent business writes.
+See [implementation/release checklist](leave-conversion-editing-plan.md) and
+[live schema evidence](leave-conversion-schema-verification.json).
+
+- AC-01–08: targeted UI/pure tests and synthetic browser checks cover automatic
+  year creation, six columns, editable VL fields, live amounts and Cancel. Server
+  tests cover complete paged Active rosters and rate/default calculations.
+- AC-09–11: local tests cover saved-value reopening, draft retention, stable
+  retry identities, duplicate prevention, missing-row creation, validation before
+  any write and optimistic concurrency. Actual Dataverse business persistence,
+  rollback and competing financial requests await financial-test authorization.
+- AC-12: internal navigation is blocked with a confirmation dialog; browser
+  beforeunload is registered. Drafts survive table paging. Refresh is removed.
+- AC-13: UI and server admin checks tested; named Employee role privileges for
+  conversion tables verified absent. Ordinary-account effective access and new
+  direct-write rejection remain account-level release checks. All 14 supported
+  conversion guards are registered, enabled and verified at synchronous stage 20.
+- AC-14: existing Leave/Payroll rules and financial history preserved; synthetic
+  conversion writes restricted to year/employee-conversion tables. No live
+  business records were created or modified.
+- AC-15: exact app/browser/server/lint/build results in Payroll-Enhancements.md;
+  native schema export repacks. Power Apps hosted-account verification pending.
+
 ## Employee Credit History — 2026-10-23
 
 Subsequently cancelled by the owner on October 23: the module and its unused

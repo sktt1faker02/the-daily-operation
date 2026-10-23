@@ -1,33 +1,35 @@
 import { useState } from "react"
-import { useInfiniteQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { formatCurrency } from "@/lib/format"
-import { leaveService } from "./leave-service"
+import { EmployeeRow } from "./conversion-employee-row"
+import { useLeaveConversion } from "./use-leave-conversion"
 
 export function ConversionEmployees({ year }: { year: number }) {
-  const [index, setIndex] = useState(0)
-  const query = useInfiniteQuery({
-    queryKey: ["leave", "conversion-employees", year],
-    queryFn: ({ pageParam }) => leaveService.conversionEmployees(year, pageParam),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: page => page.next, retry: false,
-  })
-  const page = query.data?.pages[index]
-  async function next() {
-    if (query.data && index < query.data.pages.length - 1) { setIndex(index + 1); return }
-    const result = await query.fetchNextPage()
-    if (!result.isError && result.data && result.data.pages.length > index + 1) setIndex(index + 1)
-  }
+  const state = useLeaveConversion(year)
+  const { query, page, index, editing, save, markPaid, paid } = state
+  const [confirmPaidOpen, setConfirmPaidOpen] = useState(false)
+  const cannotMarkPaid = !state.allowed || paid || state.transaction?.paid === undefined || state.dirty || Boolean(editing) || save.isPending || markPaid.isPending || query.isError || query.isFetching || !page
   if (query.isPending) return <div role="status" aria-label="Loading employee conversions"><Skeleton className="h-48 w-full" /></div>
-  if (query.isError || !page) return <div role="alert" className="space-y-3"><p>Unable to load employee conversion previews.</p><Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div>
-  return <section aria-label="Employee conversion previews" className="space-y-3">
-    <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">Employees</h2><Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => void query.refetch()}>Refresh balances</Button></div>
-    <div className="rounded-md border"><Table aria-label="Employee conversion previews"><TableHeader><TableRow><TableHead>Employee name</TableHead><TableHead className="text-right">Daily rate</TableHead><TableHead className="text-right">Available VL</TableHead><TableHead className="text-right">VL to convert (max. 5)</TableHead><TableHead className="text-right">Total amount to be paid</TableHead></TableRow></TableHeader><TableBody>
-      {page.rows.map(({ employee, preview, error }) => <TableRow key={employee.a365_employeeid}><TableCell className="font-medium">{employee.a365_name}<p className="text-xs font-normal text-muted-foreground">{employee.a365_employeenumber}</p></TableCell>{preview ? <><TableCell className="text-right tabular-nums">{formatCurrency(preview.dailyRate)}</TableCell><TableCell className="text-right tabular-nums">{preview.availableVL.toFixed(2)}</TableCell><TableCell className="text-right tabular-nums">{preview.days.toFixed(2)}</TableCell><TableCell className="text-right tabular-nums">{formatCurrency(preview.amount)}</TableCell></> : <TableCell colSpan={4} className="text-sm text-destructive">{error}</TableCell>}</TableRow>)}
-      {!page.rows.length && <TableRow><TableCell colSpan={5} className="h-16 text-muted-foreground">No employees found. Add employees in the Employees module.</TableCell></TableRow>}
+  return <section aria-label="Employee conversions" className="space-y-3">
+    <h2 className="text-lg font-semibold">Employees</h2>
+    {query.isError && <div role="alert" className="space-y-3"><p>Unable to load saved employee conversions. Your edits are retained.</p><p>{query.error.message}</p><Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div>}
+    {page && <><div className="rounded-md border"><Table aria-label="Employee conversions"><TableHeader><TableRow>{["Employee name", "Daily rate", "Available VL", "VL to convert (max. 5)", "Total amount to be paid", "Action"].map((header, i) => <TableHead key={header} className={i > 0 && i < 5 ? "text-right" : undefined}>{header}</TableHead>)}</TableRow></TableHeader><TableBody>
+      {page.rows.map(row => <EmployeeRow key={row.id} row={row} editing={editing?.row.id === row.id} draft={editing?.row.id === row.id ? editing.values : state.drafts[row.id]?.values} disabled={!state.allowed || paid || markPaid.isPending || save.isPending || Boolean(editing && editing.row.id !== row.id)} onEdit={() => state.edit(row)} onChange={values => state.setEditing({ row, values })} onDone={state.done} onCancel={() => state.setEditing(null)} />)}
+      {!page.rows.length && <TableRow><TableCell colSpan={6} className="h-16 text-muted-foreground">No employees were recorded for this transaction.</TableCell></TableRow>}
     </TableBody></Table></div>
-    <div className="flex items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">Page {index + 1}{query.isFetching ? " · Refreshing…" : ""}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={query.isFetching || index === 0} onClick={() => setIndex(index - 1)}>Previous page</Button><Button size="sm" variant="outline" disabled={query.isFetching || (!query.hasNextPage && index >= query.data!.pages.length - 1)} onClick={() => void next()}>Next page</Button></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">Page {index + 1}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={save.isPending || query.isFetching || Boolean(editing) || index === 0} onClick={() => state.setIndex(index - 1)}>Previous page</Button><Button size="sm" variant="outline" disabled={save.isPending || query.isFetching || Boolean(editing) || (!query.hasNextPage && index >= query.data!.pages.length - 1)} onClick={() => void state.next()}>Next page</Button></div></div></>}
+    {save.isError && <p role="alert" className="text-sm text-destructive">{save.error.message}</p>}
+    {markPaid.isError && !confirmPaidOpen && <p role="alert" className="text-sm text-destructive">{markPaid.error.message}</p>}
+    <div className="flex flex-wrap items-center justify-end gap-3">{state.dirty && <p role="status" className="text-sm text-muted-foreground">Unsaved changes</p>}{!paid && <Button disabled={!state.allowed || !state.dirty || Boolean(editing) || save.isPending || markPaid.isPending || query.isError || query.isFetching} onClick={() => { if (window.confirm(`Save leave conversion for ${year}? This records conversion values without deducting credits or making payments.`)) save.mutate() }}>{save.isPending ? "Saving…" : "Save"}</Button>}<Button disabled={cannotMarkPaid} onClick={() => { markPaid.reset(); setConfirmPaidOpen(true) }}>{paid ? "Paid (locked)" : markPaid.isPending ? "Marking as paid…" : "Mark as paid"}</Button></div>
+    <Dialog open={confirmPaidOpen} onOpenChange={open => { if (!markPaid.isPending) setConfirmPaidOpen(open) }}>
+      <DialogContent className="sm:max-w-md" showCloseButton={!markPaid.isPending} onEscapeKeyDown={event => { if (markPaid.isPending) event.preventDefault() }} onInteractOutside={event => { if (markPaid.isPending) event.preventDefault() }}>
+        <DialogHeader><DialogTitle>Mark this leave conversion Paid?</DialogTitle><DialogDescription>Records that the {year} leave conversion has been paid out. Conversion values will be locked.</DialogDescription></DialogHeader>
+        {markPaid.isError && <p role="alert" className="text-sm text-destructive">{markPaid.error.message}</p>}
+        <DialogFooter><Button variant="outline" disabled={markPaid.isPending} onClick={() => setConfirmPaidOpen(false)}>Cancel</Button><Button disabled={cannotMarkPaid} onClick={() => markPaid.mutate(undefined, { onSuccess: () => setConfirmPaidOpen(false) })}>{markPaid.isPending ? "Marking as paid…" : "Mark as Paid"}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={state.blocker.state === "blocked"} onOpenChange={open => { if (!open && state.blocker.state === "blocked") state.blocker.reset() }}><DialogContent><DialogHeader><DialogTitle>Leave without saving?</DialogTitle><DialogDescription>Your unsaved conversion changes will be discarded.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => { if (state.blocker.state === "blocked") state.blocker.reset() }}>Keep editing</Button><Button onClick={() => { if (state.blocker.state === "blocked") state.blocker.proceed() }}>Leave without saving</Button></DialogFooter></DialogContent></Dialog>
   </section>
 }

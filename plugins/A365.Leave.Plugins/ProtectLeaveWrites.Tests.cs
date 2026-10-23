@@ -29,6 +29,7 @@ public static class ProtectLeaveWritesTests
         // A nested pipeline receives a parent context snapshot; the live API's
         // SharedVariables mutation need not be present in that snapshot.
         var api = Context("a365_LeaveCommand", true);
+        api.InputParameters["Request"] = "{\"command\":\"issue\"}";
         var child = Context("Create", true);
         child.ParentContext = api;
         Check(child, true, "validated API ancestor without shared-variable marker");
@@ -47,7 +48,26 @@ public static class ProtectLeaveWritesTests
         child.ParentContext = api;
         child.IsInTransaction = false;
         Check(child, false, "nontransactional child");
-        return 6;
+        child.IsInTransaction = true;
+        child.PrimaryEntityName = "a365_leavecashconversion";
+        Check(child, false, "Leave issuance cannot modify conversions");
+        foreach (string command in new[] { "conversionCreate", "conversionSave" }) {
+            api.InputParameters["Request"] = "{\"command\":\"" + command + "\"}";
+            Check(child, true, "validated conversion mutation");
+            child.PrimaryEntityName = "a365_leave"; Check(child, false, "conversion mutation cannot change Leave"); child.PrimaryEntityName = "a365_leavecashconversion";
+        }
+        foreach (string command in new[] { "conversionRows", "conversionYears", "unknown" }) {
+            api.InputParameters["Request"] = "{\"command\":\"" + command + "\"}"; Check(child, false, "read command cannot authorize writes");
+        }
+        api.InputParameters["Request"] = "{\"command\":\"conversionMarkPaid\"}";
+        child.MessageName = "Update"; child.PrimaryEntityName = "a365_leaveconversionyear";
+        Check(child, true, "payment can lock the year header");
+        child.MessageName = "SetState"; Check(child, true, "payment supports header state transition");
+        child.MessageName = "Delete"; Check(child, false, "payment cannot delete the year");
+        child.MessageName = "Update"; child.PrimaryEntityName = "a365_leavecashconversion";
+        Check(child, false, "payment cannot modify employee conversion values");
+        child.PrimaryEntityName = "a365_leave"; Check(child, false, "payment cannot modify Leave");
+        return 19;
     }
 
     public static void VerifyLegacyMarkerDependency()

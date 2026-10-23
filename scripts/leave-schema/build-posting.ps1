@@ -12,6 +12,6 @@ if (-not (Test-Path -LiteralPath $leaveKey)) {
 }
 $leaveSdk = 'C:/Users/Jomari/AppData/Local/Microsoft/PowerAppsCLI/Microsoft.PowerApps.CLI.2.13.1/tools/Microsoft.Xrm.Sdk.dll'
 if (-not (Test-Path -LiteralPath $leaveSdk)) { throw 'Verified installed Dataverse SDK assembly not found.' }
-& 'C:/Windows/Microsoft.NET/Framework64/v4.0.30319/csc.exe' /nologo /target:library /optimize+ /warnaserror+ "/keyfile:$leaveKey" "/out:$leaveOutput/A365.Leave.Plugins.dll" "/reference:$leaveSdk" /reference:System.Web.Extensions.dll /reference:System.Runtime.Serialization.dll (Join-Path $leaveProject 'LeaveCommand.cs')
+& 'C:/Windows/Microsoft.NET/Framework64/v4.0.30319/csc.exe' /nologo /target:library /optimize+ /warnaserror+ "/keyfile:$leaveKey" "/out:$leaveOutput/A365.Leave.Plugins.dll" "/reference:$leaveSdk" /reference:System.Web.Extensions.dll /reference:System.Runtime.Serialization.dll (Join-Path $leaveProject 'LeaveCommand.cs') (Join-Path $leaveProject 'ConversionCommands.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Leave server compilation failed.' }
 Write-Host 'Compiled signed Leave server assembly using the installed .NET Framework compiler and Dataverse SDK.'

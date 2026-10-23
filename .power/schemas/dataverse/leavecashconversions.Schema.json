@@ -26,6 +26,14 @@
           "x-ms-schema-name": "a365_amount_Base",
           "x-ms-read-only": true
         },
+        "a365_availablevl": {
+          "type": "string",
+          "title": "Available VL",
+          "x-ms-dataverse-attribute": "a365_availablevl",
+          "x-ms-dataverse-type": "DecimalType",
+          "x-ms-schema-name": "a365_AvailableVL",
+          "required": true
+        },
         "a365_cancellationreason": {
           "type": "string",
           "title": "Cancellation Reason",
@@ -97,6 +105,23 @@
           "x-ms-dataverse-type": "VirtualType",
           "x-ms-schema-name": "a365_conversionstatusName",
           "x-ms-read-only": true
+        },
+        "a365_conversionyear": {
+          "type": "string",
+          "title": "Conversion Year",
+          "x-ms-dataverse-attribute": "a365_conversionyear",
+          "x-ms-dataverse-type": "LookupType",
+          "x-ms-schema-name": "a365_ConversionYear",
+          "required": true
+        },
+        "a365_conversionyearname": {
+          "type": "string",
+          "title": "a365_conversionyearname",
+          "x-ms-dataverse-attribute": "a365_conversionyearname",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-schema-name": "a365_ConversionYearName",
+          "x-ms-read-only": true,
+          "maxLength": 850
         },
         "a365_convertedby": {
           "type": "string",
@@ -521,7 +546,9 @@
       },
       "required": [
         "a365_amount",
+        "a365_availablevl",
         "a365_conversionstatus",
+        "a365_conversionyear",
         "a365_convertedby",
         "a365_convertedon",
         "a365_dailyrateused",

@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.1.0")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.0")]
 
 namespace A365.Leave.Plugins
 {
@@ -23,6 +23,10 @@ namespace A365.Leave.Plugins
         public string attempt { get; set; }
         public string outcome { get; set; }
         public bool reviewedUnknown { get; set; }
+        public int year { get; set; }
+        public string cursor { get; set; }
+        public string version { get; set; }
+        public ConversionChange[] changes { get; set; }
     }
     public sealed class Holiday { public string date { get; set; } public string name { get; set; } }
     public sealed class Coverage { public int year { get; set; } public bool complete { get; set; } }
@@ -97,9 +101,14 @@ namespace A365.Leave.Plugins
             var caller = factory.CreateOrganizationService(context.InitiatingUserId);
             RequireAdmin(system, context.InitiatingUserId);
             Request request;
-            try { request = Json.Deserialize<Request>((string)context.InputParameters["Request"]); }
+            try { request = new JavaScriptSerializer { MaxJsonLength = 2000000 }.Deserialize<Request>((string)context.InputParameters["Request"]); }
             catch { Rules.Fail("The Leave request is invalid."); return; }
             if (request == null) Rules.Fail("The Leave request is missing.");
+            if (request.command == "conversionYears" || request.command == "conversionRows" || request.command == "conversionCreate" || request.command == "conversionSave" || request.command == "conversionMarkPaid")
+            {
+                context.OutputParameters["Response"] = Json.Serialize(ConversionCommands.Execute(request, context, caller));
+                return;
+            }
             object response;
             if (request.command == "diagnostics") response = new { policyVersion = "2026-10-22.1", isInTransaction = context.IsInTransaction, serverValidation = true };
             else if (request.command == "prepareEmail" || request.command == "completeEmail") response = Email(request, system, caller);
@@ -358,7 +367,14 @@ namespace A365.Leave.Plugins
             // A direct caller cannot manufacture this parent execution chain.
             if (context.IsInTransaction)
                 for (var parent = context.ParentContext; parent != null; parent = parent.ParentContext)
-                    if (parent.MessageName == LeaveCommand.Api && parent.IsInTransaction) return;
+                    if (parent.MessageName == LeaveCommand.Api && parent.IsInTransaction)
+                    {
+                        Request request = null;
+                        try { if (parent.InputParameters.Contains("Request")) request = new JavaScriptSerializer().Deserialize<Request>((string)parent.InputParameters["Request"]); } catch { }
+                        bool conversion = context.PrimaryEntityName == "a365_leavecashconversion" || context.PrimaryEntityName == "a365_leaveconversionyear";
+                        if (request != null && (conversion ? request.command == "conversionCreate" || request.command == "conversionSave" || (request.command == "conversionMarkPaid" && context.PrimaryEntityName == "a365_leaveconversionyear" && (context.MessageName == "Update" || context.MessageName == "SetState")) : request.command == "issue" || request.command == "prepareEmail" || request.command == "completeEmail")) return;
+                        Rules.Fail("This Leave command cannot modify these records.");
+                    }
             Rules.Fail("Use the validated Leave command. Direct changes to Leave or credit history are not permitted.");
         }
     }

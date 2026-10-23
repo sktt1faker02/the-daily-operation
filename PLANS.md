@@ -1,207 +1,173 @@
-```markdown
-# Active: Add Leave Button, Admin Entry Modal and Email Notification
+# Active: Leave Conversion, Add New Transaction, Editable Annual Records and Save
+
+## Owner authorization and correction — 2026-10-23
+
+Owner explicitly approved the documented additions in The Daily Operation - Dev /
+A365_DailyOperations: unique-year parent, parent lookup and employee uniqueness
+key, Available VL decimal field, Days minimum 0.00, and four minimal Payroll
+Admin parent-table permissions. Owner also directed: **remove Refresh balances;
+it is not needed**. This supersedes the requirements below that retain that
+control. Schema approval does not authorize publishing the app, updating the
+server assembly, registering new plug-in steps or real financial test records.
 
 ## Requirements
 
-- Read AGENTS.md, DESIGN.md, PLANS.md, Leave-Follow-Up.md and the Leave implementation checklist before starting.
+Mark as paid follow-up: owner declined new payment fields/permissions and
+requested only the button, with paid years locked. Reuse the existing annual
+header Active/Inactive state for this payment lock; keep employee conversion
+statuses and all calculations unchanged. No schema or role changes.
+Owner subsequently explicitly approved deploying the tested Leave 1.0.3.0 and
+Code App to Dev. This approval does not authorize marking any actual year paid.
+
+Deployment follow-up, 2026-10-23: owner explicitly approved deploying the tested
+Leave plugin 1.0.2.0, conversion write guards and Code App to Dev to repair year
+loading and the disabled Add new transaction button. This supersedes the earlier
+deployment restriction for this release only; no financial test records or
+additional schema/role changes are authorized.
+
+- Read AGENTS.md, DESIGN.md, PLANS.md, Leave-Follow-Up.md, Payroll-Enhancements.md, the Leave implementation checklist and docs/leave-conversion-editing-plan.md before starting.
 - Use relevant Power Platform skills and Microsoft Learn documentation.
-- Extend the existing Leave module and reuse existing components, services and data sources.
+- Extend the existing Leave Conversion module and reuse existing components, services and data sources.
 - Preserve the Power Apps Code App architecture, authentication and Dataverse integration.
 - Do not change Dataverse schema or security roles without separate authorization.
-- Do not change payroll formulas, cash conversion or existing financial records.
-- This task covers adding a Leave record and notifying the employee. Do not implement unrelated Leave features.
+- Do not change payroll formulas, existing cash conversion rules, historical Leave records or existing financial records.
+- This task covers the Leave Conversion year list, new year transaction creation, default values, inline row editing and saving. Do not implement unrelated Leave features.
 - Creating this prompt does not start implementation.
 
-## Feature: Admin records employee leave through a modal and sends an email confirmation
+## Feature: Admin creates and edits an annual Leave Conversion transaction
 
 ### Context
 
-The Daily Operation uses Dataverse for Leave records and credit transactions. Payroll Admin manages leave directly; there is no approval workflow.
+The Daily Operation uses Dataverse for Leave records, credit transactions and Leave Conversion. The Leave Conversion page currently lets the admin choose a year and open it. The year page lists each employee's Daily rate, Available VL, VL to convert (max. 5) and Total amount to be paid. It currently works as a preview only.
 
-Reuse the existing Leave, Employee and Leave Credit Transaction data sources, existing access profile and confirmed business rules.
+Reuse the existing Employee, Leave Conversion and Leave Credit Transaction data sources, the existing access profile and the confirmed business rules. Existing employee conversion records will be reused.
 
-The latest owner decisions in PLANS.md and Leave-Follow-Up.md supersede earlier defaults. Do not restore January reset rules or assume policies that remain unresolved.
+The latest owner decisions in PLANS.md and Leave-Follow-Up.md supersede earlier defaults. These include the January 5 annual reset, first effective January 5, 2027 (10 VL and 5 SL). Do not restore older reset rules or assume policies that remain unresolved.
 
 ### Current problem
 
-Admins need a clear action to record employee leave, see the selected employee’s available credits before submitting, and notify that employee once the leave is successfully recorded.
+- Admins must pick a year manually through the Year dropdown and "Open year", so a wrong or duplicate year can be opened.
+- Available VL and VL to convert have no standard defaults.
+- Conversion values cannot be edited or saved. The page is only a preview.
 
 ### Investigation first
 
 Before changing code, identify:
 
-- The existing Leave page and suitable location for an Add Leave button.
-- Existing leave-entry dialogs or operations that can be extended instead of duplicated.
-- Employee lookup, current balance queries, credit allocation rules and safe posting service.
-- Actual Dataverse fields, choice values and relationship bindings.
-- The available email connector or Power Automate notification mechanism, sender account and required connection.
-- Any unresolved counting, holiday, insufficient-credit or allocation rule that affects submission.
-- Whether the existing server operation guarantees consistent Leave and ledger writes, safe retries and concurrent balance validation.
+- The existing Leave Conversion page, year list, year detail page and their services and queries.
+- The actual Dataverse tables, fields and choice values for conversion records, including how a year and an employee's conversion are stored.
+- How Daily rate is currently computed (monthly basic salary ÷ 22, rounded to 2 decimals) and where that logic lives.
+- How "Active" employees are determined, and how to page through the complete employee set.
+- The current meaning of "Refresh balances", and whether saved values must be protected from it.
+- Whether the existing server operation supports consistent, retry-safe writes for a whole year of rows.
+- Existing admin authorization checks and any unresolved policy that affects saving.
+- Whether saving needs fields that do not exist yet (for example year status or audit metadata).
 
-Convert the acceptance criteria into a verification checklist. Report missing prerequisites without presenting incomplete posting or email functionality as working.
+Convert the acceptance criteria into a verification checklist. Report missing prerequisites and any required schema addition without presenting incomplete functionality as working. If a required field is missing, stop that dependent part and ask for authorization.
 
 ### Expected behavior
 
-1. **Add Leave button**
-   - Add a clearly labelled “Add Leave” button to the existing Leave page.
-   - Show it only to authorized admins.
-   - Check authorization inside the submit handler as an additional safeguard.
-   - Dataverse/server permissions remain the actual security boundary.
+1. **Year list page**
+   - Remove the Year dropdown and the "Open year" button.
+   - Add a primary "Add new transaction" button in the same position.
+   - Keep the year table (Year and Action columns). "View employees" opens that year's page.
+   - Show the button only to authorized admins and check authorization again in the click handler. Dataverse/server permissions remain the actual security boundary.
 
-2. **Leave modal**
-   - Clicking Add Leave opens a modal titled “Add Leave”.
-   - Include:
-     - Employee: searchable selection using existing Employee records.
-     - Leave Type: VL, SL or Emergency.
-     - Benefit: Paid or Unpaid, following the confirmed allocation policy.
-     - Start Date and End Date as separate labelled date fields.
-     - Calculated leave days, using approved counting and partial-day rules.
-     - Optional Note.
-   - Do not guess whether insufficient credits require fully Unpaid leave or a Paid/Unpaid split. Follow recorded decisions or clarify the unresolved case.
-   - Use date-only local values without timezone shifts.
+2. **Automatic year**
+   - The user never selects or types the year.
+   - New year = the highest existing conversion year + 1. If the latest record is 2026, the new transaction is 2027.
+   - If no records exist, use the current calendar year.
+   - Block duplicates: if the computed year already exists, show a clear message and create nothing.
+   - Prevent double clicks. Show a loading state while creating, and show a useful error on failure.
+   - After confirmed creation, open the new year's page.
 
-3. **Current leave balance**
-   - After selecting an employee, show their current VL and SL balances with the applicable balance period.
-   - Use complete, correctly scoped ledger data, including pagination where needed.
-   - Display credits with two decimal places.
-   - Show the applicable credit pool and proposed deduction or unpaid treatment.
-   - Refresh the preview when relevant selections change.
-   - Show loading and error states. Never display a failed balance query as zero.
-   - Prevent an older employee’s response from appearing after the selection changes.
+3. **Default values for the new year**
+   - Create or load one row for every Active employee.
+   - Available VL defaults to 10.00 for all employees.
+   - VL to convert defaults to 5.00 for all employees.
+   - Daily rate is read-only and uses the existing formula (current monthly basic salary ÷ 22, rounded to 2 decimals).
+   - Total amount to be paid = VL to convert × Daily rate, rounded to 2 decimals.
+   - Reuse existing employee conversion records where they already exist instead of creating duplicates.
 
-4. **Cancel**
-   - Provide footer buttons labelled “Cancel” and “Submit”.
-   - Cancel closes the modal without creating Leave records, changing credits or sending email.
-   - Reopening starts a fresh form.
-   - While submitting, prevent dismissal from suggesting that an in-flight operation has been cancelled.
+4. **Year detail page**
+   - Keep the back link, title, banner, Employees table, paging and "Refresh balances".
+   - Columns in order: Employee name (with employee ID), Daily rate, Available VL, VL to convert (max. 5), Total amount to be paid, and a new last column, Action.
+   - Display currency as ₱ with thousands separators and two decimals, and VL values with two decimals.
 
-5. **Validation**
-   - Require Employee, Leave Type, Benefit and valid dates.
-   - End Date cannot precede Start Date.
-   - Apply confirmed eligibility, overlap, holiday, day-counting and credit rules.
-   - Block filing on Philippine holidays according to the approved counting policy and verified holiday source.
-   - If necessary policy or holiday data is unavailable, show a clear explanation instead of inventing a result.
-   - Disable Submit while invalid, required data is loading or submission is pending.
+5. **Action column and Edit**
+   - Add an Edit button to every row.
+   - Edit switches that row to inline edit mode, with no separate page.
+   - Employee name, employee ID and Daily rate stay read-only.
+   - Available VL and VL to convert become numeric inputs.
+   - Total amount recalculates live while editing.
+   - In edit mode the Edit button is replaced by "Done" and "Cancel". Cancel restores the row's last values.
+   - Validation, with a clear message under the input that blocks Done:
+     - Values cannot be negative and must be numeric.
+     - VL to convert cannot exceed Available VL.
+     - VL to convert cannot exceed 5.
+   - Only authorized admins can edit. Reuse the existing access profile.
 
-6. **Submit and save**
-   - Revalidate authorization and current balance through the supported server posting path.
-   - Save the Leave as Issued with the authenticated admin and issue timestamp.
-   - For Paid leave, create the required credit deductions consistently with the Leave record.
-   - Unpaid leave creates no credit deduction.
-   - Preserve transaction and concurrency guarantees already required by PLANS.md.
-   - Double clicks, retries and uncertain network responses must not duplicate the Leave or its ledger transactions.
-   - On save failure, retain entered values and show a useful error.
-   - After confirmed save, refresh the Leave list and affected balances, then close the modal.
+6. **Save**
+   - Add a primary "Save" button to save the leave conversion record for the year.
+   - Disable it while there are no unsaved changes, any row is invalid, or saving is pending.
+   - Show an "Unsaved changes" indicator and warn before leaving the page or navigating away with unsaved edits.
+   - Revalidate authorization and values through the supported server path, then save all rows for the year (update existing, create missing) consistently.
+   - Double clicks, retries and uncertain network responses must not create duplicate records.
+   - On failure, keep the entered values and show a useful error.
+   - After confirmed save, reload the saved values and show: "Leave conversion for {year} saved."
+   - Saved values persist and are shown when the year is reopened.
 
-7. **Email notification**
-   - Only after the Leave operation commits, notify the selected employee at their stored Work Email.
-   - Do not send to an arbitrary address entered in the modal.
-   - Use the approved connector or flow and confirmed sender identity.
-   - Subject: “Your leave has been recorded”.
-   - Include employee name, leave type, benefit, dates and recorded days.
-   - Include remaining credits only when accurately available.
-   - State that the leave has been recorded; do not describe an approval process.
-   - Exclude internal notes and other employees’ information.
-   - Record notification status using the existing fields.
-   - Set Sent and Notified On only after the sending mechanism confirms acceptance. Do not claim inbox delivery.
-   - If email is missing or sending fails, preserve the committed Leave, record Failed and show:
-     “Leave recorded, but the email notification could not be sent.”
-   - Provide a retry/resend action that operates on the existing Leave without creating another record or deduction.
-   - Reuse existing notification handling and avoid duplicate send triggers.
-   - Report any uncertainty after a send timeout; do not promise exactly-once email delivery without supported safeguards.
+7. **Refresh balances**
+   - Do not overwrite unsaved edits without confirmation.
+   - Do not silently change saved values. If the intended meaning is unresolved, report the question instead of guessing.
+
+8. **Banner text**
+   - Update the current banner, which says amounts are previews, to describe the new behavior accurately.
+   - Say that saving records the conversion values.
+   - Do not state that credits are deducted or payments are made unless the implementation actually does so.
 
 ### Existing data and environment
 
-- Reuse existing tables, generated services and actual Employee/User lookups.
+- Reuse existing tables, generated services and Employee lookups.
 - Do not recreate the schema or repeat completed permission setup.
 - Do not silently recalculate historical balances or modify existing Leave records.
-- Do not grant employees access to Leave tables merely to send an email.
-- Do not create real Leave transactions or send test emails without authorization for the test employee and recipient.
+- Do not create real financial transactions or modify production records without authorization.
 
 ### Implementation requirements
 
-- Keep business rules, posting and notification logic outside presentation components.
-- Use strict TypeScript, TanStack Query and existing generated services.
-- Use existing shadcn/Radix Dialog, form controls, loading indicators and toast patterns.
-- Support keyboard navigation, labelled fields, focus management and accessible errors.
-- Preserve values after failed submission.
-- Distinguish “saving leave” from notification status.
-- Do not log employee addresses, notes or email contents.
-- Any new connector, flow, server component or privilege must be identified with its exact purpose and configuration.
-- Use mocks for automated email tests.
-- Run relevant unit/integration tests, UI tests, lint and build.
-- Record delivered behavior, verification and limitations in the existing Leave checklist and Payroll-Enhancements.md.
+- Keep business rules, defaults, calculations and save logic outside presentation components.
+- Use strict TypeScript (no `any`), TanStack Query and the existing generated services.
+- Use existing shadcn/Radix components, loading indicators and toast patterns.
+- Support keyboard navigation, labelled inputs, focus management and accessible error messages.
+- Use date-only local values without timezone shifts where dates are involved.
+- Do not log employee salary data or personal information.
+- Any new field, table, flow or privilege must be identified with its exact purpose before it is added.
+- Run relevant unit and integration tests, UI tests, lint and build.
+- Record delivered behavior, verification and limitations in the existing Leave checklist, docs/leave-conversion-editing-plan.md and Payroll-Enhancements.md.
 - Do not commit, push or deploy unless requested.
 
 ### Acceptance criteria
 
-- AC-01: An authorized admin can open Add Leave from the Leave page.
-- AC-02: The modal supports employee, leave type, benefit and date-range selection.
-- AC-03: Selecting an employee shows correct current VL/SL balances with loading and error states.
-- AC-04: Cancel closes the modal without writes or notifications.
-- AC-05: Invalid dates and other confirmed business-rule violations block submission with clear messages.
-- AC-06: Submit creates one Issued Leave and exactly its required credit transactions.
-- AC-07: Save failures preserve form values and leave no incomplete business operation.
-- AC-08: Duplicate submissions and retries do not duplicate Leave records or deductions.
-- AC-09: Successful creation refreshes the list and balances and closes the modal.
-- AC-10: Email is triggered only for a committed Leave and uses the selected employee’s stored Work Email.
-- AC-11: Missing email or send failure preserves the Leave and supports notification-only retry.
-- AC-12: Non-admin users cannot perform the operation through the UI or direct data requests.
-- AC-13: Payroll formulas, historical records and unrelated features remain unchanged.
-- AC-14: Relevant tests, lint and build pass; unavailable verification is explicitly reported.
+- AC-01: The Year dropdown and "Open year" button are gone, and an authorized admin sees "Add new transaction".
+- AC-02: Clicking it creates the next year automatically (latest 2026 becomes 2027), and never creates a duplicate year.
+- AC-03: A new year shows every Active employee with Available VL 10.00 and VL to convert 5.00.
+- AC-04: Daily rate and Total amount are calculated correctly and Daily rate is not editable.
+- AC-05: The Action column has an Edit button that edits only Available VL and VL to convert.
+- AC-06: Employee name and Daily rate are view-only in edit mode.
+- AC-07: Validation blocks negative values, VL to convert above Available VL and VL to convert above 5.
+- AC-08: Total amount updates live while editing and Cancel restores the previous values.
+- AC-09: Save persists all rows for the year, and reopening the year shows the saved values.
+- AC-10: Save failures preserve edits and leave no incomplete business operation.
+- AC-11: Double clicks and retries do not duplicate records.
+- AC-12: Leaving the page with unsaved changes prompts the user, and Refresh balances never overwrites them silently.
+- AC-13: Non-admin users cannot create, edit or save through the UI or direct data requests.
+- AC-14: Payroll formulas, historical records and unrelated features remain unchanged.
+- AC-15: Relevant tests, lint and build pass, and unavailable verification is explicitly reported.
 
 ### Workflow
 
-1. Investigate existing implementation and confirmed policies.
-2. Report the checklist and any specific missing prerequisites.
-3. Implement within existing authorization; pause only dependent actions requiring missing decisions or additional environment changes.
-4. Verify modal behavior, posting consistency, access and notification failure/retry cases.
+1. Investigate the existing implementation, data model and confirmed policies.
+2. Report the verification checklist and any specific missing prerequisites or required schema additions.
+3. Implement within existing authorization. Pause only the parts that depend on missing decisions or environment changes.
+4. Verify new-year creation, defaults, editing, validation, save, persistence and access control.
 5. Report completed work, test results and remaining limitations.
-```
-
-## Owner-authorized submission follow-on — 2026-10-22
-
-The subsequent owner instruction to execute the recommended approaches resolves
-the earlier date/eligibility/holiday/April-credit/server/Outlook setup blockers.
-Concrete adopted policies, exact new components and verification are recorded in
-[submission implementation](docs/leave-posting-implementation.md) and the
-[acceptance checklist](docs/leave-implementation-checklist.md). The original
-requirements above remain the Add Leave scope; older blocker descriptions are
-historical. 2027 filing awaits separate Eid proclamations. No app publication,
-financial test transaction or test email was performed. Expanded cancellation,
-conversion and Payroll integration remain in [Leave follow-up](Leave-Follow-Up.md).
-
-## Owner correction — annual leave reset, 2026-10-22
-
-Reset to 10 VL and 5 SL every January 5, first effective January 5, 2027.
-Periods then run January 5–January 4; the current April cycle ends January 4,
-2027. This supersedes April and the intermediate January 1 request. Before
-the effective date, retain existing credits/accrual rules. Preserve historical
-records and existing eligibility, holiday and posting safeguards. See
-[implementation](docs/leave-january-reset.md). Functional testing is left to the owner.
-
-## Owner request — employee Credit History, 2026-10-23
-
-Remove Credit History as a Leave Management tab. Provide a separate module below
-My Payroll, available to `A365 - Payroll Employee` for their own credit movements
-and leave records. Retain admin access and enforce employee isolation on the
-server. This supersedes the historical admin-only history UI requirement; it
-does not authorize broad table privileges or employee writes. See the
-[implementation and release checklist](docs/employee-credit-history.md).
-
-### Owner correction — locked personal history header, 2026-10-23
-
-Credit History has the employee/year/search header and VL/SL balance cards shown
-in the owner's reference. Employee is fixed to the signed-in account. This
-module is read-only and personal for every role, including Payroll Admins;
-remove its admin employee selector and cross-employee list path. Leave Management
-retains its separate admin functionality. Balances retain the existing selected
-year's complete recorded-ledger basis. No financial records or policies change.
-
-### Owner cancellation — remove Credit History module, 2026-10-23
-
-Remove the Credit History module, including its page, navigation, route and
-unused personal-history API implementation. Do not restore its old Leave tab.
-Preserve Leave Management, existing balances, Leave Conversion and business
-records. This supersedes the Credit History requests above; no deployment or
-environment change is requested.

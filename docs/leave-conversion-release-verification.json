@@ -1,0 +1,135 @@
+{
+    "VerifiedAt":  "2026-10-23T11:06:44.9757367Z",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "AssemblyVersion":  "1.0.3.0",
+    "AssemblySHA256":  "104C8203667D50576408200525E110FFA02A1494ECC5675D7AF4321174E626D7",
+    "ConversionWriteGuards":  [
+                                  {
+                                      "@odata.etag":  "W/\"7852398\"",
+                                      "sdkmessageprocessingstepid":  "2b273fbe-cace-f111-a05a-000d3a8014e4",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear Update",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852433\"",
+                                      "sdkmessageprocessingstepid":  "315028d3-cace-f111-a05a-000d3a8014e4",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear SetState",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852447\"",
+                                      "sdkmessageprocessingstepid":  "86911bdf-cace-f111-a05a-000d3a8014e4",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion Update",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852454\"",
+                                      "sdkmessageprocessingstepid":  "177bc4e5-cace-f111-a05a-000d3a8014e4",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion Delete",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852468\"",
+                                      "sdkmessageprocessingstepid":  "2a4ac3ec-cace-f111-a05a-000d3a8014e4",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion UpdateMultiple",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852482\"",
+                                      "sdkmessageprocessingstepid":  "bb4277f4-cace-f111-a05a-000d3a8014e4",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion SetState",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852391\"",
+                                      "sdkmessageprocessingstepid":  "3063ffb9-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear Create",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852405\"",
+                                      "sdkmessageprocessingstepid":  "b22bfdbf-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear Delete",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852412\"",
+                                      "sdkmessageprocessingstepid":  "a3d0fcc5-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear CreateMultiple",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852419\"",
+                                      "sdkmessageprocessingstepid":  "f4fafecb-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear UpdateMultiple",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852426\"",
+                                      "sdkmessageprocessingstepid":  "a0e0b8d2-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leaveconversionyear Assign",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852440\"",
+                                      "sdkmessageprocessingstepid":  "5c08b6d8-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion Create",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852461\"",
+                                      "sdkmessageprocessingstepid":  "082fa6e5-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion CreateMultiple",
+                                      "stage":  20
+                                  },
+                                  {
+                                      "@odata.etag":  "W/\"7852475\"",
+                                      "sdkmessageprocessingstepid":  "93b6c7f3-cace-f111-a05c-70a8a5036aa3",
+                                      "mode":  0,
+                                      "statecode":  0,
+                                      "name":  "A365 Conversion Guard a365_leavecashconversion Assign",
+                                      "stage":  20
+                                  }
+                              ],
+    "YearListRead":  "Passed",
+    "StoredYears":  2,
+    "NextYear":  2028,
+    "RecordCounts":  [
+                         {
+                             "EntitySet":  "a365_leaveconversionyears",
+                             "Records":  2
+                         },
+                         {
+                             "EntitySet":  "a365_leavecashconversions",
+                             "Records":  12
+                         }
+                     ],
+    "LiveFinancialWrites":  "Not performed",
+    "OrdinaryAccountChecks":  "Not performed"
+}

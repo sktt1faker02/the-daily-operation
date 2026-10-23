@@ -33,5 +33,9 @@
     <RolePrivilege name="prvReada365_LeaveCreditTransaction" level="Global" />
     <RolePrivilege name="prvAppenda365_LeaveCreditTransaction" level="Global" />
     <RolePrivilege name="prvAppendToUser" level="Global" />
+    <RolePrivilege name="prvAppendToa365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvCreatea365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvReada365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvWritea365_LeaveConversionYear" level="Global" />
   </RolePrivileges>
 </Role>

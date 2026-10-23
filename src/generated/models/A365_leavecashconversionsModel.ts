@@ -20,10 +20,12 @@ export type A365_leavecashconversionsstatuscode = keyof typeof A365_leavecashcon
 
 export interface A365_leavecashconversionsBase {
   a365_amount: number;
+  a365_availablevl: number;
   a365_cancellationreason?: string;
   "a365_CancelledBy@odata.bind"?: string;
   a365_cancelledon?: string;
   a365_conversionstatus: A365_leavecashconversionsa365_conversionstatus;
+  "a365_ConversionYear@odata.bind": string;
   "a365_ConvertedBy@odata.bind": string;
   a365_convertedon: string;
   a365_dailyrateused: number;
@@ -46,6 +48,7 @@ export interface A365_leavecashconversions extends A365_leavecashconversionsBase
   a365_cancelledbyname?: string;
   a365_cancelledbyyominame?: string;
   a365_conversionstatusname?: string;
+  a365_conversionyearname?: string;
   a365_convertedbyname?: string;
   a365_convertedbyyominame?: string;
   a365_dailyrateused_base?: number;
@@ -72,6 +75,8 @@ export interface A365_leavecashconversions extends A365_leavecashconversionsBase
   versionnumber?: number;
   a365_cancelledby?: object;
   _a365_cancelledby_value?: string;
+  a365_conversionyear?: object;
+  _a365_conversionyear_value?: string;
   a365_convertedby?: object;
   _a365_convertedby_value?: string;
   a365_employee?: object;

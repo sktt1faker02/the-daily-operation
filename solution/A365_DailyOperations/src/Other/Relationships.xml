@@ -97,4 +97,11 @@
   <EntityRelationship Name="lk_a365_payrolltemplateline_createdby" />
   <EntityRelationship Name="lk_a365_payrolltemplateline_modifiedby" />
   <EntityRelationship Name="TransactionCurrency_a365_payrolltemplateline" />
+  <EntityRelationship Name="a365_leaveconversionyear_leavecashconversion" />
+  <EntityRelationship Name="business_unit_a365_leaveconversionyear" />
+  <EntityRelationship Name="owner_a365_leaveconversionyear" />
+  <EntityRelationship Name="lk_a365_leaveconversionyear_createdby" />
+  <EntityRelationship Name="lk_a365_leaveconversionyear_modifiedby" />
+  <EntityRelationship Name="user_a365_leaveconversionyear" />
+  <EntityRelationship Name="team_a365_leaveconversionyear" />
 </EntityRelationships>
