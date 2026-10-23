@@ -8,11 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { LeaveAccess } from "@/features/leave/leave-access"
-import { LeaveRecords } from "@/features/leave/leave-records"
-import { LeaveDetail } from "@/features/leave/leave-detail"
 import { leaveService } from "@/features/leave/leave-service"
 import { validYear } from "@/features/leave/rules"
-import type { SourceReference } from "@/features/leave/types"
 import { ConversionEmployees } from "@/features/leave/conversion-employees"
 import { currentLeaveYear } from "@/features/leave/conversion-rules"
 
@@ -34,7 +31,6 @@ function ConversionYears() {
 function ConversionWorkspace() {
   const { year: yearParam } = useParams()
   const year = Number(yearParam)
-  const [source, setSource] = useState<SourceReference | null>(null)
   const isDetail = yearParam !== undefined
   return <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
     {isDetail && <Link to="/leave-conversion" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden />Leave Conversion</Link>}
@@ -42,10 +38,7 @@ function ConversionWorkspace() {
     {!isDetail ? <ConversionYears /> : !validYear(year) ? <p role="alert">Select a whole year from 1900 to 9998.</p> : <>
       <p role="note" className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">Daily rate is current monthly basic salary ÷ 22, rounded to two decimals. Convertible VL is limited to the available balance and the unused portion of the annual five-day limit. Amounts are previews; no credits are deducted or payments made.{year < currentLeaveYear() ? " Past years use their posted ledger balances; current salary is not a historical rate." : " Current-year balances include credits due to post, matching Add Leave."}</p>
       <ConversionEmployees key={year} year={year} />
-      <h2 className="text-lg font-semibold">Recorded conversions</h2>
-      <LeaveRecords key={year} filters={{ section: "conversions", year, employeeId: "", search: "", status: "all", type: "all", benefit: "all" }} onOpen={setSource} />
     </>}
-    <LeaveDetail source={source} onClose={() => setSource(null)} />
   </div>
 }
 

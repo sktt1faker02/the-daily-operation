@@ -1,5 +1,18 @@
 # Leave application implementation — 2026-10-22
 
+## Employee Credit History — 2026-10-23
+
+Subsequently cancelled by the owner on October 23: the module and its unused
+personal-history API were removed before deployment. The implementation below
+is historical; see [removal status](employee-credit-history.md).
+
+Owner requested moving Credit History from the admin Leave tabs into a module
+below My Payroll and allowing Payroll Employees to view their own records.
+The [current acceptance and release checklist](employee-credit-history.md)
+supersedes historical admin-only history UI statements below. Direct employee
+table grants remain unchanged; the existing API gains server-scoped personal
+reads. Deployment and ordinary-account security verification are pending.
+
 ## Submission guard repair — 2026-10-22
 
 The signed Leave assembly 1.0.1.0 and all 20 synchronous PreOperation guards are

@@ -6,6 +6,64 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-23 - Remove Credit History module
+
+Owner cancelled Credit History. Removed its page, route, navigation item,
+dedicated client/server implementation and dedicated tests/browser script.
+Restored shared Leave components/hooks and the original admin-only Leave
+command implementation. Removed the obsolete link from Leave Management.
+Kept the old Credit History tab removed, retained Leave Management balance
+cards and preserved the earlier Leave Conversion UI removals. No records,
+roles, schema, generated sources or deployed environment were changed.
+
+Verification: no remaining module routes, navigation or personal-history command
+references in application/server code. All 297 app tests, five synthetic Edge
+removal checks, server compilation, six write-guard checks and 20 policy checks
+passed. Lint and build passed with the existing bundle-size warning. Documentation links
+and `git diff --check` passed. No deployment or live business-data writes.
+
+### 2026-10-23 - Lock Credit History to personal records and add balance header
+
+Added a locked employee-name field, year/search filters and matching VL/SL cards
+above Credit History. This module now uses the personal API for every role,
+including admins. Leave Management admin functionality remains available there.
+Changed `credit-history.tsx`, shared balance cards and personal history service;
+added `myHistorySummary` to the existing Leave command with full paged, signed
+year-ledger totals scoped to the authenticated employee. Search/movement/pool
+filters never change those totals. Loading/error/retry states do not show false
+zeros. No grants are projected and no financial policy or records changed.
+
+Verification and remaining release checks are in
+[the current checklist](docs/employee-credit-history.md). Local server compilation,
+54 history-isolation checks, 16 write-guard checks and 20 policy checks passed.
+All 310 app tests, 13 synthetic Edge checks, lint and build passed (existing
+bundle-size warning). Documentation links and `git diff --check` passed. Updated Leave
+assembly and Code App remain undeployed; ordinary-account live access checks
+remain pending. No schema, role, ownership or generated-source changes.
+
+### 2026-10-23 - Employee Credit History module
+
+Removed the Credit History tab from Leave Management and added `/credit-history`
+below My Payroll, with personal credit movements and leave records for Payroll
+Employees and existing employee filtering for admins. Changed Leave pages,
+records/detail hooks, navigation/routing, and added a generated-action-backed
+personal history service. The signed Leave assembly (`1.0.2.0`) adds read-only
+commands with role and initiating-user employee checks, scoped paging/details
+and explicit safe field projections. Its write guard permits only existing
+admin mutation-command ancestry, rejecting personal-read ancestry.
+
+Verification: all 307 app tests, lint/build and 12 synthetic Edge browser checks passed;
+signed server compilation, 39 history-isolation checks, 15 write-guard checks
+and 20 existing policy checks passed. The final full run includes UI tests
+including navigation, own-record details, no admin collection reads, filter
+updates, blocked role-table introspection and loading/error/denied states.
+Existing bundle-size warning remains.
+See [acceptance and release details](docs/employee-credit-history.md).
+
+Limits: updated assembly and Code App are not deployed. Ordinary-account live
+security checks remain pending. No schema, role grants, record ownership,
+financial data, notifications, generated files or payroll formulas changed.
+
 ### 2026-10-22 - Separate annual Leave Conversion workspace
 
 Removed the Cash Conversions tab from Leave Management. Added the admin-gated

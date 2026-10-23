@@ -27,7 +27,7 @@ const ADMIN_GROUPS: NavGroup[] = [
   {
     label: "Payroll",
     items: [
-      { to: "/payroll", label: "Payroll Periods", icon: Wallet },
+      { to: "/payroll", label: "Payroll Periods", icon: Wallet, end: true },
       { to: "/payroll/templates", label: "Payroll Templates", icon: LayoutTemplate },
       { to: "/employees", label: "Employees", icon: Users },
     ],

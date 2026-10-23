@@ -250,7 +250,7 @@ describe("Leave workspace", () => {
     await userEvent.click(screen.getByRole("button", { name: "Retry records" }))
     expect(await screen.findByText(/No leave records match/)).toBeVisible()
   })
-  it("applies year/search on the server, and filters reset when changing sections", async () => {
+  it("applies year/search on the server and no longer offers a Credit History tab", async () => {
     const user = userEvent.setup()
     renderPage()
     await screen.findByRole("table", { name: "Leave records" })
@@ -259,9 +259,8 @@ describe("Leave workspace", () => {
     await user.type(screen.getByRole("searchbox", { name: "Search record name" }), "Test")
     await user.click(screen.getByRole("button", { name: "Apply filters" }))
     await waitFor(() => expect(leaveService.list).toHaveBeenLastCalledWith(expect.objectContaining({ year: 2025, search: "Test" }), undefined))
-    await user.click(screen.getByRole("tab", { name: "Credit History" }))
-    expect(await screen.findByRole("table", { name: "Credit history" })).toBeVisible()
-    expect(leaveService.list).toHaveBeenLastCalledWith(expect.objectContaining({ section: "credits", status: "all", type: "all" }), undefined)
+    expect(screen.queryByRole("tab", { name: "Credit History" })).not.toBeInTheDocument()
+    expect(leaveService.list).toHaveBeenLastCalledWith(expect.objectContaining({ section: "leave" }), undefined)
   })
   it("loads next/previous pages and opens an accessible historical details dialog", async () => {
     const user = userEvent.setup()

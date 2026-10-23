@@ -179,3 +179,29 @@ Periods then run January 5–January 4; the current April cycle ends January 4,
 the effective date, retain existing credits/accrual rules. Preserve historical
 records and existing eligibility, holiday and posting safeguards. See
 [implementation](docs/leave-january-reset.md). Functional testing is left to the owner.
+
+## Owner request — employee Credit History, 2026-10-23
+
+Remove Credit History as a Leave Management tab. Provide a separate module below
+My Payroll, available to `A365 - Payroll Employee` for their own credit movements
+and leave records. Retain admin access and enforce employee isolation on the
+server. This supersedes the historical admin-only history UI requirement; it
+does not authorize broad table privileges or employee writes. See the
+[implementation and release checklist](docs/employee-credit-history.md).
+
+### Owner correction — locked personal history header, 2026-10-23
+
+Credit History has the employee/year/search header and VL/SL balance cards shown
+in the owner's reference. Employee is fixed to the signed-in account. This
+module is read-only and personal for every role, including Payroll Admins;
+remove its admin employee selector and cross-employee list path. Leave Management
+retains its separate admin functionality. Balances retain the existing selected
+year's complete recorded-ledger basis. No financial records or policies change.
+
+### Owner cancellation — remove Credit History module, 2026-10-23
+
+Remove the Credit History module, including its page, navigation, route and
+unused personal-history API implementation. Do not restore its old Leave tab.
+Preserve Leave Management, existing balances, Leave Conversion and business
+records. This supersedes the Credit History requests above; no deployment or
+environment change is requested.
