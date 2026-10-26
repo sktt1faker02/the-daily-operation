@@ -27,7 +27,7 @@ import {
   type PayrollEntry,
   type PayrollEntryInputValues,
 } from "./types"
-import { useUpdateEntryInputs } from "./hooks/use-payroll-entries"
+import { usePayrollEntryPreview, useUpdateEntryInputs } from "./hooks/use-payroll-entries"
 import { useCurrentSystemUserId } from "./hooks/use-current-system-user"
 
 const FIELDS: { id: keyof PayrollEntryInputValues; label: string }[] = [
@@ -44,7 +44,7 @@ function validate(values: PayrollEntryInputValues): string | null {
     const raw = values[id].trim()
     if (raw === "") continue
     const n = Number(raw)
-    if (Number.isNaN(n) || n < 0) return `${label} must be a non-negative number.`
+    if (!Number.isFinite(n) || n < 0) return `${label} must be a non-negative number.`
   }
   return null
 }
@@ -70,6 +70,7 @@ export function PayrollEntryDialog({
   const [error, setError] = useState<string | null>(null)
   const updateInputs = useUpdateEntryInputs(periodId)
   const systemUser = useCurrentSystemUserId()
+  const preview = usePayrollEntryPreview(entry, values, periodEndDate, open)
 
   useEffect(() => {
     if (open) {
@@ -156,7 +157,13 @@ export function PayrollEntryDialog({
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Calculated (Auto)
             </p>
-            <PayslipBreakdown entry={entry} />
+            {preview.error ? (
+              <p role="alert" className="text-xs text-destructive">{preview.error}</p>
+            ) : preview.entry ? (
+              <PayslipBreakdown entry={preview.entry} showAllLines />
+            ) : (
+              <p role="status" className="text-sm text-muted-foreground">Loading calculation preview…</p>
+            )}
           </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}

@@ -8,7 +8,8 @@ import { employeeService } from "@/features/employees/employee-service"
 import { referenceService } from "@/features/employees/reference-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
-import { planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
+import { calculateStoredEntryTotals, planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
+import { round2 } from "./payroll-calculation"
 import { canTransition, PayrollStatus, payrollStatusLabel } from "../period-status"
 import {
   PAYROLL_PERIOD_TABLE,
@@ -150,6 +151,31 @@ export const payrollPeriodService = {
         throw new Error(
           `Calculate all included payroll entries before marking this period Ready (${uncalculatedCount} remaining).`,
         )
+      }
+      // Reconcile old populated totals before finalization. Use saved deduction
+      // amounts so a formula correction never picks up newer salaries or rules.
+      const corrections = entries.filter((entry) => entry.a365_isincluded).map((entry) => {
+        const totals = calculateStoredEntryTotals(entry)
+        if (!Object.values(totals).every(Number.isFinite) ||
+          Math.round(totals.netPay * 100) !== Math.round(round2(entry.a365_netpay ?? 0) * 100)) {
+          throw new Error(`Recalculate ${entry.a365_name || "the payroll entry"} before marking this period Ready; its saved net pay does not reconcile.`)
+        }
+        return { entry, totals }
+      }).filter(({ entry, totals }) =>
+        Math.round(round2(entry.a365_grosspay ?? 0) * 100) !== Math.round(totals.grossPay * 100) ||
+        Math.round(round2(entry.a365_totaldeductions ?? 0) * 100) !== Math.round(totals.totalDeductions * 100),
+      )
+      for (const { entry, totals } of corrections) {
+        const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
+          PAYROLL_ENTRY_TABLE, entry.a365_payrollentryid, {
+            a365_grosspay: totals.grossPay,
+            a365_totaldeductions: totals.totalDeductions,
+            a365_netpay: totals.netPay,
+            a365_calculatedon: new Date().toISOString(),
+            "a365_CalculatedBy@odata.bind": `/systemusers(${actingUserId})`,
+          },
+        )
+        if (!result.success) throw result.error ?? new Error("Unable to correct payroll totals. The period is still Processing; retry Mark Ready.")
       }
     }
     const now = new Date().toISOString()
@@ -504,5 +530,5 @@ function hasCalculatedResults(entry: PayrollEntry): boolean {
     entry.a365_withholdingtax,
     entry.a365_totaldeductions,
     entry.a365_netpay,
-  ].every((value) => value !== null && value !== undefined)
+  ].every((value) => value !== null && value !== undefined && Number.isFinite(value))
 }

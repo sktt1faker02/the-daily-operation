@@ -57,9 +57,11 @@ function has(value: number | null): boolean {
 export function PayslipBreakdown({
   entry,
   otherDeductionsComment = entry.a365_comment,
+  showAllLines = false,
 }: {
   entry: PayrollEntry
   otherDeductionsComment?: string | null
+  showAllLines?: boolean
 }) {
   const reason = normalizeOtherDeductionsComment(otherDeductionsComment)
   return (
@@ -71,7 +73,7 @@ export function PayslipBreakdown({
         <dl>
           <Row label="Basic Pay" amount={entry.a365_basicpay} />
           <Row label="Allowances" amount={entry.a365_allowances} />
-          {has(entry.a365_otherearnings) && (
+          {(showAllLines || has(entry.a365_otherearnings)) && (
             <Row label="Other Earnings" amount={entry.a365_otherearnings} />
           )}
           <Row label="Gross Pay" amount={entry.a365_grosspay} subtotal />
@@ -83,14 +85,14 @@ export function PayslipBreakdown({
           Deductions
         </h3>
         <dl>
-          {has(entry.a365_unpaidleave) && (
+          {(showAllLines || has(entry.a365_unpaidleave)) && (
             <Row label="Unpaid Leave" amount={entry.a365_unpaidleave} />
           )}
           <Row label="SSS" amount={entry.a365_sss} />
           <Row label="PhilHealth" amount={entry.a365_philhealth} />
           <Row label="HDMF / Pag-IBIG" amount={entry.a365_hdmf} />
           <Row label="Withholding Tax" amount={entry.a365_withholdingtax} />
-          {has(entry.a365_otherdeductions) && (
+          {(showAllLines || has(entry.a365_otherdeductions)) && (
             <Row
               label="Other Deductions"
               amount={entry.a365_otherdeductions}

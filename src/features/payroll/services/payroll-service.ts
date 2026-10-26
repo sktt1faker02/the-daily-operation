@@ -8,7 +8,7 @@ import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
-import type { PayrollEntryInputValues } from "../types"
+import type { PayrollEntry, PayrollEntryInputValues } from "../types"
 import { isPeriodEditable } from "../period-status"
 import { payrollPeriodService } from "./payroll-period-service"
 
@@ -89,6 +89,52 @@ function amountFromInput(value: string): number {
   return amount
 }
 
+function calculationInputs(values: PayrollEntryInputValues) {
+  return {
+    basicPay: amountFromInput(values.a365_basicpay),
+    allowances: amountFromInput(values.a365_allowances),
+    otherEarnings: amountFromInput(values.a365_otherearnings),
+    otherDeductions: amountFromInput(values.a365_otherdeductions),
+    unpaidLeaveDays: amountFromInput(values.a365_unpaidleavedays),
+    withholdingTax: amountFromInput(values.a365_withholdingtax),
+  }
+}
+
+/** Read-only context for the editor's preview; never persists a calculation. */
+export async function getPayrollCalculationContext(employeeId: string, periodEndDate: string) {
+  const [employee, config] = await Promise.all([
+    employeeService.get(employeeId), getStatutoryConfig(periodEndDate),
+  ])
+  return { monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0, config }
+}
+
+/** Calculate edited form values through the same engine used on save. */
+export function previewPayrollEntry(
+  entry: PayrollEntry,
+  values: PayrollEntryInputValues,
+  context: Awaited<ReturnType<typeof getPayrollCalculationContext>>,
+): PayrollEntry {
+  const input = calculationInputs(values)
+  const result = calculatePayroll({ ...input, monthlyBasicSalary: context.monthlyBasicSalary }, context.config)
+  return {
+    ...entry,
+    a365_basicpay: input.basicPay,
+    a365_allowances: input.allowances,
+    a365_otherearnings: input.otherEarnings,
+    a365_otherdeductions: input.otherDeductions,
+    a365_unpaidleavedays: input.unpaidLeaveDays,
+    a365_withholdingtax: result.withholdingTax,
+    a365_comment: values.a365_comment,
+    a365_unpaidleave: result.unpaidLeave,
+    a365_sss: result.sss,
+    a365_philhealth: result.philhealth,
+    a365_hdmf: result.hdmf,
+    a365_grosspay: result.grossPay,
+    a365_totaldeductions: result.totalDeductions,
+    a365_netpay: result.netPay,
+  }
+}
+
 async function calculateAndPersist(
   entryId: string,
   entry: EntryReadModel,
@@ -102,14 +148,7 @@ async function calculateAndPersist(
   if (!employeeId) throw new Error("Payroll entry has no linked employee.")
   const employee = await employeeService.get(employeeId)
 
-  const edited = editedValues ? {
-    basicPay: amountFromInput(editedValues.a365_basicpay),
-    allowances: amountFromInput(editedValues.a365_allowances),
-    otherEarnings: amountFromInput(editedValues.a365_otherearnings),
-    otherDeductions: amountFromInput(editedValues.a365_otherdeductions),
-    unpaidLeaveDays: amountFromInput(editedValues.a365_unpaidleavedays),
-    withholdingTax: amountFromInput(editedValues.a365_withholdingtax),
-  } : null
+  const edited = editedValues ? calculationInputs(editedValues) : null
 
   const input: PayrollInput = {
     monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0,

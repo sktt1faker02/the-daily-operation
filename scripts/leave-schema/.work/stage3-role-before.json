@@ -1,0 +1,357 @@
+{
+    "@odata.context":  "https://org9a7651f0.crm5.dynamics.com/api/data/v9.2/$metadata#Microsoft.Dynamics.CRM.RetrieveRolePrivilegesRoleResponse",
+    "RolePrivileges":  [
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "34b46d66-21c3-4e02-9fac-6aba10533cb0",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvCreatea365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "6f2793aa-ea3a-4b09-9b36-90998ce84425",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvCreatea365_PayrollPeriod",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "24869b4f-2a3b-40d5-a0d2-adfcd736d9a4",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReada365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "b9614227-b49f-454e-ab08-9088aa252ba7",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReada365_PayrollPeriod",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "8c31fb87-2b36-4421-b7e4-3940c2e5c3c3",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvWritea365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "ff8c19e1-457d-4bd1-826a-3dad16490d3e",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvWritea365_PayrollPeriod",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "2ec015f0-deed-4150-a0f0-b4150fa7e047",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvDeletea365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "35bd1abe-2cdf-4a72-a6c7-0193396291a6",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvDeletea365_PayrollPeriod",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "ca2c27fa-9e6b-46ad-88e2-6c70e5fa00c9",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppenda365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "04ea0bb6-d7bb-4a89-87c9-b9066c62deac",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppenda365_PayrollPeriod",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "144dcc1a-acfd-4e21-943e-1384ef0f30b7",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppendToa365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "07a0b46c-f583-4646-8afa-853951eea414",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppendToa365_PayrollPeriod",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "19d8d16b-b675-4d87-afae-6ac7dc743f84",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvSharea365_PayrollEntry",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "94c3ac2c-eb23-41cb-a903-4e2e49e910b4",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadSdkMessage",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "db10a828-ec49-4035-8b7e-c58efaf169ec",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadSdkMessageProcessingStep",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "122e085f-8c52-47e8-8415-875dee1c961e",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadSdkMessageProcessingStepImage",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "9365005c-4703-473b-8d3c-d073cfd8670c",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadPluginType",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "f5b50296-a212-488a-be92-cbcca8971717",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadPluginAssembly",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "d71fc8d0-99bc-430e-abd7-d95c64f11e9c",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadSharePointDocument",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "fecbd29c-df64-4ede-a611-47226b402c22",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadSharePointData",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "cfdd12cf-090b-4599-8302-771962d2350a",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvWriteSharePointData",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "5eb85025-363b-46ea-a77e-ce24159cd231",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvCreateSharePointData",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "6f0c5471-f076-4ee6-85cd-558cff9e7293",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvCreatea365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "7738afc5-ba71-4fdc-9a0a-7a99b4627e7a",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReada365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "9b01d980-c773-4ed8-b4b0-25f209b20a7f",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvWritea365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "a4fefb92-9010-47c4-a6e1-3a8f30269601",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppenda365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "42757b84-a8de-414b-a1cd-7f612fa5aacb",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppendToa365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "f650cfb2-0bfc-46cf-92ea-3c4021d5472b",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAssigna365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "e94d4028-2738-4f65-bf90-b8bcbe75ed8d",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvSharea365_Employee",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "56cdea29-6cc0-4124-bf1a-547ac80eb844",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvCreatea365_payrolltemplate",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "5bade8a3-1f98-4488-8cc3-aa7f0d09e29d",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReada365_payrolltemplate",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "1c1a9e97-7a06-471c-8721-11c29136ca34",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvWritea365_payrolltemplate",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "9ef25917-3d93-4e0a-937d-e5c913310c34",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvDeletea365_payrolltemplate",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "ad5a3b57-f42c-486b-a36b-86a9a172cbd9",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvCreatea365_payrolltemplateline",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "2d94d268-7ba2-4650-8f57-fd9ec6b9cf6d",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReada365_payrolltemplateline",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "9e50f00d-5d7e-4ba8-b041-8f11556ba6d2",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvWritea365_payrolltemplateline",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "d3cf796d-c069-4ab1-b5ba-e11afc946745",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvDeletea365_payrolltemplateline",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "57593a63-712a-473d-a5e1-569492e196f0",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppenda365_payrolltemplate",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "eeadc11b-267c-4a2b-a2a2-14c480db1d0f",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppendToa365_payrolltemplate",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "9bc61b3e-cac5-48a0-a9ef-7370bdc967e9",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppenda365_payrolltemplateline",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "4bdb616c-2eee-4f30-9bc1-50994b6e6ff4",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvAppendToa365_payrolltemplateline",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "222a920a-2778-4564-85cb-e78dde8e4276",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadRole",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "663d1920-56e1-4166-89f0-47f3330923a8",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadTeam",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           },
+                           {
+                               "Depth":  "Global",
+                               "PrivilegeId":  "76faad15-bc44-4f4d-84dc-dd1e1dda74d9",
+                               "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                               "PrivilegeName":  "prvReadUser",
+                               "RecordFilterId":  "00000000-0000-0000-0000-000000000000",
+                               "RecordFilterUniqueName":  ""
+                           }
+                       ]
+}

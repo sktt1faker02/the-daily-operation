@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import { buildOverview } from "./overview-service"
 import { LEGACY_LOCKED_STATUS, LEGACY_PROCESSING_STATUS, PayrollStatus } from "../period-status"
 import type { PayrollEntry, PayrollPeriod } from "../types"
+import { calculatePayrollTotals } from "./payroll-calculation"
 
 function period(
   id: string,
@@ -44,6 +45,14 @@ function entry(periodId: string, net: number, included = true): PayrollEntry {
 }
 
 describe("buildOverview", () => {
+  it("rolls corrected saved values into dashboard totals without recalculating snapshots", () => {
+    const totals = calculatePayrollTotals({ basicPay: 20000, allowances: 0, otherEarnings: 0,
+      unpaidLeave: 3636.36, sss: 875, philhealth: 500, hdmf: 100, withholdingTax: 0, otherDeductions: 0 })
+    const saved = { ...entry("oct", totals.netPay), a365_grosspay: totals.grossPay, a365_totaldeductions: totals.totalDeductions }
+    const result = buildOverview([period("oct", "2026-10-16")], [saved], 1)
+    expect(result.cutoff).toEqual({ gross: 20000, deductions: 5111.36, net: 14888.64 })
+    expect(result.recent[0].net).toBe(14888.64)
+  })
   // newest first, as listPeriods returns
   const periods = [period("sep", "2026-09-16"), period("aug", "2026-08-16"), period("jul", "2026-07-01")]
 

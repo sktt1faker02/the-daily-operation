@@ -1,0 +1,88 @@
+{
+    "Privileges":  [
+                       {
+                           "PrivilegeName":  "prvCreatea365_Leave",
+                           "PrivilegeId":  "f63f0af6-627a-4487-a8dd-4d07f1336fd7",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvReada365_Leave",
+                           "PrivilegeId":  "63f552dd-f930-4124-80dc-0b09036b24c4",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvWritea365_Leave",
+                           "PrivilegeId":  "f2d294e0-4b7d-4fcf-9eea-440a9e389db1",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvAppenda365_Leave",
+                           "PrivilegeId":  "8f8ca25f-cba8-4f9f-b64b-f97656877845",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvAppendToa365_Leave",
+                           "PrivilegeId":  "c8f8ef54-6402-4dab-8404-0129ceded02b",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvCreatea365_LeaveCashConversion",
+                           "PrivilegeId":  "7eb35d0b-6186-4f3d-8f14-2ed4cc39edd6",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvReada365_LeaveCashConversion",
+                           "PrivilegeId":  "216df39c-0292-4b8d-bfcf-8a5eed478f31",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvWritea365_LeaveCashConversion",
+                           "PrivilegeId":  "bd7e8410-ed5f-42f2-8bf2-6d148b49c1f3",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvAppenda365_LeaveCashConversion",
+                           "PrivilegeId":  "98552f20-fcb8-44c0-abac-25d289192393",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvAppendToa365_LeaveCashConversion",
+                           "PrivilegeId":  "d5c7ff4a-ec4b-413c-8bc7-9fd18e5e3b02",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvCreatea365_LeaveCreditTransaction",
+                           "PrivilegeId":  "9c9fec02-b7fc-4dfd-a78d-bdf45def5086",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvReada365_LeaveCreditTransaction",
+                           "PrivilegeId":  "e4d81e90-825a-4d12-a788-35aa283715b6",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvAppenda365_LeaveCreditTransaction",
+                           "PrivilegeId":  "5e4b7157-9af5-4c4f-8df3-ef4a38795b00",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       },
+                       {
+                           "PrivilegeName":  "prvAppendToUser",
+                           "PrivilegeId":  "3399e6d2-dd3c-4a14-8433-39c1eca27aaa",
+                           "BusinessUnitId":  "7d92ad23-78a3-f111-aaae-00224816cd1e",
+                           "Depth":  "Global"
+                       }
+                   ]
+}

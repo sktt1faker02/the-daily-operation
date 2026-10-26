@@ -1,0 +1,283 @@
+{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "VerifiedAt":  "2026-10-22T07:46:44.7561547Z",
+    "Assembly":  {
+                     "@odata.etag":  "W/\"7668175\"",
+                     "modifiedon":  "2026-10-22T07:44:15Z",
+                     "pluginassemblyid":  "1d8034c7-e2cd-f111-a05a-000d3a8014e4",
+                     "publickeytoken":  "8a2e448c3a6ea56d",
+                     "content":  null,
+                     "version":  "1.0.1.0",
+                     "name":  "A365.Leave.Plugins"
+                 },
+    "LiveHash":  "C0672145F1EF336616E664392568CE2F01041A56B69726F74B2B850F990C5D8E",
+    "LocalHash":  "C0672145F1EF336616E664392568CE2F01041A56B69726F74B2B850F990C5D8E",
+    "Types":  [
+                  {
+                      "@odata.etag":  "W/\"7666534\"",
+                      "_pluginassemblyid_value":  "1d8034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "typename":  "A365.Leave.Plugins.ProtectLeaveWrites",
+                      "plugintypeid":  "308034c7-e2cd-f111-a05a-000d3a8014e4"
+                  },
+                  {
+                      "@odata.etag":  "W/\"7666530\"",
+                      "_pluginassemblyid_value":  "1d8034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "typename":  "A365.Leave.Plugins.LeaveCommand",
+                      "plugintypeid":  "77c89dc8-e2cd-f111-a05c-70a8a5036aa3"
+                  }
+              ],
+    "Api":  [
+                {
+                    "@odata.etag":  "W/\"7666561\"",
+                    "uniquename":  "a365_LeaveCommand",
+                    "isfunction":  false,
+                    "bindingtype":  0,
+                    "_plugintypeid_value":  "77c89dc8-e2cd-f111-a05c-70a8a5036aa3",
+                    "customapiid":  "0fa84bf7-e2cd-f111-a05a-000d3a8014e4",
+                    "allowedcustomprocessingsteptype":  0
+                }
+            ],
+    "Request":  [
+                    {
+                        "@odata.etag":  "W/\"7666603\"",
+                        "uniquename":  "Request",
+                        "customapirequestparameterid":  "0c6125a4-e4cd-f111-a05a-000d3a8014e4",
+                        "type":  10,
+                        "isoptional":  false
+                    }
+                ],
+    "Response":  [
+                     {
+                         "@odata.etag":  "W/\"7666627\"",
+                         "uniquename":  "Response",
+                         "customapiresponsepropertyid":  "99f392aa-e4cd-f111-a05a-000d3a8014e4",
+                         "type":  10
+                     }
+                 ],
+    "OtherApiSteps":  [
+                          {
+                              "@odata.etag":  "W/\"7666560\"",
+                              "sdkmessageprocessingstepid":  "17a84bf7-e2cd-f111-a05a-000d3a8014e4",
+                              "mode":  0,
+                              "statecode":  0,
+                              "name":  "CustomApi \u0027a365_LeaveCommand\u0027 implementation",
+                              "stage":  30
+                          }
+                      ],
+    "Diagnostics":  {
+                        "policyVersion":  "2026-10-22.1",
+                        "isInTransaction":  true,
+                        "serverValidation":  true
+                    },
+    "AdminRolePresent":  true,
+    "Organization":  [
+                         {
+                             "@odata.etag":  "W/\"7668183\"",
+                             "plugintracelogsetting":  0,
+                             "organizationid":  "fe0edb27-c4a6-f111-aaa0-002248ed6f85",
+                             "name":  "org9a7651f0"
+                         }
+                     ],
+    "Steps":  [
+                  {
+                      "Id":  "bbf392aa-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leave Create",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Create",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "4ee03abe-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leave UpdateMultiple",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "UpdateMultiple",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "d831c8d1-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction Create",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Create",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "1131c3d7-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction Delete",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Delete",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "6fb66fe5-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction SetState",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "SetState",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "7e1edaf1-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leavecoordination Update",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Update",
+                      "Entity":  "a365_leavecoordination"
+                  },
+                  {
+                      "Id":  "8c1edaf1-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leavecoordination Delete",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Delete",
+                      "Entity":  "a365_leavecoordination"
+                  },
+                  {
+                      "Id":  "4b73f6f7-e4cd-f111-a05a-000d3a8014e4",
+                      "Name":  "A365 Leave Guard a365_leavecoordination CreateMultiple",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "CreateMultiple",
+                      "Entity":  "a365_leavecoordination"
+                  },
+                  {
+                      "Id":  "7ff0a0c9-e4cd-f111-a05a-00224819cffa",
+                      "Name":  "A365 Leave Guard a365_leave SetState",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "SetState",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "44e7fdae-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leave Update",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Update",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "ea0c83b5-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leave Delete",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Delete",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "43ccd8bb-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leave CreateMultiple",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "CreateMultiple",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "e5c0edc1-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leave Assign",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Assign",
+                      "Entity":  "a365_leave"
+                  },
+                  {
+                      "Id":  "3efa95d4-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction Update",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Update",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "a15d88dc-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction CreateMultiple",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "CreateMultiple",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "af5d88dc-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction UpdateMultiple",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "UpdateMultiple",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "1d4e1ae3-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecredittransaction Assign",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Assign",
+                      "Entity":  "a365_leavecredittransaction"
+                  },
+                  {
+                      "Id":  "88be78e9-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecoordination Create",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "Create",
+                      "Entity":  "a365_leavecoordination"
+                  },
+                  {
+                      "Id":  "9530b6fb-e4cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecoordination UpdateMultiple",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "UpdateMultiple",
+                      "Entity":  "a365_leavecoordination"
+                  },
+                  {
+                      "Id":  "55f1b501-e5cd-f111-a05c-70a8a5036aa3",
+                      "Name":  "A365 Leave Guard a365_leavecoordination SetState",
+                      "Stage":  20,
+                      "Mode":  0,
+                      "State":  0,
+                      "Handler":  "308034c7-e2cd-f111-a05a-000d3a8014e4",
+                      "Message":  "SetState",
+                      "Entity":  "a365_leavecoordination"
+                  }
+              ]
+}

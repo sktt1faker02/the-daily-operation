@@ -1,0 +1,473 @@
+{
+    "a365_payrollentry":  {
+                              "@odata.context":  "https://org9a7651f0.crm5.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions(LogicalName,SchemaName,EntitySetName,IsOptimisticConcurrencyEnabled,OneToManyRelationships(SchemaName,ReferencingEntity,ReferencingAttribute,CascadeConfiguration),ManyToManyRelationships(SchemaName,Entity1LogicalName,Entity2LogicalName,IntersectEntityName))/$entity",
+                              "MetadataId":  "d7b9a3a0-f7a9-f111-aaad-000d3a853079",
+                              "IsOptimisticConcurrencyEnabled":  true,
+                              "LogicalName":  "a365_payrollentry",
+                              "SchemaName":  "a365_PayrollEntry",
+                              "EntitySetName":  "a365_payrollentries",
+                              "OneToManyRelationships":  [
+                                                             {
+                                                                 "MetadataId":  "50baa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_SyncErrors",
+                                                                 "ReferencingAttribute":  "regardingobjectid",
+                                                                 "ReferencingEntity":  "syncerror",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "Cascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             },
+                                                             {
+                                                                 "MetadataId":  "54baa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_AsyncOperations",
+                                                                 "ReferencingAttribute":  "regardingobjectid",
+                                                                 "ReferencingEntity":  "asyncoperation",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "NoCascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             },
+                                                             {
+                                                                 "MetadataId":  "58baa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_MailboxTrackingFolders",
+                                                                 "ReferencingAttribute":  "regardingobjectid",
+                                                                 "ReferencingEntity":  "mailboxtrackingfolder",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "Cascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             },
+                                                             {
+                                                                 "MetadataId":  "5cbaa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_UserEntityInstanceDatas",
+                                                                 "ReferencingAttribute":  "objectid",
+                                                                 "ReferencingEntity":  "userentityinstancedata",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "Cascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             },
+                                                             {
+                                                                 "MetadataId":  "60baa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_ProcessSession",
+                                                                 "ReferencingAttribute":  "regardingobjectid",
+                                                                 "ReferencingEntity":  "processsession",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "NoCascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             },
+                                                             {
+                                                                 "MetadataId":  "64baa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_BulkDeleteFailures",
+                                                                 "ReferencingAttribute":  "regardingobjectid",
+                                                                 "ReferencingEntity":  "bulkdeletefailure",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "Cascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             },
+                                                             {
+                                                                 "MetadataId":  "68baa3a0-f7a9-f111-aaad-000d3a853079",
+                                                                 "SchemaName":  "a365_payrollentry_PrincipalObjectAttributeAccesses",
+                                                                 "ReferencingAttribute":  "objectid",
+                                                                 "ReferencingEntity":  "principalobjectattributeaccess",
+                                                                 "CascadeConfiguration":  {
+                                                                                              "Assign":  "NoCascade",
+                                                                                              "Delete":  "Cascade",
+                                                                                              "Archive":  "NoCascade",
+                                                                                              "Merge":  "NoCascade",
+                                                                                              "Reparent":  "NoCascade",
+                                                                                              "Share":  "NoCascade",
+                                                                                              "Unshare":  "NoCascade",
+                                                                                              "RollupView":  "NoCascade"
+                                                                                          }
+                                                             }
+                                                         ],
+                              "ManyToManyRelationships":  [
+
+                                                          ]
+                          },
+    "a365_payrollperiod":  {
+                               "@odata.context":  "https://org9a7651f0.crm5.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions(LogicalName,SchemaName,EntitySetName,IsOptimisticConcurrencyEnabled,OneToManyRelationships(SchemaName,ReferencingEntity,ReferencingAttribute,CascadeConfiguration),ManyToManyRelationships(SchemaName,Entity1LogicalName,Entity2LogicalName,IntersectEntityName))/$entity",
+                               "MetadataId":  "05b0b837-f7a9-f111-aaad-000d3a853079",
+                               "IsOptimisticConcurrencyEnabled":  true,
+                               "LogicalName":  "a365_payrollperiod",
+                               "SchemaName":  "a365_PayrollPeriod",
+                               "EntitySetName":  "a365_payrollperiods",
+                               "OneToManyRelationships":  [
+                                                              {
+                                                                  "MetadataId":  "6e82ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_SyncErrors",
+                                                                  "ReferencingAttribute":  "regardingobjectid",
+                                                                  "ReferencingEntity":  "syncerror",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "Cascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "7282ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_AsyncOperations",
+                                                                  "ReferencingAttribute":  "regardingobjectid",
+                                                                  "ReferencingEntity":  "asyncoperation",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "NoCascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "7682ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_MailboxTrackingFolders",
+                                                                  "ReferencingAttribute":  "regardingobjectid",
+                                                                  "ReferencingEntity":  "mailboxtrackingfolder",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "Cascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "7a82ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_UserEntityInstanceDatas",
+                                                                  "ReferencingAttribute":  "objectid",
+                                                                  "ReferencingEntity":  "userentityinstancedata",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "Cascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "7e82ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_ProcessSession",
+                                                                  "ReferencingAttribute":  "regardingobjectid",
+                                                                  "ReferencingEntity":  "processsession",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "NoCascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "8282ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_BulkDeleteFailures",
+                                                                  "ReferencingAttribute":  "regardingobjectid",
+                                                                  "ReferencingEntity":  "bulkdeletefailure",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "Cascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "8682ab3e-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_PrincipalObjectAttributeAccesses",
+                                                                  "ReferencingAttribute":  "objectid",
+                                                                  "ReferencingEntity":  "principalobjectattributeaccess",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "Cascade",
+                                                                                               "Archive":  "NoCascade",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              },
+                                                              {
+                                                                  "MetadataId":  "d70a84f4-f7a9-f111-aaad-000d3a853079",
+                                                                  "SchemaName":  "a365_payrollperiod_payrollentry",
+                                                                  "ReferencingAttribute":  "a365_payrollperiod",
+                                                                  "ReferencingEntity":  "a365_payrollentry",
+                                                                  "CascadeConfiguration":  {
+                                                                                               "Assign":  "NoCascade",
+                                                                                               "Delete":  "Restrict",
+                                                                                               "Archive":  "RemoveLink",
+                                                                                               "Merge":  "NoCascade",
+                                                                                               "Reparent":  "NoCascade",
+                                                                                               "Share":  "NoCascade",
+                                                                                               "Unshare":  "NoCascade",
+                                                                                               "RollupView":  "NoCascade"
+                                                                                           }
+                                                              }
+                                                          ],
+                               "ManyToManyRelationships":  [
+
+                                                           ]
+                           },
+    "a365_employee":  {
+                          "@odata.context":  "https://org9a7651f0.crm5.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions(LogicalName,SchemaName,EntitySetName,IsOptimisticConcurrencyEnabled,OneToManyRelationships(SchemaName,ReferencingEntity,ReferencingAttribute,CascadeConfiguration),ManyToManyRelationships(SchemaName,Entity1LogicalName,Entity2LogicalName,IntersectEntityName))/$entity",
+                          "MetadataId":  "9691dac0-37a8-f111-aaad-000d3a853f6d",
+                          "IsOptimisticConcurrencyEnabled":  true,
+                          "LogicalName":  "a365_employee",
+                          "SchemaName":  "a365_Employee",
+                          "EntitySetName":  "a365_employees",
+                          "OneToManyRelationships":  [
+                                                         {
+                                                             "MetadataId":  "484cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_SyncErrors",
+                                                             "ReferencingAttribute":  "regardingobjectid",
+                                                             "ReferencingEntity":  "syncerror",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Cascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "4c4cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_AsyncOperations",
+                                                             "ReferencingAttribute":  "regardingobjectid",
+                                                             "ReferencingEntity":  "asyncoperation",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "NoCascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "504cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_MailboxTrackingFolders",
+                                                             "ReferencingAttribute":  "regardingobjectid",
+                                                             "ReferencingEntity":  "mailboxtrackingfolder",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Cascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "544cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_UserEntityInstanceDatas",
+                                                             "ReferencingAttribute":  "objectid",
+                                                             "ReferencingEntity":  "userentityinstancedata",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Cascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "594cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_ProcessSession",
+                                                             "ReferencingAttribute":  "regardingobjectid",
+                                                             "ReferencingEntity":  "processsession",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "NoCascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "5d4cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_BulkDeleteFailures",
+                                                             "ReferencingAttribute":  "regardingobjectid",
+                                                             "ReferencingEntity":  "bulkdeletefailure",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Cascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "624cebc6-37a8-f111-aaad-000d3a853f6d",
+                                                             "SchemaName":  "a365_employee_PrincipalObjectAttributeAccesses",
+                                                             "ReferencingAttribute":  "objectid",
+                                                             "ReferencingEntity":  "principalobjectattributeaccess",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Cascade",
+                                                                                          "Archive":  "NoCascade",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "08cb8efc-f7a9-f111-aaad-000d3a853079",
+                                                             "SchemaName":  "a365_employee_payrollentry",
+                                                             "ReferencingAttribute":  "a365_employee",
+                                                             "ReferencingEntity":  "a365_payrollentry",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Restrict",
+                                                                                          "Archive":  "RemoveLink",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "9dec9c38-1cb7-f111-aaae-000d3a853079",
+                                                             "SchemaName":  "a365_employee_a365_payrolltemplateline",
+                                                             "ReferencingAttribute":  "a365_employee",
+                                                             "ReferencingEntity":  "a365_payrolltemplateline",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "RemoveLink",
+                                                                                          "Archive":  "RemoveLink",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "c93d5b22-45cd-f111-a05a-000d3a8014e4",
+                                                             "SchemaName":  "a365_employee_leave",
+                                                             "ReferencingAttribute":  "a365_employee",
+                                                             "ReferencingEntity":  "a365_leave",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Restrict",
+                                                                                          "Archive":  "RemoveLink",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "3f2e8440-45cd-f111-a05a-000d3a8014e4",
+                                                             "SchemaName":  "a365_employee_leavecashconversion",
+                                                             "ReferencingAttribute":  "a365_employee",
+                                                             "ReferencingEntity":  "a365_leavecashconversion",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Restrict",
+                                                                                          "Archive":  "RemoveLink",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         },
+                                                         {
+                                                             "MetadataId":  "2823795e-45cd-f111-a05c-70a8a5036aa3",
+                                                             "SchemaName":  "a365_employee_leavecredittransaction",
+                                                             "ReferencingAttribute":  "a365_employee",
+                                                             "ReferencingEntity":  "a365_leavecredittransaction",
+                                                             "CascadeConfiguration":  {
+                                                                                          "Assign":  "NoCascade",
+                                                                                          "Delete":  "Restrict",
+                                                                                          "Archive":  "RemoveLink",
+                                                                                          "Merge":  "NoCascade",
+                                                                                          "Reparent":  "NoCascade",
+                                                                                          "Share":  "NoCascade",
+                                                                                          "Unshare":  "NoCascade",
+                                                                                          "RollupView":  "NoCascade"
+                                                                                      }
+                                                         }
+                                                     ],
+                          "ManyToManyRelationships":  [
+
+                                                      ]
+                      }
+}

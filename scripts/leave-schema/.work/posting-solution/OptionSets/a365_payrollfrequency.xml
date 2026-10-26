@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="a365_payrollfrequency" localizedName="Payroll Frequency" description="Payroll Frequency" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <displaynames>
+    <displayname description="Payroll Frequency" languagecode="1033" />
+  </displaynames>
+  <Descriptions>
+    <Description description="Payroll Frequency" languagecode="1033" />
+  </Descriptions>
+  <options>
+    <option value="749910200" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Monthly" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="749910201" ExternalValue="" IsHidden="0">
+      <labels>
+        <label description="Semi-monthly" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

@@ -12,13 +12,13 @@ const entry: PayrollEntry = {
   a365_otherearnings: 0,
   a365_otherdeductions: 5000,
   a365_unpaidleavedays: 1,
-  a365_grosspay: 29181.82,
+  a365_grosspay: 31000,
   a365_sss: 875,
   a365_philhealth: 500,
   a365_hdmf: 100,
   a365_unpaidleave: 1818.18,
   a365_withholdingtax: 0,
-  a365_totaldeductions: 6475,
+  a365_totaldeductions: 8293.18,
   a365_netpay: 22706.82,
   a365_calculatedon: null,
   a365_comment: null,
@@ -27,6 +27,27 @@ const entry: PayrollEntry = {
 }
 
 describe("PayslipBreakdown other-deduction reason", () => {
+  it("renders the corrected Oct 16–31 Test User snapshot", () => {
+    render(<PayslipBreakdown entry={{ ...entry,
+      a365_basicpay: 20000, a365_allowances: 0, a365_unpaidleave: 3636.36,
+      a365_otherdeductions: 0, a365_grosspay: 20000,
+      a365_totaldeductions: 5111.36, a365_netpay: 14888.64,
+    }} />)
+    expect(screen.getAllByText("₱20,000.00")).toHaveLength(2)
+    expect(screen.getByText("₱5,111.36")).toBeInTheDocument()
+    expect(screen.getByText("₱14,888.64")).toBeInTheDocument()
+    expect(screen.queryByText("Other Deductions")).not.toBeInTheDocument()
+  })
+  it("shows earnings, leave and saved totals in their respective sections", () => {
+    render(<PayslipBreakdown entry={entry} />)
+    const amount = (label: string) => screen.getByText(label).closest("dt")?.nextElementSibling?.textContent
+    expect(amount("Gross Pay")).toBe("₱31,000.00")
+    expect(amount("Unpaid Leave")).toBe("₱1,818.18")
+    expect(amount("Total Deductions")).toBe("₱8,293.18")
+    expect(amount("Net Pay")).toBe("₱22,706.82")
+    expect(screen.getByText("Earnings").closest("section")).not.toHaveTextContent("Unpaid Leave")
+    expect(screen.getByText("Deductions").closest("section")).toHaveTextContent("Unpaid Leave")
+  })
   it.each([
     ["non-empty comment", "Unpaid Leave", "Reason: Unpaid Leave"],
     ["multi-line comment", "Unpaid Leave\nManual adjustment", "Reason: Unpaid Leave\nManual adjustment"],

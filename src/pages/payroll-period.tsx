@@ -109,7 +109,7 @@ export default function PayrollPeriodPage() {
     markReady: {
       label: "Mark Ready",
       title: "Mark this payroll Ready?",
-      description: "Makes payslips visible to employees and locks entries. Unlock reopens the cutoff for corrections.",
+      description: "Updates outdated gross pay and deduction totals, makes payslips visible to employees and locks entries. Unlock reopens the cutoff for corrections.",
     },
     markPaid: {
       label: "Mark as Paid",

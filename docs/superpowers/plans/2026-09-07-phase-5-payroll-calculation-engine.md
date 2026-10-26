@@ -254,10 +254,11 @@ describe("net arithmetic with the sample withholding tax (pending §7)", () => {
 })
 
 describe("edge cases", () => {
-  it("unpaid leave reduces gross via daily rate (monthly/22)", () => {
+  it("unpaid leave adds a deduction via daily rate (monthly/22)", () => {
     const r2 = calculatePayroll({ ...payslip, unpaidLeaveDays: 1 }, config)
     expect(r2.dailyRate).toBe(round2(43000 / 22)) // 1954.55
-    expect(r2.grossPay).toBe(round2(22500 - round2(43000 / 22)))
+    expect(r2.grossPay).toBe(22500)
+    expect(r2.totalDeductions).toBe(round2(2837.5 + round2(43000 / 22)))
   })
   it("missing SSS config throws, not silent 0", () => {
     expect(() => calculatePayroll(payslip, { ...config, sss: [] })).toThrow()
@@ -319,13 +320,13 @@ export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): 
   const philhealth = round2(philhealthEmployeeMonthly(input.monthlyBasicSalary, config.philhealth) / 2)
   const hdmf = round2(hdmfEmployeeMonthly(input.monthlyBasicSalary, config.hdmf) / 2)
 
-  const grossPay = round2(input.basicPay + input.allowances + input.otherEarnings - unpaidLeave)
+  const grossPay = round2(input.basicPay + input.allowances + input.otherEarnings)
 
   const taxableBase = computeTaxableBase(input, { sss, philhealth, hdmf })
   warnings.push("Withholding-tax taxable base is provisional (spec §7): pending accountant confirmation.")
   const wht = withholdingTax(taxableBase, config.taxBrackets)
 
-  const totalDeductions = round2(sss + philhealth + hdmf + wht + input.otherDeductions)
+  const totalDeductions = round2(unpaidLeave + sss + philhealth + hdmf + wht + input.otherDeductions)
   const netPay = round2(grossPay - totalDeductions)
 
   return { dailyRate, unpaidLeave, sss, philhealth, hdmf, grossPay, taxableBase, withholdingTax: wht, totalDeductions, netPay, warnings }

@@ -1,0 +1,446 @@
+{
+    "@odata.context":  "https://org9a7651f0.crm5.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions(MetadataId,LogicalName,SchemaName,EntitySetName,PrimaryIdAttribute,IsOptimisticConcurrencyEnabled,Attributes(LogicalName,SchemaName),ManyToOneRelationships(ReferencingAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntity),Keys(LogicalName,KeyAttributes,EntityKeyIndexStatus))/$entity",
+    "MetadataId":  "702402e5-43cd-f111-a05c-70a8a5036aa3",
+    "IsOptimisticConcurrencyEnabled":  true,
+    "LogicalName":  "a365_leavecashconversion",
+    "PrimaryIdAttribute":  "a365_leavecashconversionid",
+    "SchemaName":  "a365_LeaveCashConversion",
+    "EntitySetName":  "a365_leavecashconversions",
+    "Attributes":  [
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.MoneyAttributeMetadata",
+                           "MetadataId":  "270860b6-4103-430d-a672-1f603e43795e",
+                           "LogicalName":  "a365_amount",
+                           "SchemaName":  "a365_Amount"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.MoneyAttributeMetadata",
+                           "MetadataId":  "d475de4b-4a96-46f2-a0e3-12dbe2920e3a",
+                           "LogicalName":  "a365_amount_base",
+                           "SchemaName":  "a365_amount_Base"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DecimalAttributeMetadata",
+                           "MetadataId":  "acd3ca55-c5ce-f111-a05a-00224819cffa",
+                           "LogicalName":  "a365_availablevl",
+                           "SchemaName":  "a365_AvailableVL"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.MemoAttributeMetadata",
+                           "MetadataId":  "5a3b56fd-6e30-41e1-8c9e-086a0ca413e3",
+                           "LogicalName":  "a365_cancellationreason",
+                           "SchemaName":  "a365_CancellationReason"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "95f82fc7-3105-4118-b4c5-34f03da37486",
+                           "LogicalName":  "a365_cancelledby",
+                           "SchemaName":  "a365_CancelledBy"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "ba6384fb-d850-4cc6-9f5a-cffc1f01d389",
+                           "LogicalName":  "a365_cancelledbyname",
+                           "SchemaName":  "a365_CancelledByName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "8caabaf4-2d33-4873-968c-9f0d2519e82a",
+                           "LogicalName":  "a365_cancelledbyyominame",
+                           "SchemaName":  "a365_CancelledByYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+                           "MetadataId":  "51812015-4368-41af-8b35-a177cf213d7d",
+                           "LogicalName":  "a365_cancelledon",
+                           "SchemaName":  "a365_CancelledOn"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+                           "MetadataId":  "0afe93fe-ef87-49bd-94c6-cebb16743256",
+                           "LogicalName":  "a365_conversionstatus",
+                           "SchemaName":  "a365_ConversionStatus"
+                       },
+                       {
+                           "MetadataId":  "2b96344b-bbff-4d71-8453-1047df49713f",
+                           "LogicalName":  "a365_conversionstatusname",
+                           "SchemaName":  "a365_conversionstatusName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "5717380b-f850-4bf4-bcf5-a3167dd5fb04",
+                           "LogicalName":  "a365_conversionyear",
+                           "SchemaName":  "a365_ConversionYear"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "985ce7fa-ad60-41b5-896a-78382cfd6bbd",
+                           "LogicalName":  "a365_conversionyearname",
+                           "SchemaName":  "a365_ConversionYearName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "e6b28ff1-2ef2-45f4-9938-6fcb4246bf5a",
+                           "LogicalName":  "a365_convertedby",
+                           "SchemaName":  "a365_ConvertedBy"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "54343ae9-e32e-4dbe-acd4-70158c693f7e",
+                           "LogicalName":  "a365_convertedbyname",
+                           "SchemaName":  "a365_ConvertedByName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "37884f4e-7cdd-4f00-879b-55e225afce84",
+                           "LogicalName":  "a365_convertedbyyominame",
+                           "SchemaName":  "a365_ConvertedByYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+                           "MetadataId":  "ed3de567-b8be-49ea-9767-7afafd00fabf",
+                           "LogicalName":  "a365_convertedon",
+                           "SchemaName":  "a365_ConvertedOn"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.MoneyAttributeMetadata",
+                           "MetadataId":  "c0cc7d50-de3d-44d9-afea-3e37c37b4ee6",
+                           "LogicalName":  "a365_dailyrateused",
+                           "SchemaName":  "a365_DailyRateUsed"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.MoneyAttributeMetadata",
+                           "MetadataId":  "35adc465-d4c7-493a-a93f-f9bcca926ee1",
+                           "LogicalName":  "a365_dailyrateused_base",
+                           "SchemaName":  "a365_dailyrateused_Base"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DecimalAttributeMetadata",
+                           "MetadataId":  "b7c9628b-98e7-43de-86c7-2a7018b1496c",
+                           "LogicalName":  "a365_days",
+                           "SchemaName":  "a365_Days"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "f34951db-da55-47c6-afd8-158c696f45ad",
+                           "LogicalName":  "a365_employee",
+                           "SchemaName":  "a365_Employee"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "8ed4ba79-9d60-478d-959c-81dbaedb950f",
+                           "LogicalName":  "a365_employeename",
+                           "SchemaName":  "a365_EmployeeName"
+                       },
+                       {
+                           "MetadataId":  "47458810-b217-41c5-97c3-eda28cd03185",
+                           "LogicalName":  "a365_leavecashconversionid",
+                           "SchemaName":  "a365_LeaveCashConversionId"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "712402e5-43cd-f111-a05c-70a8a5036aa3",
+                           "LogicalName":  "a365_name",
+                           "SchemaName":  "a365_Name"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+                           "MetadataId":  "707be4b2-ab26-45c6-b9c7-44c91509b784",
+                           "LogicalName":  "a365_year",
+                           "SchemaName":  "a365_Year"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "12ed42c5-10c3-4236-88c9-e03f144f1227",
+                           "LogicalName":  "createdby",
+                           "SchemaName":  "CreatedBy"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "fd587c84-85ca-4e9a-a846-27661f5c1599",
+                           "LogicalName":  "createdbyname",
+                           "SchemaName":  "CreatedByName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "b6bec6e4-9aeb-4245-a810-d92b5929ca8a",
+                           "LogicalName":  "createdbyyominame",
+                           "SchemaName":  "CreatedByYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+                           "MetadataId":  "ed3c9a7e-b34b-4c46-9c38-4c168e579d76",
+                           "LogicalName":  "createdon",
+                           "SchemaName":  "CreatedOn"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "92b55dd9-a450-4af6-bf8e-ca88972e6b78",
+                           "LogicalName":  "createdonbehalfby",
+                           "SchemaName":  "CreatedOnBehalfBy"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "adc2f2d5-1b8e-4beb-8a05-ad480f57635c",
+                           "LogicalName":  "createdonbehalfbyname",
+                           "SchemaName":  "CreatedOnBehalfByName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "5add4735-1f47-455a-9283-80c83abc1bf9",
+                           "LogicalName":  "createdonbehalfbyyominame",
+                           "SchemaName":  "CreatedOnBehalfByYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DecimalAttributeMetadata",
+                           "MetadataId":  "db15f6d7-4051-4d10-b028-1a6fdb2e1f50",
+                           "LogicalName":  "exchangerate",
+                           "SchemaName":  "ExchangeRate"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+                           "MetadataId":  "9062593c-61d7-4f28-a944-0195be932101",
+                           "LogicalName":  "importsequencenumber",
+                           "SchemaName":  "ImportSequenceNumber"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "96e687a1-96aa-4fd2-b366-0e410d4209fb",
+                           "LogicalName":  "modifiedby",
+                           "SchemaName":  "ModifiedBy"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "7ed2c38e-74d1-4da8-ac8b-941bbb720a07",
+                           "LogicalName":  "modifiedbyname",
+                           "SchemaName":  "ModifiedByName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "c7fd0fe5-2eaa-4d9a-b681-f15350dafcb4",
+                           "LogicalName":  "modifiedbyyominame",
+                           "SchemaName":  "ModifiedByYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+                           "MetadataId":  "4030a4d2-d30a-4e53-8a30-f57d647d945f",
+                           "LogicalName":  "modifiedon",
+                           "SchemaName":  "ModifiedOn"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "e0f7ed45-7269-42b3-ae4c-7333991a79f0",
+                           "LogicalName":  "modifiedonbehalfby",
+                           "SchemaName":  "ModifiedOnBehalfBy"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "aa05f64c-969e-4f71-9a11-499e6f4829ab",
+                           "LogicalName":  "modifiedonbehalfbyname",
+                           "SchemaName":  "ModifiedOnBehalfByName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "8a56d09a-2034-4791-ae11-8f581ad400e7",
+                           "LogicalName":  "modifiedonbehalfbyyominame",
+                           "SchemaName":  "ModifiedOnBehalfByYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+                           "MetadataId":  "fdcadfa9-b243-4d0f-91d3-fe1826f15fb4",
+                           "LogicalName":  "overriddencreatedon",
+                           "SchemaName":  "OverriddenCreatedOn"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "8a8a3dc6-6de9-40b9-98bb-f5dd4c634297",
+                           "LogicalName":  "ownerid",
+                           "SchemaName":  "OwnerId"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "c6446f39-fd05-4d9b-ad79-0586abe6db1a",
+                           "LogicalName":  "owneridname",
+                           "SchemaName":  "OwnerIdName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.EntityNameAttributeMetadata",
+                           "MetadataId":  "53bbcfcd-ba38-4618-91fc-745be191efb3",
+                           "LogicalName":  "owneridtype",
+                           "SchemaName":  "OwnerIdType"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "fea4faea-43cd-f111-a05c-70a8a5036aa3",
+                           "LogicalName":  "owneridyominame",
+                           "SchemaName":  "OwnerIdYomiName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "6261a3c5-20f3-4739-be91-7c1f1c3ec991",
+                           "LogicalName":  "owningbusinessunit",
+                           "SchemaName":  "OwningBusinessUnit"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "8a326f66-f76e-483b-94c0-ca6195c30afc",
+                           "LogicalName":  "owningbusinessunitname",
+                           "SchemaName":  "OwningBusinessUnitName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "84a1bd26-bfce-41e3-b710-71154b996452",
+                           "LogicalName":  "owningteam",
+                           "SchemaName":  "OwningTeam"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "121a5955-062e-45fd-aca6-811cc338ce17",
+                           "LogicalName":  "owninguser",
+                           "SchemaName":  "OwningUser"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StateAttributeMetadata",
+                           "MetadataId":  "71f3b19d-49fd-42de-b38c-83c55ffaa45a",
+                           "LogicalName":  "statecode",
+                           "SchemaName":  "statecode"
+                       },
+                       {
+                           "MetadataId":  "ea7909eb-49b6-4f52-bfa6-b8610aa82ed2",
+                           "LogicalName":  "statecodename",
+                           "SchemaName":  "statecodeName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StatusAttributeMetadata",
+                           "MetadataId":  "ec15508c-759b-4272-9f69-b3715734ad8e",
+                           "LogicalName":  "statuscode",
+                           "SchemaName":  "statuscode"
+                       },
+                       {
+                           "MetadataId":  "6c619f3a-a519-4ac7-8f8d-a9ecfa34c7d8",
+                           "LogicalName":  "statuscodename",
+                           "SchemaName":  "statuscodeName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+                           "MetadataId":  "5e3f0b5f-8992-4ec2-8adc-0209d377aea2",
+                           "LogicalName":  "timezoneruleversionnumber",
+                           "SchemaName":  "TimeZoneRuleVersionNumber"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.LookupAttributeMetadata",
+                           "MetadataId":  "df059863-db4d-4cff-8220-54ca29034e6f",
+                           "LogicalName":  "transactioncurrencyid",
+                           "SchemaName":  "TransactionCurrencyId"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                           "MetadataId":  "945c3b1d-3521-4e26-90f8-e73fe083f7fa",
+                           "LogicalName":  "transactioncurrencyidname",
+                           "SchemaName":  "TransactionCurrencyIdName"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+                           "MetadataId":  "49357a77-0278-4326-b954-fcfc048019e4",
+                           "LogicalName":  "utcconversiontimezonecode",
+                           "SchemaName":  "UTCConversionTimeZoneCode"
+                       },
+                       {
+                           "@odata.type":  "#Microsoft.Dynamics.CRM.BigIntAttributeMetadata",
+                           "MetadataId":  "99b0b4dc-f557-41e6-99ac-1dc0df642473",
+                           "LogicalName":  "versionnumber",
+                           "SchemaName":  "VersionNumber"
+                       }
+                   ],
+    "ManyToOneRelationships":  [
+                                   {
+                                       "MetadataId":  "3f2e8440-45cd-f111-a05a-000d3a8014e4",
+                                       "ReferencedEntity":  "a365_employee",
+                                       "ReferencingAttribute":  "a365_employee",
+                                       "ReferencingEntityNavigationPropertyName":  "a365_Employee"
+                                   },
+                                   {
+                                       "MetadataId":  "c213c14c-45cd-f111-a05a-000d3a8014e4",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "a365_convertedby",
+                                       "ReferencingEntityNavigationPropertyName":  "a365_ConvertedBy"
+                                   },
+                                   {
+                                       "MetadataId":  "ce3c7e58-45cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "a365_cancelledby",
+                                       "ReferencingEntityNavigationPropertyName":  "a365_CancelledBy"
+                                   },
+                                   {
+                                       "MetadataId":  "623d2e5d-c5ce-f111-a05a-000d3a8014e4",
+                                       "ReferencedEntity":  "a365_leaveconversionyear",
+                                       "ReferencingAttribute":  "a365_conversionyear",
+                                       "ReferencingEntityNavigationPropertyName":  "a365_ConversionYear"
+                                   },
+                                   {
+                                       "MetadataId":  "dfa4faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "createdby",
+                                       "ReferencingEntityNavigationPropertyName":  "createdby"
+                                   },
+                                   {
+                                       "MetadataId":  "e5a4faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "createdonbehalfby",
+                                       "ReferencingEntityNavigationPropertyName":  "createdonbehalfby"
+                                   },
+                                   {
+                                       "MetadataId":  "eba4faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "modifiedby",
+                                       "ReferencingEntityNavigationPropertyName":  "modifiedby"
+                                   },
+                                   {
+                                       "MetadataId":  "f1a4faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "modifiedonbehalfby",
+                                       "ReferencingEntityNavigationPropertyName":  "modifiedonbehalfby"
+                                   },
+                                   {
+                                       "MetadataId":  "04a5faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "systemuser",
+                                       "ReferencingAttribute":  "owninguser",
+                                       "ReferencingEntityNavigationPropertyName":  "owninguser"
+                                   },
+                                   {
+                                       "MetadataId":  "0ba5faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "team",
+                                       "ReferencingAttribute":  "owningteam",
+                                       "ReferencingEntityNavigationPropertyName":  "owningteam"
+                                   },
+                                   {
+                                       "MetadataId":  "11a5faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "owner",
+                                       "ReferencingAttribute":  "ownerid",
+                                       "ReferencingEntityNavigationPropertyName":  "ownerid"
+                                   },
+                                   {
+                                       "MetadataId":  "15a5faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "businessunit",
+                                       "ReferencingAttribute":  "owningbusinessunit",
+                                       "ReferencingEntityNavigationPropertyName":  "owningbusinessunit"
+                                   },
+                                   {
+                                       "MetadataId":  "6ca5faea-43cd-f111-a05c-70a8a5036aa3",
+                                       "ReferencedEntity":  "transactioncurrency",
+                                       "ReferencingAttribute":  "transactioncurrencyid",
+                                       "ReferencingEntityNavigationPropertyName":  "transactioncurrencyid"
+                                   }
+                               ],
+    "Keys":  [
+                 {
+                     "MetadataId":  "1aa5a88f-c5ce-f111-a05c-70a8a5036aa3",
+                     "LogicalName":  "a365_conversionyearemployeeunique",
+                     "KeyAttributes":  [
+                                           "a365_conversionyear",
+                                           "a365_employee"
+                                       ],
+                     "EntityKeyIndexStatus":  "Pending"
+                 }
+             ]
+}

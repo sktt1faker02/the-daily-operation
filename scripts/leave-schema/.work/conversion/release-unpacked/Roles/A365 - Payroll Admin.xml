@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Role id="{6217c17c-3ea8-f111-aaad-000d3a853079}" name="A365 - Payroll Admin" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <IsCustomizable>1</IsCustomizable>
+  <IsAutoAssigned>0</IsAutoAssigned>
+  <RolePrivileges>
+    <RolePrivilege name="prvAppenda365_Employee" level="Global" />
+    <RolePrivilege name="prvAppenda365_Leave" level="Global" />
+    <RolePrivilege name="prvAppenda365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvAppenda365_LeaveCreditTransaction" level="Global" />
+    <RolePrivilege name="prvAppenda365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvAppenda365_PayrollPeriod" level="Global" />
+    <RolePrivilege name="prvAppenda365_payrolltemplate" level="Global" />
+    <RolePrivilege name="prvAppenda365_payrolltemplateline" level="Global" />
+    <RolePrivilege name="prvAppendToa365_Employee" level="Global" />
+    <RolePrivilege name="prvAppendToa365_Leave" level="Global" />
+    <RolePrivilege name="prvAppendToa365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvAppendToa365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvAppendToa365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvAppendToa365_PayrollPeriod" level="Global" />
+    <RolePrivilege name="prvAppendToa365_payrolltemplate" level="Global" />
+    <RolePrivilege name="prvAppendToa365_payrolltemplateline" level="Global" />
+    <RolePrivilege name="prvAppendToUser" level="Global" />
+    <RolePrivilege name="prvAssigna365_Employee" level="Global" />
+    <RolePrivilege name="prvCreatea365_Employee" level="Global" />
+    <RolePrivilege name="prvCreatea365_Leave" level="Global" />
+    <RolePrivilege name="prvCreatea365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvCreatea365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvCreatea365_LeaveCreditTransaction" level="Global" />
+    <RolePrivilege name="prvCreatea365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvCreatea365_PayrollPeriod" level="Global" />
+    <RolePrivilege name="prvCreatea365_payrolltemplate" level="Global" />
+    <RolePrivilege name="prvCreatea365_payrolltemplateline" level="Global" />
+    <RolePrivilege name="prvCreateSharePointData" level="Global" />
+    <RolePrivilege name="prvDeletea365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvDeletea365_PayrollPeriod" level="Global" />
+    <RolePrivilege name="prvDeletea365_payrolltemplate" level="Global" />
+    <RolePrivilege name="prvDeletea365_payrolltemplateline" level="Global" />
+    <RolePrivilege name="prvReada365_Employee" level="Global" />
+    <RolePrivilege name="prvReada365_Leave" level="Global" />
+    <RolePrivilege name="prvReada365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvReada365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvReada365_LeaveCreditTransaction" level="Global" />
+    <RolePrivilege name="prvReada365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvReada365_PayrollPeriod" level="Global" />
+    <RolePrivilege name="prvReada365_payrolltemplate" level="Global" />
+    <RolePrivilege name="prvReada365_payrolltemplateline" level="Global" />
+    <RolePrivilege name="prvReadPluginAssembly" level="Global" />
+    <RolePrivilege name="prvReadPluginType" level="Global" />
+    <RolePrivilege name="prvReadRole" level="Global" />
+    <RolePrivilege name="prvReadSdkMessage" level="Global" />
+    <RolePrivilege name="prvReadSdkMessageProcessingStep" level="Global" />
+    <RolePrivilege name="prvReadSdkMessageProcessingStepImage" level="Global" />
+    <RolePrivilege name="prvReadSharePointData" level="Global" />
+    <RolePrivilege name="prvReadSharePointDocument" level="Global" />
+    <RolePrivilege name="prvReadTeam" level="Global" />
+    <RolePrivilege name="prvReadUser" level="Global" />
+    <RolePrivilege name="prvSharea365_Employee" level="Global" />
+    <RolePrivilege name="prvSharea365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvWritea365_Employee" level="Global" />
+    <RolePrivilege name="prvWritea365_Leave" level="Global" />
+    <RolePrivilege name="prvWritea365_LeaveCashConversion" level="Global" />
+    <RolePrivilege name="prvWritea365_LeaveConversionYear" level="Global" />
+    <RolePrivilege name="prvWritea365_PayrollEntry" level="Global" />
+    <RolePrivilege name="prvWritea365_PayrollPeriod" level="Global" />
+    <RolePrivilege name="prvWritea365_payrolltemplate" level="Global" />
+    <RolePrivilege name="prvWritea365_payrolltemplateline" level="Global" />
+    <RolePrivilege name="prvWriteSharePointData" level="Global" />
+  </RolePrivileges>
+</Role>

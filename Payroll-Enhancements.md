@@ -6,6 +6,52 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-26 — Correct gross pay and unpaid leave deductions
+
+**Request / business outcome**
+
+Execute `PLANS.md`: earnings roll up to gross pay; unpaid leave belongs in total
+deductions; net pay, statutory bases, manual tax and leave derivation stay stable.
+Work is on `fix/payroll-gross-and-deductions` with existing workspace edits preserved.
+
+**Changes**
+
+- Extended `services/payroll-calculation.ts` with one shared totals function used
+  by the engine and the stored-entry reconciliation helper in `period-utils.ts`.
+- Extended `services/payroll-service.ts`, the payroll-entry hooks and dialog with
+  a read-only live preview using the same inputs/engine as save; all preview lines
+  appear while the employee payslip's optional-row/comment rules stay intact.
+- Extended `services/payroll-period-service.ts` so Mark Ready corrects stale
+  populated totals using saved contributions, leave and manual tax, blocking a
+  net-pay mismatch. The confirmation explains the update. No lifecycle, ownership,
+  sharing or security changes were made.
+- Extended the PDF deductions column with unpaid leave and aligned blank earnings
+  cells; normalized negative zero and preserved branding/header/signatures.
+- Added/extended engine, persistence, preview, screen/PDF, dashboard and Mark Ready
+  regression tests. Corrected earlier formula guidance in Phase 5 docs,
+  statutory-contribution docs, the phase checklist and the test plan.
+
+**Verification**
+
+- Lint and production build passed.
+- 153 application tests passed with the unchanged Excel-export file excluded.
+  Its standalone run has 18 passing tests and one existing B2 pay-date failure
+  (`payroll-export.test.ts:279`: Excel serial returned instead of Date).
+  Unrestricted test discovery also includes failing upstream skill-source tests.
+- Playwright desktop/mobile fixture checks and real PDF generation passed.
+  Comparing 10,000 fixtures against the original engine confirmed exactly stable
+  net pay, statutory contributions, manual tax, daily rate and leave amounts.
+- Changed-file whitespace and obsolete-formula scans passed; the user's existing
+  `PLANS.md` EOF blank-line warning was preserved.
+
+**Remaining limitations**
+
+No live data, generated sources, schema or roles were modified. Deployment and
+existing-record correction require their respective approvals. Live Test User
+screen/PDF verification follows those steps. Mark Ready's per-entry updates are
+retryable but are not a multi-record transaction. Full acceptance evidence and
+the proposed correction process are in [the verification checklist](docs/payroll-gross-and-deductions.md).
+
 ### 2026-10-19 — Separate payroll period date fields
 
 **Request / business outcome**

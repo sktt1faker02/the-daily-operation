@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/power/data-client", () => ({
   dataClient: {
@@ -31,6 +31,7 @@ const period = (status: PayrollPeriod["a365_payrollstatus"]): PayrollPeriod => (
 })
 
 beforeEach(() => vi.clearAllMocks())
+afterEach(() => vi.restoreAllMocks())
 
 describe("payrollPeriodService.listEntries", () => {
   it("attaches employee number and department name from the linked records", async () => {
@@ -163,6 +164,10 @@ describe("payrollPeriodService.transitionStatus", () => {
         a365_isincluded: true,
         a365_calculatedon: "2026-10-19T00:00:00Z",
         _a365_employee_value: null,
+        a365_basicpay: 1000,
+        a365_allowances: 0,
+        a365_otherearnings: 0,
+        a365_otherdeductions: 0,
         a365_grosspay: 1000,
         a365_sss: 0,
         a365_philhealth: 0,
@@ -182,6 +187,66 @@ describe("payrollPeriodService.transitionStatus", () => {
       "period-1",
       expect.objectContaining({ a365_payrollstatus: PayrollStatus.Ready }),
     )
+  })
+
+  const staleEntry: PayrollEntry = {
+    a365_payrollentryid: "entry-stale", a365_name: "Test User", a365_isincluded: true,
+    a365_basicpay: 20000, a365_allowances: 0, a365_otherearnings: 0,
+    a365_otherdeductions: 0, a365_unpaidleavedays: 2, a365_unpaidleave: 3636.36,
+    a365_sss: 875, a365_philhealth: 500, a365_hdmf: 100, a365_withholdingtax: 0,
+    a365_grosspay: 16363.64, a365_totaldeductions: 1475, a365_netpay: 14888.64,
+    a365_calculatedon: "2026-10-19T00:00:00Z", a365_comment: null,
+    _a365_employee_value: null,
+  }
+
+  it("corrects stale totals before Mark Ready without rewriting inputs or contributions", async () => {
+    vi.spyOn(payrollPeriodService, "getPeriod").mockResolvedValueOnce(period(PayrollStatus.Processing))
+    vi.spyOn(payrollPeriodService, "listEntries").mockResolvedValueOnce([staleEntry])
+    vi.mocked(dataClient.updateRecordAsync).mockResolvedValue({ success: true } as never)
+
+    await payrollPeriodService.transitionStatus("period-1", PayrollStatus.Ready, "admin-user")
+
+    expect(dataClient.updateRecordAsync).toHaveBeenCalledTimes(2)
+    expect(dataClient.updateRecordAsync).toHaveBeenNthCalledWith(1, "a365_payrollentries", "entry-stale", {
+      a365_grosspay: 20000, a365_totaldeductions: 5111.36, a365_netpay: 14888.64,
+      a365_calculatedon: expect.any(String),
+      "a365_CalculatedBy@odata.bind": "/systemusers(admin-user)",
+    })
+    expect(dataClient.updateRecordAsync).toHaveBeenNthCalledWith(2, "a365_payrollperiods", "period-1",
+      expect.objectContaining({ a365_payrollstatus: PayrollStatus.Ready }))
+  })
+
+  it("keeps Processing when correcting a stale entry fails", async () => {
+    vi.spyOn(payrollPeriodService, "getPeriod").mockResolvedValueOnce(period(PayrollStatus.Processing))
+    vi.spyOn(payrollPeriodService, "listEntries").mockResolvedValueOnce([staleEntry])
+    vi.mocked(dataClient.updateRecordAsync).mockResolvedValue({ success: false, error: new Error("Correction failed") } as never)
+
+    await expect(payrollPeriodService.transitionStatus("period-1", PayrollStatus.Ready, "admin-user"))
+      .rejects.toThrow("Correction failed")
+    expect(dataClient.updateRecordAsync).toHaveBeenCalledTimes(1)
+    expect(dataClient.updateRecordAsync).not.toHaveBeenCalledWith("a365_payrollperiods", expect.anything(), expect.anything())
+  })
+
+  it("does not rewrite already corrected entries or excluded entries", async () => {
+    vi.spyOn(payrollPeriodService, "getPeriod").mockResolvedValueOnce(period(PayrollStatus.Processing))
+    vi.spyOn(payrollPeriodService, "listEntries").mockResolvedValueOnce([
+      { ...staleEntry, a365_grosspay: 20000, a365_totaldeductions: 5111.36 },
+      { ...staleEntry, a365_payrollentryid: "excluded", a365_isincluded: false },
+    ])
+    vi.mocked(dataClient.updateRecordAsync).mockResolvedValue({ success: true } as never)
+    await payrollPeriodService.transitionStatus("period-1", PayrollStatus.Ready, "admin-user")
+    expect(dataClient.updateRecordAsync).toHaveBeenCalledTimes(1)
+    expect(dataClient.updateRecordAsync).toHaveBeenCalledWith("a365_payrollperiods", "period-1",
+      expect.objectContaining({ a365_payrollstatus: PayrollStatus.Ready }))
+  })
+
+  it("blocks rather than silently changing net pay when stored results do not reconcile", async () => {
+    vi.spyOn(payrollPeriodService, "getPeriod").mockResolvedValueOnce(period(PayrollStatus.Processing))
+    vi.spyOn(payrollPeriodService, "listEntries").mockResolvedValueOnce([{ ...staleEntry, a365_netpay: 1 }])
+
+    await expect(payrollPeriodService.transitionStatus("period-1", PayrollStatus.Ready, "admin-user"))
+      .rejects.toThrow("Recalculate")
+    expect(dataClient.updateRecordAsync).not.toHaveBeenCalled()
   })
 
   it("leaves the period unchanged when the single status update fails", async () => {
