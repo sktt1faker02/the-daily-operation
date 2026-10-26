@@ -107,6 +107,7 @@ describe("PayrollEntryDialog live calculation", () => {
     expect(payrollUnpaidLeaveService.daysForEmployees).not.toHaveBeenCalled()
     expect(screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })).toHaveValue(0)
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
+    expect(screen.getByRole("textbox", { name: "Comment" })).toBeDisabled()
   })
   it("loads 2 unpaid days into the editor and calculation, without writing until Save", async () => {
     vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockResolvedValue(new Map([["employee-1", 2]]))
@@ -174,18 +175,37 @@ describe("PayrollEntryDialog live calculation", () => {
     expect(saveAndCalculateEntry).not.toHaveBeenCalled()
   })
 
-  it("previews the current reason and hides its row when deductions are cleared", async () => {
+  it("keeps the general comment and its preview when deductions are cleared, and saves both", async () => {
     const user = userEvent.setup()
     renderDialog()
     await screen.findByText("₱34,400.00")
     await user.clear(screen.getByRole("textbox", { name: "Comment" }))
     await user.type(screen.getByRole("textbox", { name: "Comment" }), "Adjustment")
-    expect(screen.getByText("Reason: Adjustment")).toBeInTheDocument()
-    expect(screen.queryByText("Reason: Late")).not.toBeInTheDocument()
+    expect(screen.getByText("Adjustment", { selector: "p" })).toBeInTheDocument()
     await user.clear(screen.getByRole("spinbutton", { name: "Other Deductions" }))
     expect(screen.getByText("₱39,400.00")).toBeInTheDocument()
     expect(screen.queryByText(/^Reason:/)).not.toBeInTheDocument()
-    expect(screen.queryByRole("textbox", { name: "Comment" })).not.toBeInTheDocument()
+    expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("Adjustment")
+    expect(screen.getByText("Adjustment", { selector: "p" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await waitFor(() => expect(saveAndCalculateEntry).toHaveBeenCalledWith(
+      "entry-1", "period-1", "2026-10-15", "admin-1",
+      expect.objectContaining({ a365_otherdeductions: "", a365_comment: "Adjustment" }),
+    ))
+  })
+
+  it.each([0, 5000])("allows an empty comment with %s other deductions", async (deductions) => {
+    const user = userEvent.setup()
+    renderDialog({ ...entry, a365_otherdeductions: deductions, a365_comment: null })
+    const comment = screen.getByRole("textbox", { name: "Comment" })
+    expect(comment).toHaveValue("")
+    expect(comment).not.toBeRequired()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled())
+    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await waitFor(() => expect(saveAndCalculateEntry).toHaveBeenCalledWith(
+      "entry-1", "period-1", "2026-10-15", "admin-1",
+      expect.objectContaining({ a365_otherdeductions: String(deductions), a365_comment: "" }),
+    ))
   })
 
   it("saves the edited inputs only on Save changes", async () => {

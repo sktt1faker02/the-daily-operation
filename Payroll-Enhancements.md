@@ -1915,3 +1915,55 @@ matching the app, and include Payroll in worksheet names.
   workbook checks reload actual generated XLSX files through ExcelJS.
 - No deployment performed. Unfiltered test discovery of imported skill-source
   tests remains a separate existing limitation; application tests are green.
+
+### 2026-10-26 — General employee payroll comments in the application
+
+**Request / business outcome**
+
+Make Comment optional and always available when editing payroll, independently
+of Other Deductions. Show saved comments in a dedicated section below Net Pay
+in the application payslip and live preview; hide the section when empty.
+
+**Files / changes**
+
+- `src/features/payroll/payroll-entry-dialog.tsx`: remove the deduction-amount
+  visibility condition, describe the field as an optional payroll comment and
+  disable it while saving or when the period is read-only.
+- `src/features/payroll/payslip-breakdown.tsx`: replace the deduction Reason
+  detail with a separate Comments section using the existing `a365_comment`,
+  preserving line breaks and safely rendering long text and HTML characters.
+- `src/pages/payslip.tsx`: read application comments directly from the saved
+  entry through the shared breakdown, independently of PDF document mapping.
+- Colocated dialog/breakdown tests cover saving comments without deductions,
+  optional comments with or without deductions, read-only behavior, saved legacy
+  comments, section placement, empty values and plain-text rendering.
+- Reuse existing persistence and formatting; no schema, security, calculations,
+  finalized records or PDF generation changes. Existing deduction reasons display
+  as general comments without a data migration.
+
+**Verification checklist and results**
+
+- [x] Reproduced the old conditional behavior with regression tests before fixing.
+- [x] Comment remains visible and can be saved after deductions are cleared.
+- [x] Empty comments are accepted with zero or positive deductions.
+- [x] Existing saved comments display below Net Pay even with zero/null deductions.
+- [x] No Reason detail remains in the application; blank Comments sections hide.
+- [x] Multiline, long and HTML-character comments render safely as text.
+- [x] Read-only periods disable the comment input; existing save-error checks pass.
+- [x] All 35 targeted dialog/breakdown tests pass.
+- [x] `npm.cmd run lint`: passed.
+- [x] `npm.cmd run build`: passed with existing large-chunk warnings.
+- [x] Playwright with installed Edge: actual editor and shared payslip breakdown
+  pass at 1280px and 390px using fictional data in an ignored local harness;
+  comments update/hide correctly and neither view has horizontal overflow.
+- [x] Full suite coverage: all 395 tests passed across runs. Default `npm.cmd test`
+  hit parallel-load timeouts; `npm.cmd test -- --maxWorkers=1` passed 392/395,
+  with three Leave modal timeouts. Rerunning `src/pages/leave.test.tsx` alone
+  with one worker passed all 17 tests without changing timeout settings.
+- [x] `git diff --check`: passed.
+
+**Remaining**
+
+- Live Power Apps host and direct Dataverse security verification require testing
+  as the appropriate users. No deployment performed.
+- PDF comments retain their existing behavior, per the app-only scope.

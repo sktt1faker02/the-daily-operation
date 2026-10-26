@@ -26,7 +26,7 @@ const entry: PayrollEntry = {
   _a365_payrollperiod_value: "period-1",
 }
 
-describe("PayslipBreakdown other-deduction reason", () => {
+describe("PayslipBreakdown payroll comments", () => {
   it("renders the corrected Oct 16–31 Test User snapshot", () => {
     render(<PayslipBreakdown entry={{ ...entry,
       a365_basicpay: 20000, a365_allowances: 0, a365_unpaidleave: 3636.36,
@@ -49,33 +49,37 @@ describe("PayslipBreakdown other-deduction reason", () => {
     expect(screen.getByText("Deductions").closest("section")).toHaveTextContent("Unpaid Leave")
   })
   it.each([
-    ["non-empty comment", "Unpaid Leave", "Reason: Unpaid Leave"],
-    ["multi-line comment", "Unpaid Leave\nManual adjustment", "Reason: Unpaid Leave\nManual adjustment"],
-    ["very long comment", "x".repeat(5000), `Reason: ${"x".repeat(5000)}`],
-    ["HTML characters", "<fee & tax>", "Reason: <fee & tax>"],
+    ["non-empty comment", "Unpaid Leave", "Unpaid Leave"],
+    ["multi-line comment", "Unpaid Leave\nManual adjustment", "Unpaid Leave\nManual adjustment"],
+    ["very long comment", "x".repeat(5000), "x".repeat(5000)],
+    ["HTML characters", "<fee & tax>", "<fee & tax>"],
   ])("renders a %s as plain text", (_label, comment, expected) => {
-    render(<PayslipBreakdown entry={entry} otherDeductionsComment={comment} />)
+    render(<PayslipBreakdown entry={{ ...entry, a365_comment: comment }} />)
     const note = screen.getByText((_, element) =>
-      element?.tagName === "SPAN" && element.textContent === expected,
+      element?.tagName === "P" && element.textContent === expected,
     )
-    expect(note.tagName).toBe("SPAN")
+    expect(screen.getByRole("heading", { name: "Comments" }).closest("section")).toContainElement(note)
+    expect(screen.getByText("Deductions").closest("section")).not.toContainElement(note)
+    expect(screen.queryByText(/^Reason:/)).not.toBeInTheDocument()
+    expect(note.querySelector("*")).toBeNull()
     expect(note).toHaveClass("whitespace-pre-wrap")
     expect(note).toHaveClass("break-words")
   })
 
-  it.each(["", " \n\t "]) ("omits an empty or whitespace-only comment", (comment) => {
-    render(<PayslipBreakdown entry={entry} otherDeductionsComment={comment} />)
-    expect(screen.queryByText(/^Reason:/)).not.toBeInTheDocument()
+  it.each([null, "", " \n\t "]) ("omits an empty or whitespace-only comment", (comment) => {
+    render(<PayslipBreakdown entry={{ ...entry, a365_comment: comment }} />)
+    expect(screen.queryByRole("heading", { name: "Comments" })).not.toBeInTheDocument()
   })
 
-  it("hides the comment with the Other Deductions row when the amount is zero", () => {
+  it.each([0, null])("shows saved comments below Net Pay even with %s deductions", (amount) => {
     render(
       <PayslipBreakdown
-        entry={{ ...entry, a365_otherdeductions: 0 }}
-        otherDeductionsComment="Unpaid Leave"
+        entry={{ ...entry, a365_otherdeductions: amount, a365_comment: "Great performance" }}
       />,
     )
     expect(screen.queryByText("Other Deductions")).not.toBeInTheDocument()
-    expect(screen.queryByText("Reason: Unpaid Leave")).not.toBeInTheDocument()
+    const comments = screen.getByRole("heading", { name: "Comments" }).closest("section")!
+    expect(comments).toHaveTextContent("Great performance")
+    expect(screen.getByText("Net Pay").closest("dl")?.nextElementSibling).toBe(comments)
   })
 })

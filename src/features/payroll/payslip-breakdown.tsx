@@ -12,13 +12,11 @@ import { normalizeOtherDeductionsComment } from "./payslip-data"
 function Row({
   label,
   amount,
-  detail,
   subtotal,
   emphasis,
 }: {
   label: string
   amount: number | null
-  detail?: string | null
   subtotal?: boolean
   emphasis?: boolean
 }) {
@@ -31,11 +29,6 @@ function Row({
     >
       <dt className={subtotal ? "" : "text-muted-foreground"}>
         <span>{label}</span>
-        {detail && (
-          <span className="block break-words whitespace-pre-wrap [overflow-wrap:anywhere] text-xs font-normal text-muted-foreground">
-            {detail}
-          </span>
-        )}
       </dt>
       <dd
         className={[
@@ -56,14 +49,12 @@ function has(value: number | null): boolean {
 
 export function PayslipBreakdown({
   entry,
-  otherDeductionsComment = entry.a365_comment,
   showAllLines = false,
 }: {
   entry: PayrollEntry
-  otherDeductionsComment?: string | null
   showAllLines?: boolean
 }) {
-  const reason = normalizeOtherDeductionsComment(otherDeductionsComment)
+  const comment = normalizeOtherDeductionsComment(entry.a365_comment)
   return (
     <div className="space-y-5 text-sm">
       <section>
@@ -96,7 +87,6 @@ export function PayslipBreakdown({
             <Row
               label="Other Deductions"
               amount={entry.a365_otherdeductions}
-              detail={has(entry.a365_otherdeductions) && reason ? `Reason: ${reason}` : null}
             />
           )}
           <Row label="Total Deductions" amount={entry.a365_totaldeductions} subtotal />
@@ -106,6 +96,17 @@ export function PayslipBreakdown({
       <dl className="border-t border-border pt-3">
         <Row label="Net Pay" amount={entry.a365_netpay} emphasis />
       </dl>
+
+      {comment && (
+        <section className="border-t border-border pt-3">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Comments
+          </h3>
+          <p className="break-words whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
+            {comment}
+          </p>
+        </section>
+      )}
     </div>
   )
 }
