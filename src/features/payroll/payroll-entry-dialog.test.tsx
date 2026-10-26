@@ -57,6 +57,25 @@ beforeEach(() => {
 })
 
 describe("PayrollEntryDialog live calculation", () => {
+  it("shows the screenshot's unpaid leave in deductions while keeping gross at 25,000 during edits", async () => {
+    const user = userEvent.setup()
+    renderDialog({ ...entry, a365_basicpay: 25000, a365_allowances: 0,
+      a365_otherdeductions: 3000, a365_unpaidleavedays: 1,
+      a365_unpaidleave: 2272.73, a365_grosspay: 22727.27,
+      a365_totaldeductions: 4600, a365_netpay: 18127.27 })
+    const amount = (label: string) => screen.getByText(label, { exact: true }).closest("dt")?.nextElementSibling
+    await waitFor(() => expect(amount("Total Deductions")).toHaveTextContent("₱6,872.73"))
+    expect(amount("Gross Pay")).toHaveTextContent("₱25,000.00")
+    expect(amount("Unpaid Leave")).toHaveTextContent("₱2,272.73")
+    expect(amount("Net Pay")).toHaveTextContent("₱18,127.27")
+    const days = screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })
+    await user.clear(days)
+    await user.type(days, "2")
+    expect(amount("Gross Pay")).toHaveTextContent("₱25,000.00")
+    expect(amount("Total Deductions")).toHaveTextContent("₱9,145.46")
+    expect(amount("Net Pay")).toHaveTextContent("₱15,854.54")
+    expect(saveAndCalculateEntry).not.toHaveBeenCalled()
+  })
   it("previews corrected totals and all lines without persisting, including live earnings and tax", async () => {
     vi.mocked(employeeService.get).mockResolvedValue({ a365_basicmonthlysalary: 40000 } as Employee)
     const user = userEvent.setup()

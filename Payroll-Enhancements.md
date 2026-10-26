@@ -6,6 +6,31 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-26 — Verify Edit preview against the reported 25,000 example
+
+The workspace was on `Payroll-enhancements` at `5ae345f`, whose engine still
+subtracts unpaid leave from gross and whose editor lacks the corrected preview.
+Returned to the existing `fix/payroll-gross-and-deductions` branch, preserving
+local artifacts. Its shared engine and live preview already implement the
+requested formula; no further production formula change was needed.
+
+Added a regression to `src/features/payroll/payroll-entry-dialog.test.tsx` and a
+synthetic Edge scenario to `scripts/payroll-unpaid-ui-check.mjs`, starting from
+the screenshot's stale saved totals. Basic 25,000, other deductions 3,000 and
+one unpaid day show gross 25,000, total deductions 6,872.73 and net 18,127.27.
+Changing to two unpaid days keeps gross 25,000 and updates deductions to
+9,145.46 and net to 15,854.54, without saving or writing financial records.
+
+Verification: all 22 editor tests and six Edge browser scenarios passed;
+lint and production build passed (existing bundle-size warning). Initial full
+suite: 354 passed and two unrelated Leave tests timed out at five seconds while
+build/browser checks ran concurrently. Full-suite retry passed all 356 tests in
+36 files using two workers and the existing 60-second command-line timeout,
+without altering test configuration.
+The owner confirmed use of `npm run dev`; restarting Vite from the corrected
+branch and refreshing the browser is required to verify their actual session.
+No deployment, schema/security changes or live data writes were performed.
+
 ### 2026-10-26 — Verify merge completion and correct test discovery
 
 Rechecked the requested payroll preview, save, template, leave-day integration,
