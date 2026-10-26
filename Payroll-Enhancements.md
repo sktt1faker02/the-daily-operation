@@ -6,6 +6,27 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-26 — Verify merge completion and correct test discovery
+
+Rechecked the requested payroll preview, save, template, leave-day integration,
+export, screen and PDF paths. Monetary calculations use the shared engine;
+presentation/export paths retain saved snapshots and leave integration supplies
+days only. Both owner-specified totals examples already exist and pass. No
+additional payroll formula change was required in this completion pass.
+
+Changed only `vite.config.ts` and this log after the staged merge resolution:
+exclude imported `.agents/**` tests from the app's Vitest run, preserving default
+exclusions. No tests were deleted or application tests skipped. The imported
+tools use their own test runners and runtime assumptions.
+
+Verification: `npm.cmd run build` passed (existing large-chunk warning),
+`npm.cmd run lint` passed, and `npx.cmd --no-install vitest run` passed all 355
+tests across 36 files. Conflict-marker and whitespace checks passed. Pre-commit
+HEAD: `26b6ad5222bb131406f9e644dd47a09c7a3e3ec4`. Live Dataverse/security and
+deployed-app verification remain unavailable. Commit the staged merge separately
+from this test-discovery fix; pushing remains conditional on the owner's PR scope
+gate against fetched `origin/develop`.
+
 ### 2026-10-26 — Resolve develop integration for payroll totals
 
 Combined this branch's corrected gross/deduction totals, complete preview rows

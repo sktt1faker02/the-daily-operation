@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -17,6 +17,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Imported third-party skill tests have their own runners and environments.
+    exclude: [...configDefaults.exclude, '.agents/**'],
     globals: true,
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
