@@ -6,6 +6,53 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-26 — Email included employees when payslips become Ready
+
+Implemented on the existing `Payroll-enhancements` branch, without creating or
+switching branches. Confirming Mark Ready now completes the existing financial
+transition first, then attempts one private Outlook email for each distinct
+included employee using their stored Work Email. Cancelled/failed transitions,
+Mark as Paid and Unlock do not dispatch a new notification batch. Missing or
+uncertain email outcomes do not roll back the confirmed payroll transition.
+
+Added `payslip-ready-email.ts`, `services/payslip-ready-notification-service.ts`
+and `payslip-ready-notifications.tsx`, with tests. Updated `use-payroll-status.ts`
+and `src/pages/payroll-period.tsx` for confirmation wording, pending state,
+duplicate-action guards, results, navigation protection and targeted retries.
+Recipient reads page completely before sending and deduplicate employees;
+excluded entries are not emailed. The sender checks the caller's admin role,
+period visibility/active state and original Ready timestamp on retry.
+
+Extracted the leave email's inline-table layout and stored-address validation
+into `src/lib/notification-email.ts`, preserving existing leave content and
+reusing the same visual template for payslip notifications. Emails include
+period dates and My Payroll instructions, with no financial amounts, bank data,
+recipient lists or attachments. Uncertain sends require explicit confirmation
+before retry; accepted recipients are excluded from subsequent retries. Results
+remain visible after Mark as Paid within the same page session.
+
+Extended `scripts/preview-leave-email.mjs` with `--payslip` and added
+`scripts/payroll-ready-email-ui-check.mjs`. Excluded ignored browser-generated
+output/cache from ESLint to avoid linting third-party Vite prebundles. Full
+scope and verification checklist: [payslip notifications](docs/payslip-ready-notifications.md).
+
+Verification: all 391 app tests passed across 40 files using
+`npm.cmd test -- --maxWorkers=2 --testTimeout=60000`; lint and production build
+passed (existing large-chunk warning). Five synthetic Edge scenarios passed:
+success, missing-email repair, confirmed uncertain retry, failed status update
+and mobile; cancellation and no resend on Mark as Paid are also covered.
+Email layout passed at 1000px, 390px and 320px. Whitespace/path checks passed.
+No calculation, schema, generated-source, security-role, connection or server
+assembly changes; no real financial records or emails were created by testing.
+
+Remaining limits: this follows the existing app-side Outlook pattern; keep the
+page open until sending finishes. Retry results are session-only, with no durable
+queue/notification ledger or exactly-once guarantee. Closing/crashing the browser
+can interrupt sending; check the sending account for unknown outcomes. Actual
+inbox delivery, Outlook/Gmail client rendering, hosted user access and direct
+ordinary-account security require approved live verification. No commit, push
+or deployment performed.
+
 ### 2026-10-26 — Prepare combined Payroll and email work for develop
 
 Completed verification on the owner's current `Payroll-enhancements` branch.

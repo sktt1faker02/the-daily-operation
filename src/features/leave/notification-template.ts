@@ -1,3 +1,5 @@
+import { buildNotificationEmail, storedWorkEmail } from "@/lib/notification-email"
+export { notificationEmailStyle as leaveEmailStyle } from "@/lib/notification-email"
 import type { A365_employees } from "@/generated/models/A365_employeesModel"
 import type { LeaveRecord } from "./types"
 import { benefitLabels, leaveTypeLabels } from "./types"
@@ -9,17 +11,6 @@ type RecipientEmployee = Pick<A365_employees, "a365_employeeid" | "a365_name" | 
 export interface LeaveEmailContext {
   balances?: { VL: number; SL: number }
   asOf: string
-}
-
-export const leaveEmailStyle = {
-  page: "#f3f5f8", card: "#ffffff", border: "#e3e6ea", title: "#3b3b6b",
-  text: "#1f2937", muted: "#667085", footer: "#f0f1f3", balance: "#f4f5fb",
-  font: "Arial, Helvetica, sans-serif", width: 600, bodySize: 13, titleSize: 19,
-  footerText: "This is an automated notification from The Daily Operation.",
-} as const
-
-function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!)
 }
 
 /** Composition only; caller must first retrieve a confirmed committed source
@@ -39,10 +30,10 @@ export function buildRecordedLeaveEmail(record: LeaveRecord, employee: Recipient
   if (dateOnly(record.a365_enddate) < dateOnly(record.a365_startdate) || !Number.isFinite(record.a365_days) || record.a365_days < 0.5) {
     throw new Error("The recorded leave dates or days are invalid.")
   }
-  const to = employee.a365_workemail?.trim()
+  const to = storedWorkEmail(employee.a365_workemail)
   // Exactly one stored address. Reject separators and header injection; never
   // fall back to the signed-in admin or an address entered in a modal.
-  if (!to || to.length > 100 || !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(to)) {
+  if (!to) {
     return { status: "unavailable", reason: "missing-or-invalid-work-email" } as const
   }
   const asOf = dateOnly(context?.asOf ?? record.a365_issuedon)
@@ -50,7 +41,7 @@ export function buildRecordedLeaveEmail(record: LeaveRecord, employee: Recipient
   const days = pool ? context?.balances?.[pool] : undefined
   const balanceLine = pool && days !== undefined && Number.isFinite(days)
     ? `Remaining ${pool} balance: ${formatCreditDays(days)} days (as of ${formatLeaveDate(asOf)})` : null
-  const details = [
+  const details: [string, string][] = [
     ["Leave type", leaveTypeLabels[record.a365_leavetype]],
     ["Benefit", benefitLabels[record.a365_benefit]],
     ["Start date", formatLeaveDate(record.a365_startdate)],
@@ -63,25 +54,11 @@ export function buildRecordedLeaveEmail(record: LeaveRecord, employee: Recipient
     ...details.map(([label, value]) => `${label}: ${value}`),
     ...(balanceLine ? [balanceLine] : []),
   ]
-  const s = leaveEmailStyle
-  const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Your leave has been recorded</title></head>
-<body bgcolor="${s.page}" style="margin:0;padding:0;background-color:${s.page};color:${s.text};font-family:${s.font};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${s.page}" style="background-color:${s.page};color:${s.text};"><tr><td align="center" style="padding:24px 12px;">
-<!--[if mso]><table role="presentation" width="${s.width}" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${s.card}" style="width:100%;max-width:${s.width}px;background-color:${s.card};color:${s.text};border:1px solid ${s.border};border-radius:8px;">
-<tr><td bgcolor="${s.card}" style="padding:28px 24px 24px;background-color:${s.card};color:${s.text};font-family:${s.font};font-size:${s.bodySize}px;line-height:1.6;">
-<h1 style="margin:0 0 24px;color:${s.title};font-size:${s.titleSize}px;line-height:1.4;">Your leave has been recorded</h1>
-<p style="margin:0 0 12px;">${escapeHtml(lines[0])}</p>
-<p style="margin:0 0 20px;">Your leave has been recorded.</p>
-<p style="margin:0 0 8px;"><strong>Leave details:</strong></p>
-<ul style="margin:0;padding-left:20px;">${details.map(([label, value]) => `<li style="padding:3px 0;"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`).join("")}</ul>
-${balanceLine ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr><td bgcolor="${s.balance}" style="padding:16px;background-color:${s.balance};color:${s.title};border-radius:6px;">${escapeHtml(balanceLine)}</td></tr></table>` : ""}
-</td></tr>
-<tr><td align="center" bgcolor="${s.footer}" style="padding:16px 24px;background-color:${s.footer};color:${s.muted};font-family:${s.font};font-size:11px;line-height:1.6;border-top:1px solid ${s.border};">© ${asOf.slice(0, 4)} Automations 365<br>${s.footerText}</td></tr>
-</table>
-<!--[if mso]></td></tr></table><![endif]-->
-</td></tr></table></body></html>`
+  const html = buildNotificationEmail({
+    title: "Your leave has been recorded", greeting: lines[0],
+    introduction: "Your leave has been recorded.", detailsHeading: "Leave details",
+    details, highlight: balanceLine, asOf,
+  })
   return {
     status: "prepared",
     to,
