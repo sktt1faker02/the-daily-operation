@@ -121,7 +121,9 @@ function excelDate(value: string | null, label: string): Date | null {
   if (value === null) return null
   const date = parseISO(value)
   if (Number.isNaN(date.getTime())) throw new Error(`The payroll ${label} date is invalid.`)
-  return date
+  // Excel serializes UTC date parts. Preserve the calendar date shown by the
+  // app instead of exporting local midnight as the previous day in UTC+8.
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
 }
 
 /** Map the values already loaded for the period to plain, workbook-ready rows. */
@@ -248,11 +250,6 @@ export function nonFinalPeriodsNote(periods: PayrollPeriod[]): string | null {
   return names.length ? `Includes periods that are not final: ${names.join(", ")}` : null
 }
 
-function departmentLabel(rows: PayrollDetailRow[]): string {
-  const departments = [...new Set(rows.map((row) => row.department.trim()).filter(Boolean))]
-  return departments.join(", ") || "—"
-}
-
 function sumIncluded(rows: PayrollDetailRow[], key: "grossPay" | "totalDeductions" | "netPay"): number {
   return rows.reduce((total, row) => total + (row.included ? row[key] ?? 0 : 0), 0)
 }
@@ -307,7 +304,7 @@ async function addCombinedDetailsSheet(
   totalRow.font = { bold: true }
 }
 
-/** Create the established single-period Summary and Details workbook. */
+/** Create the single-period Payroll Summary and Payroll Details workbook. */
 async function createSinglePayrollWorkbook(
   period: PayrollPeriod,
   rows: PayrollDetailRow[],
@@ -322,7 +319,7 @@ async function createSinglePayrollWorkbook(
   workbook.subject = "Payroll period details"
   workbook.calcProperties.fullCalcOnLoad = true
 
-  const summary = workbook.addWorksheet("Summary", { views: [{ state: "frozen", ySplit: 1 }] })
+  const summary = workbook.addWorksheet("Payroll Summary", { views: [{ state: "frozen", ySplit: 1 }] })
   const summaryColumns = [
     { header: "Period", width: 28 }, { header: "Start", width: 14 }, { header: "End", width: 14 },
     { header: "Pay date", width: 14 }, { header: "Status", width: 14 }, { header: "Employees", width: 14 },
@@ -355,21 +352,23 @@ async function createSinglePayrollWorkbook(
   for (const column of [7, 8, 9]) summary.getColumn(column).numFmt = '"₱"#,##0.00'
   summary.getColumn(11).numFmt = "mmm d, yyyy h:mm AM/PM"
 
-  const details = workbook.addWorksheet("Details", { views: [{ state: "frozen", ySplit: 4 }] })
-  const detailColumns = columns.filter(({ key }) => key !== "department")
+  const details = workbook.addWorksheet("Payroll Details", { views: [{ state: "frozen", ySplit: 4 }] })
+  const detailColumns = columns
   details.columns = detailColumns.map(({ key, width }) => ({ key, width }))
   details.addRow(["Period", period.a365_name, null, "Status", payrollStatusLabel(period.a365_payrollstatus)])
-  details.addRow(["Pay date", excelDate(period.a365_paydate, "pay"), null, "Department", departmentLabel(rows)])
+  details.addRow(["Pay date", excelDate(period.a365_paydate, "pay")])
   details.addRow([])
   details.addRow(detailColumns.map(({ header }) => header))
   details.mergeCells("B1:C1")
   details.mergeCells("B2:C2")
-  for (const cell of ["A1", "D1", "A2", "D2"]) details.getCell(cell).font = { bold: true }
+  for (const cell of ["A1", "D1", "A2"]) details.getCell(cell).font = { bold: true }
   details.getRow(3).height = 8
-  details.getCell("B2").numFmt = "mmm d, yyyy"
   for (const [index, column] of detailColumns.entries()) {
     if (MONEY_KEYS.has(column.key)) details.getColumn(index + 1).numFmt = '"₱"#,##0.00'
   }
+  // B2:C2 share their style after merging; apply the date format after money
+  // column styles so reduced/custom exports cannot turn Pay date into currency.
+  details.getCell("B2").numFmt = "mmm d, yyyy"
   styleHeader(details.getRow(4))
   details.autoFilter = {
     from: { row: 4, column: 1 },
@@ -418,7 +417,7 @@ export async function createPayrollWorkbook(
   workbook.title = "Payroll export"
   workbook.subject = "Payroll period details"
   workbook.calcProperties.fullCalcOnLoad = true
-  const summary = workbook.addWorksheet("Summary", { views: [{ state: "frozen", ySplit: 1 }] })
+  const summary = workbook.addWorksheet("Payroll Summary", { views: [{ state: "frozen", ySplit: 1 }] })
   summary.columns = [
     { header: "Period", width: 28 }, { header: "Start", width: 14 }, { header: "End", width: 14 },
     { header: "Pay date", width: 14 }, { header: "Status", width: 14 }, { header: "Employees", width: 14 },
@@ -445,30 +444,30 @@ export async function createPayrollWorkbook(
   for (const column of [7, 8, 9]) summary.getColumn(column).numFmt = '"₱"#,##0.00'
   summary.getColumn(11).numFmt = "mmm d, yyyy h:mm AM/PM"
 
-  await addCombinedDetailsSheet(workbook, rows, columns, "Details")
-  const usedNames = new Set(["summary", "details"])
+  await addCombinedDetailsSheet(workbook, rows, columns, "Payroll Details")
+  const usedNames = new Set(["payroll summary", "payroll details"])
   const detailSets = periods.map((period) => ({
     period,
     rows: rows.filter((row) => row.periodId === period.a365_payrollperiodid),
-    sheetName: sanitizeSheetName(period.a365_name, usedNames),
+    sheetName: sanitizeSheetName(`Payroll ${period.a365_name}`, usedNames),
   }))
   for (const { rows: detailRows, sheetName } of detailSets) {
     const details = workbook.addWorksheet(sheetName, { views: [{ state: "frozen", ySplit: 4 }] })
-    const periodSheetColumns = columns.filter(({ key }) => key !== "department")
+    const periodSheetColumns = columns
     details.columns = periodSheetColumns.map(({ width }) => ({ width }))
     const period = detailSets.find((set) => set.sheetName === sheetName)!.period
     details.addRow(["Period", period.a365_name, null, "Status", payrollStatusLabel(period.a365_payrollstatus)])
-    details.addRow(["Pay date", excelDate(period.a365_paydate, "pay"), null, "Department", departmentLabel(detailRows)])
+    details.addRow(["Pay date", excelDate(period.a365_paydate, "pay")])
     details.addRow([])
     details.addRow(periodSheetColumns.map(({ header }) => header))
     details.mergeCells("B1:C1")
     details.mergeCells("B2:C2")
-    details.getCell("B2").numFmt = "mmm d, yyyy"
     details.getRow(3).height = 8
     styleHeader(details.getRow(4))
     for (const [index, column] of periodSheetColumns.entries()) {
       if (MONEY_KEYS.has(column.key)) details.getColumn(index + 1).numFmt = '"₱"#,##0.00'
     }
+    details.getCell("B2").numFmt = "mmm d, yyyy"
     for (let rowIndex = 0; rowIndex < detailRows.length; rowIndex += 1) {
       const row = detailRows[rowIndex]!
       details.addRow(periodSheetColumns.map(({ key }) => row[key]))

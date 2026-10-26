@@ -96,7 +96,7 @@ export function PayslipBreakdown({
             <Row
               label="Other Deductions"
               amount={entry.a365_otherdeductions}
-              detail={reason ? `Reason: ${reason}` : null}
+              detail={has(entry.a365_otherdeductions) && reason ? `Reason: ${reason}` : null}
             />
           )}
           <Row label="Total Deductions" amount={entry.a365_totaldeductions} subtotal />

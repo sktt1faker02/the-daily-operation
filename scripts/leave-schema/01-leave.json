@@ -1,0 +1,103 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.EntityMetadata",
+  "SchemaName": "a365_Leave",
+  "DisplayName": { "LocalizedLabels": [{ "Label": "Leave", "LanguageCode": 1033 }] },
+  "DisplayCollectionName": { "LocalizedLabels": [{ "Label": "Leaves", "LanguageCode": 1033 }] },
+  "Description": { "LocalizedLabels": [{ "Label": "Admin-issued paid and unpaid employee leave. No approval workflow.", "LanguageCode": 1033 }] },
+  "OwnershipType": "UserOwned",
+  "IsActivity": false,
+  "HasActivities": false,
+  "HasNotes": false,
+  "IsAuditEnabled": { "Value": true },
+  "Attributes": [
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.StringAttributeMetadata",
+      "SchemaName": "a365_Name", "DisplayName": { "LocalizedLabels": [{ "Label": "Name", "LanguageCode": 1033 }] },
+      "IsPrimaryName": true, "RequiredLevel": { "Value": "ApplicationRequired" }, "MaxLength": 200,
+      "FormatName": { "Value": "Text" }, "IsAuditEnabled": { "Value": true }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "a365_LeaveType", "DisplayName": { "LocalizedLabels": [{ "Label": "Leave Type", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "OptionSet": { "IsGlobal": false, "OptionSetType": "Picklist", "Options": [
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "VL", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "SL", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Emergency", "LanguageCode": 1033 }] } }
+      ] }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "a365_Benefit", "DisplayName": { "LocalizedLabels": [{ "Label": "Benefit", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "OptionSet": { "IsGlobal": false, "OptionSetType": "Picklist", "Options": [
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Paid", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Unpaid", "LanguageCode": 1033 }] } }
+      ] }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+      "SchemaName": "a365_StartDate", "DisplayName": { "LocalizedLabels": [{ "Label": "Start Date", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "DateTimeBehavior": { "Value": "DateOnly" }, "Format": "DateOnly"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+      "SchemaName": "a365_EndDate", "DisplayName": { "LocalizedLabels": [{ "Label": "End Date", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "DateTimeBehavior": { "Value": "DateOnly" }, "Format": "DateOnly"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DecimalAttributeMetadata",
+      "SchemaName": "a365_Days", "DisplayName": { "LocalizedLabels": [{ "Label": "Days", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true }, "Precision": 2, "MinValue": 0.50
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "a365_LeaveStatus", "DisplayName": { "LocalizedLabels": [{ "Label": "Leave Status", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "OptionSet": { "IsGlobal": false, "OptionSetType": "Picklist", "Options": [
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Issued", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Cancelled", "LanguageCode": 1033 }] } }
+      ] }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+      "SchemaName": "a365_IssuedOn", "DisplayName": { "LocalizedLabels": [{ "Label": "Issued On", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "DateTimeBehavior": { "Value": "UserLocal" }, "Format": "DateAndTime"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "a365_NotificationStatus", "DisplayName": { "LocalizedLabels": [{ "Label": "Notification Status", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "OptionSet": { "IsGlobal": false, "OptionSetType": "Picklist", "Options": [
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Not sent", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Sent", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Failed", "LanguageCode": 1033 }] } }
+      ] }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.MemoAttributeMetadata",
+      "SchemaName": "a365_Note", "DisplayName": { "LocalizedLabels": [{ "Label": "Note", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }, "MaxLength": 2000, "Format": "TextArea"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+      "SchemaName": "a365_CancelledOn", "DisplayName": { "LocalizedLabels": [{ "Label": "Cancelled On", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true },
+      "DateTimeBehavior": { "Value": "UserLocal" }, "Format": "DateAndTime"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.MemoAttributeMetadata",
+      "SchemaName": "a365_CancellationReason", "DisplayName": { "LocalizedLabels": [{ "Label": "Cancellation Reason", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }, "MaxLength": 2000, "Format": "TextArea"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata",
+      "SchemaName": "a365_NotifiedOn", "DisplayName": { "LocalizedLabels": [{ "Label": "Notified On", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true },
+      "DateTimeBehavior": { "Value": "UserLocal" }, "Format": "DateAndTime"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+    "ServerVersion":  "1.0.1.0",
+    "OrdinaryAdmin":  "Not exercised: current connection also has system administration privileges.",
+    "Unverified":  [
+                       "Live deletion commit/rollback and concurrent-call races; no authorized disposable fixtures."
+                   ],
+    "ReadOnlyChecks":  [
+                           "Active synchronous PreOperation guards protect native payroll/employee Delete and immutable receipt writes.",
+                           "Live signed server assembly hash matches the tested local binary.",
+                           "All five existing employee business relationships, including template lines, restrict deletion.",
+                           "Processing period preview validates transaction, status and child enumeration without writes.",
+                           "Entry preview validates period/employee relationships without writes.",
+                           "Employee with business history is rejected by the live API.",
+                           "Direct calls to all three APIs under an existing Payroll Employee identity are rejected before business-data access.",
+                           "Live finalized period and entry deletion calls are rejected.",
+                           "Employee, period, entry and receipt counts unchanged across verification."
+                       ],
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "ActiveSynchronousGuards":  8,
+    "ApiCount":  3,
+    "VerifiedAt":  "2026-10-22T12:03:09.2179582Z",
+    "BusinessDeletes":  0
+}

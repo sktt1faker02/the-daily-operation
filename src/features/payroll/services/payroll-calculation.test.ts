@@ -2,9 +2,23 @@ import { describe, it, expect } from "vitest"
 import {
   round2,
   calculatePayroll,
+  calculatePayrollTotals,
   type StatutoryConfig,
   type PayrollInput,
 } from "./payroll-calculation"
+
+describe("confirmed payroll totals", () => {
+  it.each([
+    { basicPay: 20000, allowances: 0, otherEarnings: 0, unpaidLeave: 3636.36,
+      otherDeductions: 0, sss: 875, philhealth: 500, hdmf: 100, withholdingTax: 0,
+      expected: { grossPay: 20000, totalDeductions: 5111.36, netPay: 14888.64 } },
+    { basicPay: 30000, allowances: 1000, otherEarnings: 500, unpaidLeave: 1000,
+      otherDeductions: 5000, sss: 875, philhealth: 500, hdmf: 100, withholdingTax: 200,
+      expected: { grossPay: 31500, totalDeductions: 7675, netPay: 23825 } },
+  ])("rolls up gross $expected.grossPay and deductions $expected.totalDeductions", ({ expected, ...input }) => {
+    expect(calculatePayrollTotals(input)).toEqual(expected)
+  })
+})
 
 describe("round2", () => {
   it("rounds half up to 2 decimals", () => {

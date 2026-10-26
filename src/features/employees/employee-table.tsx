@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Pencil } from "lucide-react"
+import { ArrowUpDown, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -64,11 +64,13 @@ function SortableHeader({
 export function EmployeeTable({
   employees,
   onEdit,
+  onDelete,
   departmentNames,
   positionNames,
 }: {
   employees: Employee[]
   onEdit: (employee: Employee) => void
+  onDelete?: (employee: Employee) => void
   /** Map of a365_department id → name, for resolving the lookup. */
   departmentNames: Map<string, string>
   /** Map of a365_position id → name, for resolving the lookup. */
@@ -153,18 +155,19 @@ export function EmployeeTable({
           <div className="text-right">
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
+              title="Edit"
               onClick={() => onEdit(row.original)}
               aria-label={`Edit ${row.original.a365_name}`}
             >
               <Pencil className="size-3.5" aria-hidden />
-              Edit
             </Button>
+            {onDelete && <Button variant="ghost" size="icon" title="Delete employee" aria-label={`Delete ${row.original.a365_name}`} className="text-destructive" onClick={() => onDelete(row.original)}><Trash2 className="size-3.5" aria-hidden /></Button>}
           </div>
         ),
       },
     ],
-    [onEdit, departmentNames, positionNames],
+    [onEdit, onDelete, departmentNames, positionNames],
   )
 
   const table = useReactTable({

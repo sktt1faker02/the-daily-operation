@@ -11,6 +11,7 @@ import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./pay
 import type { PayrollEntry, PayrollEntryInputValues } from "../types"
 import { isPeriodEditable } from "../period-status"
 import { payrollPeriodService } from "./payroll-period-service"
+import { parsePayrollEntryInputs } from "./payroll-entry-preview"
 
 const ENTRY_TABLE = "a365_payrollentries"
 
@@ -81,25 +82,6 @@ export async function saveAndCalculateEntry(
   await calculateAndPersist(entryId, read.data, periodEndDate, calculatedByUserId, undefined, values)
 }
 
-function amountFromInput(value: string): number {
-  const trimmed = value.trim()
-  if (trimmed === "") return 0
-  const amount = Number(trimmed)
-  if (!Number.isFinite(amount) || amount < 0) throw new Error("Payroll inputs must be non-negative numbers.")
-  return amount
-}
-
-function calculationInputs(values: PayrollEntryInputValues) {
-  return {
-    basicPay: amountFromInput(values.a365_basicpay),
-    allowances: amountFromInput(values.a365_allowances),
-    otherEarnings: amountFromInput(values.a365_otherearnings),
-    otherDeductions: amountFromInput(values.a365_otherdeductions),
-    unpaidLeaveDays: amountFromInput(values.a365_unpaidleavedays),
-    withholdingTax: amountFromInput(values.a365_withholdingtax),
-  }
-}
-
 /** Read-only context for the editor's preview; never persists a calculation. */
 export async function getPayrollCalculationContext(employeeId: string, periodEndDate: string) {
   const [employee, config] = await Promise.all([
@@ -114,7 +96,7 @@ export function previewPayrollEntry(
   values: PayrollEntryInputValues,
   context: Awaited<ReturnType<typeof getPayrollCalculationContext>>,
 ): PayrollEntry {
-  const input = calculationInputs(values)
+  const input = parsePayrollEntryInputs(values)
   const result = calculatePayroll({ ...input, monthlyBasicSalary: context.monthlyBasicSalary }, context.config)
   return {
     ...entry,
@@ -148,7 +130,7 @@ async function calculateAndPersist(
   if (!employeeId) throw new Error("Payroll entry has no linked employee.")
   const employee = await employeeService.get(employeeId)
 
-  const edited = editedValues ? calculationInputs(editedValues) : null
+  const edited = editedValues ? parsePayrollEntryInputs(editedValues) : null
 
   const input: PayrollInput = {
     monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0,

@@ -105,6 +105,13 @@ describe("buildPayrollDetailRows", () => {
     expect(row?.employee).toBe("")
     expect(row?.department).toBe("")
   })
+
+  it("preserves calendar dates at UTC midnight so Excel does not shift them to the previous day", () => {
+    const [row] = buildPayrollDetailRows(period, [entry()])
+    expect(row.start.toISOString()).toBe("2026-10-01T00:00:00.000Z")
+    expect(row.end.toISOString()).toBe("2026-10-15T00:00:00.000Z")
+    expect(row.payDate?.toISOString()).toBe("2026-10-20T00:00:00.000Z")
+  })
 })
 
 describe("payrollExportFileName", () => {
@@ -238,10 +245,10 @@ describe("Stage 5 export safeguards", () => {
   })
 })
 
-it("creates one formatted Details sheet with totals for included entries only", async () => {
+it("creates Payroll Summary and Payroll Details with employee departments and a date-formatted saved pay date", async () => {
   const rows = buildPayrollDetailRows(period, [
     entry({ a365_basicpay: 100, a365_grosspay: 100, a365_isincluded: true }),
-    entry({ a365_basicpay: 250, a365_isincluded: false, a365_payrollentryid: "entry-2" }),
+    entry({ a365_basicpay: 250, a365_isincluded: false, a365_payrollentryid: "entry-2", a365_departmentname: "IT" }),
   ])
   const blob = await createPayrollWorkbook(
     period,
@@ -254,8 +261,8 @@ it("creates one formatted Details sheet with totals for included entries only", 
   const workbook = new Workbook()
   await workbook.xlsx.load(await blob.arrayBuffer())
 
-  const sheet = workbook.getWorksheet("Details")
-  const summary = workbook.getWorksheet("Summary")
+  const sheet = workbook.getWorksheet("Payroll Details")
+  const summary = workbook.getWorksheet("Payroll Summary")
   expect(sheet).toBeDefined()
   expect(summary).toBeDefined()
   expect(workbook.worksheets).toHaveLength(2)
@@ -277,15 +284,17 @@ it("creates one formatted Details sheet with totals for included entries only", 
   expect(sheet?.getCell("E1").value).toBe("Ready")
   expect(sheet?.getCell("A2").value).toBe("Pay date")
   expect(sheet?.getCell("B2").value).toBeInstanceOf(Date)
+  expect((sheet?.getCell("B2").value as Date).toISOString().slice(0, 10)).toBe(period.a365_paydate)
   expect(sheet?.getCell("B2").numFmt).toBe("mmm d, yyyy")
-  expect(sheet?.getCell("D2").value).toBe("Department")
-  expect(sheet?.getCell("E2").value).toBe("Operations")
-  expect(sheet?.getRow(4).getCell(16).value).toBe("Net Pay")
+  expect(sheet?.getCell("D2").value).toBeNull()
+  expect(sheet?.getCell("E2").value).toBeNull()
+  expect(sheet?.getRow(4).getCell(17).value).toBe("Net Pay")
   expect(
-    Array.from({ length: 16 }, (_, index) => sheet?.getRow(4).getCell(index + 1).value),
+    Array.from({ length: 17 }, (_, index) => sheet?.getRow(4).getCell(index + 1).value),
   ).toEqual([
     "Employee ID",
     "Employee",
+    "Department",
     "Basic Pay",
     "Allowances",
     "Other Earnings",
@@ -302,11 +311,13 @@ it("creates one formatted Details sheet with totals for included entries only", 
     "Net Pay",
   ])
   expect(sheet?.views[0]?.state).toBe("frozen")
-  expect(sheet?.autoFilter).toBe("A4:P6")
-  expect(sheet?.getCell("C5").value).toBe(100)
-  expect(sheet?.getCell("C5").numFmt).toBe('"₱"#,##0.00')
-  expect(sheet?.getCell("C7").value).toEqual({ formula: "SUM(C5)" })
-  expect(sheet?.getCell("H7").value).toEqual({ formula: "SUM(H5)" })
+  expect(sheet?.autoFilter).toBe("A4:Q6")
+  expect(sheet?.getCell("C5").value).toBe("Operations")
+  expect(sheet?.getCell("C6").value).toBe("IT")
+  expect(sheet?.getCell("D5").value).toBe(100)
+  expect(sheet?.getCell("D5").numFmt).toBe('"₱"#,##0.00')
+  expect(sheet?.getCell("D7").value).toEqual({ formula: "SUM(D5)" })
+  expect(sheet?.getCell("I7").value).toEqual({ formula: "SUM(I5)" })
   expect(sheet?.getRow(4).font.bold).toBe(true)
   expect(sheet?.getRow(7).font.bold).toBe(true)
   expect(sheet?.getRow(4).values).not.toContain("Bank Account Number")
@@ -321,9 +332,79 @@ it("writes bank fields into Details only when the bank group is selected", async
   const workbook = new Workbook()
   await workbook.xlsx.load(await blob.arrayBuffer())
 
-  const sheet = workbook.getWorksheet("Details")
+  const sheet = workbook.getWorksheet("Payroll Details")
   const headerValues = sheet?.getRow(4).values
   const accountColumn = Array.isArray(headerValues) ? headerValues.indexOf("Bank Account Number") : -1
   expect(accountColumn).toBeGreaterThan(0)
   expect(sheet?.getRow(5).getCell(accountColumn).value).toBe("1234567890")
+})
+
+it("applies Payroll sheet names, employee departments and saved pay dates to batch exports", async () => {
+  const second: PayrollPeriod = {
+    ...period, a365_payrollperiodid: "period-2", a365_name: "October 16-31, 2026",
+    a365_periodstart: "2026-10-16", a365_periodend: "2026-10-31", a365_paydate: "2026-11-05",
+  }
+  const periods = [period, second]
+  const rows = buildMultiPeriodRows(periods, new Map([
+    [period.a365_payrollperiodid, [entry({ a365_departmentname: "Operations" })]],
+    [second.a365_payrollperiodid, [entry({ a365_departmentname: "IT" })]],
+  ]))
+  const blob = await createPayrollWorkbook(periods, rows, selectColumns("full", DEFAULT_PAYROLL_EXPORT_GROUPS), "Payroll Admin")
+  const { Workbook } = await import("exceljs")
+  const workbook = new Workbook()
+  await workbook.xlsx.load(await blob.arrayBuffer())
+
+  expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
+    "Payroll Summary", "Payroll Details", `Payroll ${period.a365_name}`, `Payroll ${second.a365_name}`,
+  ])
+  for (const [index, target] of periods.entries()) {
+    const sheet = workbook.getWorksheet(`Payroll ${target.a365_name}`)!
+    expect((sheet.getCell("B2").value as Date).toISOString()).toBe(`${target.a365_paydate}T00:00:00.000Z`)
+    expect(sheet.getCell("B2").numFmt).toBe("mmm d, yyyy")
+    expect(sheet.getCell("D2").value).toBeNull()
+    expect(sheet.getCell("E2").value).toBeNull()
+    expect(sheet.getCell("C4").value).toBe("Department")
+    expect(sheet.getCell("C5").value).toBe(index === 0 ? "Operations" : "IT")
+    expect(sheet.autoFilter).toBe("A4:Q5")
+  }
+  const combined = workbook.getWorksheet("Payroll Details")!
+  expect(combined.getCell("H1").value).toBe("Department")
+  expect(combined.getCell("H2").value).toBe("Operations")
+  expect(combined.getCell("H3").value).toBe("IT")
+  expect((combined.getCell("D2").value as Date).toISOString()).toBe("2026-10-20T00:00:00.000Z")
+  expect((combined.getCell("D3").value as Date).toISOString()).toBe("2026-11-05T00:00:00.000Z")
+  const summary = workbook.getWorksheet("Payroll Summary")!
+  expect((summary.getCell("D2").value as Date).toISOString()).toBe("2026-10-20T00:00:00.000Z")
+  expect((summary.getCell("D3").value as Date).toISOString()).toBe("2026-11-05T00:00:00.000Z")
+})
+
+it.each([1, 2])("keeps merged pay dates formatted as dates when money columns occupy B/C (%i periods)", async (count) => {
+  const periods = Array.from({ length: count }, (_, index) => ({ ...period, a365_payrollperiodid: `period-${index + 1}` }))
+  const rows = buildMultiPeriodRows(periods, new Map(periods.map((target) => [target.a365_payrollperiodid, [entry()]])))
+  const columns = selectColumns("custom", {
+    employeeInfo: false, earnings: true, governmentDeductions: false, otherDeductions: false, bankDetails: false,
+  })
+  const blob = await createPayrollWorkbook(periods, rows, columns, "Payroll Admin")
+  const { Workbook } = await import("exceljs")
+  const workbook = new Workbook()
+  await workbook.xlsx.load(await blob.arrayBuffer())
+  const periodSheets = workbook.worksheets.filter((sheet) => sheet.getCell("A1").value === "Period" && sheet.getCell("A2").value === "Pay date")
+  expect(periodSheets).toHaveLength(count)
+  for (const sheet of periodSheets) {
+    expect(sheet.name.startsWith("Payroll ")).toBe(true)
+    expect(sheet.name.length).toBeLessThanOrEqual(31)
+    expect(sheet.getCell("B2").numFmt).toBe("mmm d, yyyy")
+    expect((sheet.getCell("B2").value as Date).toISOString()).toBe("2026-10-20T00:00:00.000Z")
+    expect(sheet.getCell("B5").numFmt).toBe('"₱"#,##0.00')
+  }
+})
+
+it("leaves a missing pay date blank instead of substituting the period end date", async () => {
+  const target = { ...period, a365_paydate: null }
+  const blob = await createPayrollWorkbook(target, buildPayrollDetailRows(target, [entry()]), selectColumns("full", DEFAULT_PAYROLL_EXPORT_GROUPS), "Payroll Admin")
+  const { Workbook } = await import("exceljs")
+  const workbook = new Workbook()
+  await workbook.xlsx.load(await blob.arrayBuffer())
+  expect(workbook.getWorksheet("Payroll Details")?.getCell("B2").value).toBeNull()
+  expect(workbook.getWorksheet("Payroll Summary")?.getCell("D2").value).toBeNull()
 })

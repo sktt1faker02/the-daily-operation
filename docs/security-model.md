@@ -164,6 +164,21 @@ end-dating, not deletion, so historical payroll still resolves correctly.
 
 ## 7. Deletion & correction controls
 
+**2026-10-22 owner-authorized addition:** Processing periods and individual
+Processing entries can be deleted only through the validated deletion APIs,
+with confirmation and a durable receipt. Employee master deletion is rejected
+when payroll, leave or template references exist. Ready/Paid/Locked records
+remain protected. See [deletion setup and verification](payroll-deletion-checklist.md).
+
+**Observed environment drift:** the live solution export already contains
+Organization-level payroll period/entry Delete grants for Payroll Admin, unlike
+the original design below. This implementation does not alter those grants.
+Synchronous server Delete guards reject direct deletes regardless of a caller's
+existing Delete privilege; transactional children of the matching, authorized
+API are required. Receipt writes are also guarded and receipts cannot be edited
+or deleted through ordinary requests. The original no-Delete role design below
+remains the recommended privilege baseline, rather than a claim about live grants.
+
 - **No Delete privilege** on `a365_payrollperiod` / `a365_payrollentry` for
   either custom role. Payroll is not deleted to fix mistakes.
 - Corrections to finalized payroll use an explicit, auditable
