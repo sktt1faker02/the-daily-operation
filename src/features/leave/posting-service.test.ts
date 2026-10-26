@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { A365_LeaveCommandService } from "@/generated/services/A365_LeaveCommandService"
 import { Office365OutlookService } from "@/generated/services/Office365OutlookService"
 import { LeavePostingError, postingService } from "./posting-service"
+import { A365_leavecredittransactionsService } from "@/generated/services/A365_leavecredittransactionsService"
+import type { A365_leavecredittransactions } from "@/generated/models/A365_leavecredittransactionsModel"
 
 vi.mock("@/generated/services/A365_LeaveCommandService", () => ({ A365_LeaveCommandService: { a365_LeaveCommand: vi.fn() } }))
 vi.mock("@/generated/services/Office365OutlookService", () => ({ Office365OutlookService: { SendEmailV2: vi.fn() } }))
+vi.mock("@/generated/services/A365_leavecredittransactionsService", () => ({ A365_leavecredittransactionsService: { getAll: vi.fn() } }))
 const employeeId = "10000000-0000-0000-0000-000000000001"
 const operationId = "20000000-0000-0000-0000-000000000002"
 const values = { employee: { a365_employeeid: employeeId, a365_name: "Test Employee" }, leaveType: "749910002", benefit: "749910000", startDate: "2026-10-22", endDate: "2026-10-22", note: "Internal note" }
@@ -12,9 +15,54 @@ const saved = { a365_leaveid: operationId, a365_name: "Test leave", _a365_employ
 const success = (data: unknown) => ({ success: true, data: { Response: JSON.stringify(data) } })
 const readRequest = (index: number) => JSON.parse(vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mock.calls[index][0]) as Record<string, unknown>
 
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  vi.mocked(A365_leavecredittransactionsService.getAll).mockResolvedValue({ success: true, data: [] })
+})
 
 describe("Transactional Leave client boundary", () => {
+  it("reads the complete post-commit balance through the Leave page's service and refreshes it on resend", async () => {
+    const movement = (id: string, days: number) => ({ a365_leavecredittransactionid: id,
+      _a365_employee_value: employeeId, a365_year: 2026, a365_creditpool: 749910000, a365_days: days } as A365_leavecredittransactions)
+    vi.mocked(A365_leavecredittransactionsService.getAll)
+      .mockResolvedValueOnce({ success: true, data: [movement("grant", 10)], skipToken: "next" })
+      .mockResolvedValueOnce({ success: true, data: [movement("debit", -1)] })
+      .mockResolvedValueOnce({ success: true, data: [movement("current", 7.5)] })
+    const ready = { attempt: "attempt-1", record: saved, employee: {
+      a365_employeeid: employeeId, a365_name: "Test Employee", a365_workemail: "test@example.invalid" } }
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand)
+      .mockResolvedValueOnce(success(saved))
+      .mockResolvedValueOnce(success(ready))
+      .mockResolvedValueOnce(success({ outcome: "accepted" }))
+      .mockResolvedValueOnce(success({ ...ready, attempt: "attempt-2" }))
+      .mockResolvedValueOnce(success({ outcome: "accepted" }))
+    vi.mocked(Office365OutlookService.SendEmailV2).mockImplementation(async () => {
+      expect(A365_leavecredittransactionsService.getAll).toHaveBeenCalled()
+      return { success: true, data: undefined }
+    })
+    await postingService.submit(values, operationId)
+    expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[0][0].Body).toContain("Remaining VL balance: 9.00 days")
+    expect(A365_leavecredittransactionsService.getAll).toHaveBeenNthCalledWith(2, expect.objectContaining({ skipToken: "next" }))
+    await postingService.notify(operationId, true)
+    expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[1][0].Body).toContain("Remaining VL balance: 7.50 days")
+    expect(A365_leavecredittransactionsService.getAll).toHaveBeenCalledWith(expect.objectContaining({ filter: `_a365_employee_value eq ${employeeId} and a365_year eq 2026` }))
+  })
+
+  it("still sends when balances fail, omits the balance and logs no sensitive details", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      vi.mocked(A365_leavecredittransactionsService.getAll).mockRejectedValue(new Error("Sensitive backend details"))
+      vi.mocked(A365_LeaveCommandService.a365_LeaveCommand)
+        .mockResolvedValueOnce(success({ attempt: "attempt-1", record: saved, employee: {
+          a365_employeeid: employeeId, a365_name: "Test Employee", a365_workemail: "test@example.invalid" } }))
+        .mockResolvedValueOnce(success({ outcome: "accepted" }))
+      vi.mocked(Office365OutlookService.SendEmailV2).mockResolvedValue({ success: true, data: undefined })
+      expect(await postingService.notify(operationId)).toBe("accepted")
+      expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[0][0].Body).not.toContain("Remaining")
+      expect(warn).toHaveBeenCalledExactlyOnceWith("Leave email balance unavailable; sending without a balance.")
+    } finally { warn.mockRestore() }
+  })
+
   it("requests a read-only server preview and verifies complete period values", async () => {
     const preview = { policyVersion: "2026-10-22.1", periodStart: "2026-04-01", periodEnd: "2027-03-31", VL: 5, SL: 5, pendingVL: 5, pendingSL: 5, days: 1, benefit: 749910000, pool: "VL" }
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success(preview))

@@ -6,6 +6,40 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-26 — Style recorded-leave email and include remaining balance
+
+Implemented on `feature/leave-email-template`. The existing notification now
+uses a responsive white card, navy heading, readable leave details, highlighted
+remaining balance and muted Automations 365 footer. Preserves subject, stored
+Work Email, snapshot details and notification-attempt/unknown-outcome safeguards.
+The composer escapes dynamic values and uses inline HTML tables without remote
+resources. Style settings are centralized in `leaveEmailStyle`.
+
+`posting-service.ts` refreshes the same complete calendar-year ledger balances
+as the Leave page after commit and on each actual retry, scoped to the recorded
+employee and leave start year. The existing pool mapping handles VL, SL and
+Emergency. No entitlement formulas or second leave debit are introduced. A
+failed balance read omits it and logs a generic warning; it never blocks email
+or rolls back the Leave. Notification-only retry does not recreate the Leave.
+
+Changed the notification template/service and their tests, added
+`scripts/preview-leave-email.mjs`, and documented the verification checklist in
+`docs/leave-email-notification.md` and the existing Leave implementation checklist.
+Generate a fictional local preview with `node scripts/preview-leave-email.mjs`;
+HTML/screenshots under `.playwright-cli/leave-email/` remain ignored.
+
+Verification: 33 focused tests passed. Full app suite passed all 335 tests in
+35 files with `npm.cmd test -- src --maxWorkers=2 --testTimeout=60000`.
+Lint and production build passed (existing bundle-size warning). Edge layout
+checks passed at 1000px, 390px and 320px; inspected the mobile screenshot.
+Whitespace and documentation paths checked. No new dependencies or generated
+source, schema, role, server-assembly, Payroll or financial-record changes.
+
+Remaining: actual Outlook/Gmail/mobile mail light/dark-mode rendering, live
+balance/send/retry verification with an approved recipient and deployment.
+Browser checks use fictional data, block network requests and send no email.
+No commit, push or deployment performed.
+
 ### 2026-10-23 - Style new Leave Conversion confirmation and align header action
 
 Replaced new-transaction native confirm with the existing compact in-app Dialog.

@@ -11,6 +11,53 @@ const record: LeaveRecord = {
 }
 
 describe("Recorded Leave email composition", () => {
+  it.each([
+    [749910000, "VL", "9.17"],
+    [749910001, "SL", "4.50"],
+    [749910002, "VL", "9.17"],
+  ])("shows the remaining pool for leave type %s", (type, pool, expected) => {
+    const draft = buildRecordedLeaveEmail({ ...record, a365_leavetype: type as LeaveRecord["a365_leavetype"] }, employee,
+      { balances: { VL: 9.17, SL: 4.5 }, asOf: "2026-10-26" })
+    if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
+    const line = `Remaining ${pool} balance: ${expected} days (as of Oct 26, 2026)`
+    expect(draft.html).toContain(line)
+    expect(draft.text).toContain(line)
+    expect(draft.html).toContain("© 2026 Automations 365")
+  })
+
+  it("uses the same remaining balance for an unpaid record without subtracting its days again", () => {
+    const draft = buildRecordedLeaveEmail(record, employee,
+      { balances: { VL: 3, SL: 5 }, asOf: "2026-10-26" })
+    if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
+    expect(draft.text).toContain("Benefit: Unpaid")
+    expect(draft.text).toContain("Remaining VL balance: 3.00 days")
+  })
+
+  it("omits unavailable balances and keeps a verified zero", () => {
+    for (const balances of [undefined, { VL: Number.NaN, SL: 5 }]) {
+      const draft = buildRecordedLeaveEmail(record, employee, { balances, asOf: "2026-10-26" })
+      if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
+      expect(draft.html).not.toMatch(/Remaining|undefined|NaN/)
+    }
+    const zero = buildRecordedLeaveEmail(record, employee, { balances: { VL: 0, SL: 5 }, asOf: "2026-10-26" })
+    if (zero.status !== "prepared") throw new Error("Expected a prepared draft.")
+    expect(zero.text).toContain("Remaining VL balance: 0.00 days")
+  })
+
+  it("renders a self-contained email layout with escaped dynamic content", () => {
+    const draft = buildRecordedLeaveEmail(record, { ...employee, a365_name: '<img src=x onerror="alert(1)"> & Test' }, { asOf: "2026-10-26" })
+    if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
+    const document = new DOMParser().parseFromString(draft.html, "text/html")
+    expect(document.querySelector("h1")?.textContent).toBe("Your leave has been recorded")
+    expect(document.querySelectorAll("li")).toHaveLength(5)
+    expect(document.querySelector("body")?.getAttribute("bgcolor")).toBe("#f3f5f8")
+    expect(document.querySelector('table[style*="max-width:600px"]')).not.toBeNull()
+    expect(document.querySelector("script,img,link,style,iframe")).toBeNull()
+    expect(draft.html).toContain("&lt;img")
+    expect(draft.html).toContain("&amp; Test")
+    expect(document.body.textContent).toContain("This is an automated notification from The Daily Operation.")
+  })
+
   it("uses the linked employee's stored email and snapshot, escapes HTML and excludes internal notes", () => {
     const draft = buildRecordedLeaveEmail(record, employee)
     expect(draft.status).toBe("prepared")

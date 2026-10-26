@@ -1,5 +1,16 @@
 # Leave application implementation — 2026-10-22
 
+## Recorded-leave email enhancement — 2026-10-26
+
+Implemented locally on `feature/leave-email-template`: a styled HTML card and
+fresh remaining VL/SL balance for the selected type, reusing the Leave page's
+complete calendar-year balance reader and existing Emergency-to-VL mapping.
+Sends/retries read the balance after commit; failures omit it without blocking
+the email. Subject, recipient, posting/attempt guards and all business rules
+remain intact. No real emails, records, schema/role changes or deployment.
+See [scope, verification and fictional preview](leave-email-notification.md).
+Actual Outlook/Gmail delivery and dark-mode rendering remain unverified.
+
 ## Annual Leave Conversion editing — 2026-10-23
 
 New-transaction UI follow-up: creation now uses the compact in-app confirmation
