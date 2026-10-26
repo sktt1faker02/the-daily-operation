@@ -1967,3 +1967,44 @@ in the application payslip and live preview; hide the section when empty.
 - Live Power Apps host and direct Dataverse security verification require testing
   as the appropriate users. No deployment performed.
 - PDF comments retain their existing behavior, per the app-only scope.
+
+### 2026-10-26 — Shared mailbox for Leave and payslip notifications
+
+**Request / business outcome**
+
+Use `thedailyoperation@automations365.com` as the visible sender for both Leave
+and payslip-ready notifications. The owner confirmed mailbox permissions were
+already granted by the administrator.
+
+**Files / changes**
+
+- `src/lib/notification-email.ts`: one shared sender address.
+- `src/features/leave/posting-service.ts` and
+  `src/features/payroll/services/payslip-ready-notification-service.ts`: use the
+  existing generated `SharedMailboxSendEmailV2` operation with `MailboxAddress`.
+- Colocated service tests: verify the exact mailbox for initial sends and manual
+  retries, retaining recipient, authorization, commit and uncertain-outcome checks.
+- `README.md`: document sender location and Outlook connection permissions.
+- Subjects, email bodies, employee Work Email recipients, notification timing,
+  failure handling and retry rules remain unchanged. No schema, security role,
+  generated file, payroll calculation or UI changes.
+
+**Verification checklist and results**
+
+- [x] Both notification types use the requested shared mailbox.
+- [x] Leave Resend and payslip retries use the same sender.
+- [x] All 22 targeted service tests pass, including failures and access guards.
+- [x] Full suite: 395/395 tests passed using
+  `npm.cmd test -- --maxWorkers=1 --testTimeout=15000` (bounded worker count and
+  per-test allowance avoid the load-related timeouts observed earlier).
+- [x] `npm.cmd run lint`: passed.
+- [x] `npm.cmd run build`: passed with existing large-chunk warnings.
+- [x] `git diff --check`: passed.
+
+**Remaining**
+
+- No live emails sent and no deployment performed. Verify the visible From
+  address and mailbox permissions in the deployed Power Apps host; local mocks
+  cannot verify Exchange permission propagation or actual delivery.
+- Browser checks are not applicable to this transport-only change; UI and
+  templates are unchanged, and their regression tests run in the full suite.

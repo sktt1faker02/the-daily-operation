@@ -6,7 +6,7 @@ import { A365_leavecredittransactionsService } from "@/generated/services/A365_l
 import type { A365_leavecredittransactions } from "@/generated/models/A365_leavecredittransactionsModel"
 
 vi.mock("@/generated/services/A365_LeaveCommandService", () => ({ A365_LeaveCommandService: { a365_LeaveCommand: vi.fn() } }))
-vi.mock("@/generated/services/Office365OutlookService", () => ({ Office365OutlookService: { SendEmailV2: vi.fn() } }))
+vi.mock("@/generated/services/Office365OutlookService", () => ({ Office365OutlookService: { SharedMailboxSendEmailV2: vi.fn() } }))
 vi.mock("@/generated/services/A365_leavecredittransactionsService", () => ({ A365_leavecredittransactionsService: { getAll: vi.fn() } }))
 const employeeId = "10000000-0000-0000-0000-000000000001"
 const operationId = "20000000-0000-0000-0000-000000000002"
@@ -36,15 +36,17 @@ describe("Transactional Leave client boundary", () => {
       .mockResolvedValueOnce(success({ outcome: "accepted" }))
       .mockResolvedValueOnce(success({ ...ready, attempt: "attempt-2" }))
       .mockResolvedValueOnce(success({ outcome: "accepted" }))
-    vi.mocked(Office365OutlookService.SendEmailV2).mockImplementation(async () => {
+    vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mockImplementation(async () => {
       expect(A365_leavecredittransactionsService.getAll).toHaveBeenCalled()
       return { success: true, data: undefined }
     })
     await postingService.submit(values, operationId)
-    expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[0][0].Body).toContain("Remaining VL balance: 9.00 days")
+    expect(vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mock.calls[0][0].Body).toContain("Remaining VL balance: 9.00 days")
     expect(A365_leavecredittransactionsService.getAll).toHaveBeenNthCalledWith(2, expect.objectContaining({ skipToken: "next" }))
     await postingService.notify(operationId, true)
-    expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[1][0].Body).toContain("Remaining VL balance: 7.50 days")
+    expect(vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mock.calls.map(([message]) => message.MailboxAddress))
+      .toEqual(["thedailyoperation@automations365.com", "thedailyoperation@automations365.com"])
+    expect(vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mock.calls[1][0].Body).toContain("Remaining VL balance: 7.50 days")
     expect(A365_leavecredittransactionsService.getAll).toHaveBeenCalledWith(expect.objectContaining({ filter: `_a365_employee_value eq ${employeeId} and a365_year eq 2026` }))
   })
 
@@ -56,9 +58,9 @@ describe("Transactional Leave client boundary", () => {
         .mockResolvedValueOnce(success({ attempt: "attempt-1", record: saved, employee: {
           a365_employeeid: employeeId, a365_name: "Test Employee", a365_workemail: "test@example.invalid" } }))
         .mockResolvedValueOnce(success({ outcome: "accepted" }))
-      vi.mocked(Office365OutlookService.SendEmailV2).mockResolvedValue({ success: true, data: undefined })
+      vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mockResolvedValue({ success: true, data: undefined })
       expect(await postingService.notify(operationId)).toBe("accepted")
-      expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[0][0].Body).not.toContain("Remaining")
+      expect(vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mock.calls[0][0].Body).not.toContain("Remaining")
       expect(warn).toHaveBeenCalledExactlyOnceWith("Leave email balance unavailable; sending without a balance.")
     } finally { warn.mockRestore() }
   })
@@ -73,7 +75,7 @@ describe("Transactional Leave client boundary", () => {
   it("does not send email when source commit is unconfirmed", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockRejectedValue(new Error("Network timeout"))
     await expect(postingService.submit(values, operationId)).rejects.toMatchObject({ uncertain: true })
-    expect(Office365OutlookService.SendEmailV2).not.toHaveBeenCalled()
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
   })
   it("uses the same operation identity on an uncertain retry", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand)
@@ -84,12 +86,12 @@ describe("Transactional Leave client boundary", () => {
     const done = await postingService.submit(values, operationId)
     expect(done.record.a365_leaveid).toBe(operationId)
     expect(readRequest(0)).toEqual(readRequest(1))
-    expect(Office365OutlookService.SendEmailV2).not.toHaveBeenCalled()
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
   })
   it("keeps a malformed committed-source response uncertain so the form preserves its operation identity", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ ...saved, a365_leaveid: "invalid" }))
     await expect(postingService.submit(values, operationId)).rejects.toMatchObject({ uncertain: true })
-    expect(Office365OutlookService.SendEmailV2).not.toHaveBeenCalled()
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
   })
   it("distinguishes server validation from unknown outcomes without exposing raw details", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockRejectedValue(new Error('LEAVE: These dates overlap an Issued leave record.'))
@@ -101,14 +103,14 @@ describe("Transactional Leave client boundary", () => {
       .mockResolvedValueOnce(success(saved))
       .mockResolvedValueOnce(success({ attempt: "attempt-1", record: saved, employee: { a365_employeeid: employeeId, a365_name: "Test Employee", a365_workemail: "test@example.invalid" } }))
       .mockResolvedValueOnce(success({ outcome: "accepted" }))
-    vi.mocked(Office365OutlookService.SendEmailV2).mockImplementation(async () => {
+    vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mockImplementation(async () => {
       expect(committed).toHaveBeenCalledOnce()
       expect(readRequest(1).command).toBe("prepareEmail")
       return { success: true, data: undefined }
     })
     expect((await postingService.submit(values, operationId, committed)).notification).toBe("accepted")
-    expect(Office365OutlookService.SendEmailV2).toHaveBeenCalledWith(expect.objectContaining({ To: "test@example.invalid", Subject: "Your leave has been recorded" }))
-    expect(vi.mocked(Office365OutlookService.SendEmailV2).mock.calls[0][0].Body).not.toContain("Internal note")
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).toHaveBeenCalledWith(expect.objectContaining({ MailboxAddress: "thedailyoperation@automations365.com", To: "test@example.invalid", Subject: "Your leave has been recorded" }))
+    expect(vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mock.calls[0][0].Body).not.toContain("Internal note")
     expect(readRequest(2)).toMatchObject({ command: "completeEmail", operationId, attempt: "attempt-1", outcome: "accepted" })
   })
   it("preserves the source and marks missing stored email as Failed", async () => {
@@ -120,17 +122,17 @@ describe("Transactional Leave client boundary", () => {
     expect(result.record.a365_leaveid).toBe(operationId)
     expect(result.notification).toBe("failed")
     expect(readRequest(2).outcome).toBe("failed")
-    expect(Office365OutlookService.SendEmailV2).not.toHaveBeenCalled()
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
   })
   it("records an uncertain send instead of blindly resending or failing the source", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand)
       .mockResolvedValueOnce(success(saved))
       .mockResolvedValueOnce(success({ attempt: "attempt-1", record: saved, employee: { a365_employeeid: employeeId, a365_name: "Test Employee", a365_workemail: "test@example.invalid" } }))
       .mockResolvedValueOnce(success({ outcome: "unknown" }))
-    vi.mocked(Office365OutlookService.SendEmailV2).mockRejectedValue(new Error("Timeout after send"))
+    vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mockRejectedValue(new Error("Timeout after send"))
     expect((await postingService.submit(values, operationId)).notification).toBe("unknown")
     expect(readRequest(2).outcome).toBe("unknown")
-    expect(Office365OutlookService.SendEmailV2).toHaveBeenCalledOnce()
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).toHaveBeenCalledOnce()
   })
   it("notification-only retry never invokes the issue command", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ alreadySent: true, outcome: "accepted" }))

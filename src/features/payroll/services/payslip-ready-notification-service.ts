@@ -3,6 +3,7 @@ import { WhoAmIService } from "@/generated/services/WhoAmIService"
 import { getCurrentUserRoles } from "./security-service"
 import { payrollPeriodService } from "./payroll-period-service"
 import { Office365OutlookService } from "@/generated/services/Office365OutlookService"
+import { notificationMailboxAddress } from "@/lib/notification-email"
 import { buildPayslipReadyEmail, type PayslipEmailEmployee } from "../payslip-ready-email"
 import { isVisibleToEmployee } from "../period-status"
 import { PAYROLL_ENTRY_TABLE } from "../types"
@@ -121,7 +122,7 @@ export async function sendPayslipReadyNotifications(request: PayslipNotification
       result.status = "unknown"
       result.detail = "Send outcome uncertain. Check the sending account before retrying."
       try {
-        const sent = await Office365OutlookService.SendEmailV2({ To: draft.to, Subject: draft.subject, Body: draft.html, Importance: "Normal" })
+        const sent = await Office365OutlookService.SharedMailboxSendEmailV2({ MailboxAddress: notificationMailboxAddress, To: draft.to, Subject: draft.subject, Body: draft.html, Importance: "Normal" })
         if (sent.success) {
           result.status = "accepted"
           result.detail = "Accepted by the sending service."

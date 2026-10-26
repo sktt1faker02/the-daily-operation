@@ -1,5 +1,6 @@
 import { A365_LeaveCommandService } from "@/generated/services/A365_LeaveCommandService"
 import { Office365OutlookService } from "@/generated/services/Office365OutlookService"
+import { notificationMailboxAddress } from "@/lib/notification-email"
 import { buildRecordedLeaveEmail, type LeaveEmailContext } from "./notification-template"
 import { dateOnly, requireGuid } from "./rules"
 import { leaveService } from "./leave-service"
@@ -104,7 +105,7 @@ export const postingService = {
     let outcome: NotificationOutcome = "failed"
     if (draft.status === "prepared") {
       try {
-        const sent = await Office365OutlookService.SendEmailV2({ To: draft.to, Subject: draft.subject, Body: draft.html, Importance: "Normal" })
+        const sent = await Office365OutlookService.SharedMailboxSendEmailV2({ MailboxAddress: notificationMailboxAddress, To: draft.to, Subject: draft.subject, Body: draft.html, Importance: "Normal" })
         outcome = sent.success ? "accepted" : "unknown"
       } catch { outcome = "unknown" }
     }

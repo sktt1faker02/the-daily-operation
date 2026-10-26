@@ -1,3 +1,6 @@
+/** Shared sender for Leave and payslip notifications, including manual retries. */
+export const notificationMailboxAddress = "thedailyoperation@automations365.com"
+
 /** Shared email-safe layout for operational notifications. */
 export const notificationEmailStyle = {
   page: "#f3f5f8", card: "#ffffff", border: "#e3e6ea", title: "#3b3b6b",
