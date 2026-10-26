@@ -56,7 +56,8 @@ Generate a fictional preview without contacting Dataverse or sending an email:
 node scripts/preview-leave-email.mjs
 ```
 
-Open `.playwright-cli/leave-email/preview.html`. Outputs are ignored by Git.
+Open `.playwright-cli/leave-email/preview.html`. Outputs and the renderer's
+isolated Vite cache are ignored by Git; the running app's cache is preserved.
 Optionally pass the path to an installed Playwright `index.mjs` to check Edge
 desktop/mobile layouts and save screenshots in the same ignored directory.
 The runner blocks network requests and never calls a mail connector.

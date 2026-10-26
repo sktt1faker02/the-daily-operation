@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url"
 import { createServer } from "vite"
 
 const output = resolve(".playwright-cli/leave-email")
-const server = await createServer({ configFile: false, appType: "custom",
+// Keep this standalone renderer from replacing the running app's Vite cache.
+const server = await createServer({ configFile: false, appType: "custom", cacheDir: resolve(output, ".vite"),
   resolve: { alias: { "@": resolve("src") } }, server: { middlewareMode: true } })
 try {
   const { buildRecordedLeaveEmail } = await server.ssrLoadModule("/src/features/leave/notification-template.ts")
