@@ -9,8 +9,8 @@ import { benefitLabels, conversionStatusLabels, leaveStatusLabels, leaveTypeLabe
 import type { LeaveFilters, SourceReference } from "./types"
 import { useLeavePage } from "./use-leave"
 
-export function LeaveRecords({ filters, onOpen }: { filters: LeaveFilters; onOpen: (source: SourceReference) => void }) {
-  const query = useLeavePage(filters)
+export function LeaveRecords({ filters, onOpen, personal = false }: { filters: LeaveFilters; onOpen: (source: SourceReference) => void; personal?: boolean }) {
+  const query = useLeavePage(filters, personal)
   const [index, setIndex] = useState(0)
   const page = query.data?.pages[index]
   const title = filters.section === "leave" ? "Leave records" : filters.section === "credits" ? "Credit history" : "Cash conversions"
@@ -52,7 +52,7 @@ export function LeaveRecords({ filters, onOpen }: { filters: LeaveFilters; onOpe
         {!count && <TableRow><TableCell colSpan={headers.length} className="h-16 text-muted-foreground">No records.</TableCell></TableRow>}
       </TableBody>
     </Table></div>
-    {!count && <p role="status" className="text-sm text-muted-foreground">No {title.toLowerCase()} match these filters. Try another year, employee or search.</p>}
+    {!count && <p role="status" className="text-sm text-muted-foreground">{personal ? (filters.search || [filters.status, filters.type, filters.benefit].some(value => value !== "all") ? "No leave records match these filters. Try changing your filters." : `No leave recorded for ${filters.year}. Leave recorded by your administrator will appear here.`) : `No ${title.toLowerCase()} match these filters. Try another year, employee or search.`}</p>}
     <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">Page {index + 1} · {count} records{query.isFetchingNextPage ? " · Loading next page…" : ""}</p><div className="flex gap-2">
       <Button variant="outline" size="sm" disabled={query.isFetching || index === 0} onClick={() => setIndex(index - 1)}>Previous page</Button>
       <Button variant="outline" size="sm" disabled={query.isFetching || (!query.hasNextPage && index >= query.data!.pages.length - 1)} onClick={() => void next()}>Next page</Button>

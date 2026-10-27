@@ -49,7 +49,7 @@ function hundredths(value: number): number {
 
 /** Complete, scoped history only. Never infer entitlement or filter out
  * deductions because their source was cancelled: restoration rows offset them. */
-export function calculateBalances(rows: CreditRecord[], employeeId: string, year: number) {
+export function calculateBalances(rows: Pick<CreditRecord, "a365_leavecredittransactionid" | "_a365_employee_value" | "a365_year" | "a365_creditpool" | "a365_days">[], employeeId: string, year: number) {
   const id = requireGuid(employeeId)
   if (!validYear(year)) throw new Error("Select a valid year.")
   const sums = { VL: 0, SL: 0 }

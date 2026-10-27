@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="A365 Leave Guard a365_leave UpdateMultiple" SdkMessageProcessingStepId="{4ee03abe-e4cd-f111-a05a-000d3a8014e4}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>e2ac2e19-aea0-47a3-b024-f7a7015b4d60</SdkMessageId>
-  <PluginTypeName>A365.Leave.Plugins.ProtectLeaveWrites, A365.Leave.Plugins, Version=1.0.3.0, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d</PluginTypeName>
+  <PluginTypeName>A365.Leave.Plugins.ProtectLeaveWrites, A365.Leave.Plugins, Version=1.0.3.1, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d</PluginTypeName>
   <PluginTypeId>308034c7-e2cd-f111-a05a-000d3a8014e4</PluginTypeId>
   <PrimaryEntity>a365_leave</PrimaryEntity>
   <AsyncAutoDelete>0</AsyncAutoDelete>

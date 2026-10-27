@@ -1,21 +1,22 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { leaveService } from "./leave-service"
+import { personalLeaveService } from "./personal-leave-service"
 import type { LeaveFilters, SourceReference } from "./types"
 
-export function useLeavePage(filters: LeaveFilters) {
+export function useLeavePage(filters: LeaveFilters, personal = false) {
   return useInfiniteQuery({
-    queryKey: ["leave", "list", filters],
-    queryFn: ({ pageParam }) => leaveService.list(filters, pageParam),
+    queryKey: ["leave", "list", filters, ...(personal ? ["personal"] : [])],
+    queryFn: ({ pageParam }) => personal ? personalLeaveService.list(filters, pageParam) : leaveService.list(filters, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: page => page.next,
     retry: false,
   })
 }
 
-export function useLeaveBalances(employeeId: string, year: number) {
+export function useLeaveBalances(employeeId: string, year: number, personal = false) {
   return useQuery({
-    queryKey: ["leave", "balances", employeeId, year],
-    queryFn: () => leaveService.balances(employeeId, year),
+    queryKey: ["leave", "balances", employeeId, year, ...(personal ? ["personal"] : [])],
+    queryFn: () => personal ? personalLeaveService.balances(employeeId, year) : leaveService.balances(employeeId, year),
     enabled: Boolean(employeeId), retry: false,
   })
 }

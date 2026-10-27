@@ -402,6 +402,14 @@ records requires a separate owner decision.
 
 ## Permissions — applied and verified
 
+**October 27, 2026 update:** the owner authorized personal Leave History access.
+The table privilege matrix below remains unchanged. The existing Leave Custom
+API now provides read-only personal list, detail and credit-history operations
+that resolve the initiating user and scope every server query to their unique
+employee link. No employee table grants, ownership transfers or sharing were
+added. See the [Leave History access and verification checklist](leave-history-implementation-checklist.md)
+for the implementation and outstanding ordinary-account UAT.
+
 The owner explicitly requested that these permissions be applied directly.
 All listed Payroll Admin grants are **Organization scope**; unlisted privileges
 on the three new tables are None. Read-back confirmed the complete matrix for

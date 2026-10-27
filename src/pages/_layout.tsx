@@ -36,10 +36,12 @@ const ADMIN_GROUPS: NavGroup[] = [
 
 const MY_PAYROLL_ITEM: NavItem = { to: "/my-payroll", label: "My Payroll", icon: FileText };
 
-const EMPLOYEE_GROUPS: NavGroup[] = [{ items: [MY_PAYROLL_ITEM] }];
+const LEAVE_HISTORY_ITEM: NavItem = { to: "/leave-history", label: "Leave History", icon: CalendarDays };
+
+const EMPLOYEE_GROUPS: NavGroup[] = [{ label: "My Portal", items: [MY_PAYROLL_ITEM, LEAVE_HISTORY_ITEM] }];
 
 /** "My Portal" group appended for an admin who is also a payrolled employee. */
-const MY_PORTAL_GROUP: NavGroup = { label: "My Portal", items: [MY_PAYROLL_ITEM] };
+const MY_PORTAL_GROUP: NavGroup = { label: "My Portal", items: [MY_PAYROLL_ITEM, LEAVE_HISTORY_ITEM] };
 
 function useNav() {
   const access = useAccessProfile();
