@@ -70,6 +70,34 @@ describe("buildPayslipDocDefinition", () => {
   const def = buildPayslipDocDefinition(reference)
   const text = textOf(def.content)
 
+  it("renders the corrected Test User totals with aligned itemized columns", () => {
+    const definition = buildPayslipDocDefinition({ ...reference, employeeName: "Test User",
+      monthlySalary: 40000, periodLabel: "Oct 16–31, 2026", periodStart: "2026-10-16", periodEnd: "2026-10-31",
+      basicPay: 20000, allowances: 0, otherEarnings: 0, unpaidLeave: 3636.36,
+      grossPay: 20000, sss: 875, philhealth: 500, hdmf: 100, withholdingTax: 0,
+      otherDeductions: 0, totalDeductions: 5111.36, netPay: 14888.64,
+    })
+    const content = definition.content as import("pdfmake/interfaces").Content[]
+    const grid = content.find((item): item is import("pdfmake/interfaces").ContentTable =>
+      typeof item === "object" && item !== null && "table" in item && item.table !== undefined && textOf(item.table.body[0]).includes("Gross Earnings"),
+    )!
+    expect(grid.table.body.every((row) => row.length === 4)).toBe(true)
+    const lines = grid.table.body.slice(1, -2)
+    expect(lines.map((row) => textOf(row[2]).trim())).toEqual([
+      "Unpaid Leave", "SSS", "PhilHealth", "HDMF", "Withholding Tax", "Other Deductions",
+    ])
+    expect(lines.slice(3).every((row) => textOf(row.slice(0, 2)).trim() === "")).toBe(true)
+    expect(textOf(grid)).toContain("20,000.00")
+    expect(textOf(grid)).toContain("5,111.36")
+    expect(textOf(grid)).toContain("14,888.64")
+    expect(textOf(grid)).not.toContain("-0.00")
+  })
+
+  it("normalizes negative zero in PDF amounts", () => {
+    expect(textOf(buildPayslipDocDefinition({ ...reference, unpaidLeave: -0, otherDeductions: -0.001 }).content))
+      .not.toContain("-0.00")
+  })
+
   it("names the document with the suggested filename", () => {
     expect(def.info?.title).toBe("Payslip_2026-03-31_0004_Tabilin-Michael.pdf")
   })
@@ -97,9 +125,27 @@ describe("buildPayslipDocDefinition", () => {
 
   it("shows a dash for absent optional amounts (unpaid leave)", () => {
     // unpaidLeave is null → the adjustment line shows a dash, not 0.00.
-    const unpaidLeaveRow = textOf(def.content).includes("Less: Unpaid Leave")
+    const unpaidLeaveRow = textOf(def.content).includes("Unpaid Leave")
     expect(unpaidLeaveRow).toBe(true)
     expect(text).toContain("-")
+  })
+
+  it("places unpaid leave in the deductions column as a positive amount", () => {
+    const definition = buildPayslipDocDefinition({ ...reference, unpaidLeave: 3636.36,
+      grossPay: 22500, totalDeductions: 6473.86, netPay: 16026.14 })
+    const content = definition.content as import("pdfmake/interfaces").Content[]
+    const grid = content.find((item): item is import("pdfmake/interfaces").ContentTable =>
+      typeof item === "object" && item !== null && "table" in item && item.table !== undefined &&
+      textOf(item.table.body[0]).includes("Gross Earnings"),
+    )
+    expect(grid).toBeDefined()
+    const row = grid!.table.body.find((cells) => textOf(cells).includes("Unpaid Leave"))!
+    expect(textOf(row.slice(0, 2))).not.toContain("Unpaid Leave")
+    expect(textOf(row[2])).toContain("Unpaid Leave")
+    expect(textOf(row[3])).toContain("3,636.36")
+    expect(textOf(row[3])).not.toContain("-")
+    expect(textOf(grid)).toContain("6,473.86")
+    expect(textOf(grid)).toContain("16,026.14")
   })
 })
 

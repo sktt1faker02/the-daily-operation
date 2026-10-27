@@ -30,6 +30,8 @@ with date, outcome, changed files/features, verification and remaining limits.
 
 ## Economical Workflow
 
+- Work on the currently checked-out branch. Create or switch branches only
+  when the user explicitly requests it; keep related modifications together.
 - Keep scope narrow and make the smallest coherent change. Avoid optional
   refactors, unrelated fixes and speculative improvements.
 - Inspect affected implementation, related components/types/services and routing.

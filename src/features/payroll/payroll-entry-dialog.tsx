@@ -169,26 +169,24 @@ export function PayrollEntryDialog({
           {editable && unpaid.isError && <div role="alert" className="space-y-2 text-sm text-destructive"><p>Unable to load unpaid leave. Saving is blocked until it can be verified.</p><Button type="button" variant="outline" size="sm" onClick={() => void unpaid.refetch()}>Retry unpaid leave</Button></div>}
           {editable && unpaid.isSuccess && unpaid.data > 0 && <p className="text-xs text-muted-foreground">{unpaid.data.toFixed(2)} unpaid leave days recorded for this cutoff. {unpaidEdited ? "Your manual adjustment will be saved." : "Included in this preview; Save changes to apply."}</p>}
 
-          {Number(values.a365_otherdeductions) > 0 && (
-            <div className="space-y-1.5">
-              <Label htmlFor="a365_comment">Comment</Label>
-              <Textarea
-                id="a365_comment"
-                rows={3}
-                disabled={updateInputs.isPending}
-                value={values.a365_comment}
-                onChange={(e) => set("a365_comment", e.target.value)}
-                placeholder="Reason for other deductions (shown to the employee on their payslip)"
-              />
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="a365_comment">Comment</Label>
+            <Textarea
+              id="a365_comment"
+              rows={3}
+              disabled={updateInputs.isPending || !editable}
+              value={values.a365_comment}
+              onChange={(e) => set("a365_comment", e.target.value)}
+              placeholder="Optional payroll comment (shown to the employee on their payslip)"
+            />
+          </div>
 
           <div className="rounded-md border bg-surface-subtle p-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Live preview (unsaved)
             </p>
             {preview.entry ? (
-              <PayslipBreakdown entry={preview.entry} />
+              <PayslipBreakdown entry={preview.entry} showAllLines />
             ) : preview.error ? (
               <div role="alert" className="space-y-2 text-sm">
                 <p>{preview.error}</p>

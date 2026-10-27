@@ -8,7 +8,7 @@ import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
-import type { PayrollEntryInputValues } from "../types"
+import type { PayrollEntry, PayrollEntryInputValues } from "../types"
 import { isPeriodEditable } from "../period-status"
 import { payrollPeriodService } from "./payroll-period-service"
 import { parsePayrollEntryInputs } from "./payroll-entry-preview"
@@ -80,6 +80,41 @@ export async function saveAndCalculateEntry(
     throw new Error("The payroll entry does not belong to this period.")
   }
   await calculateAndPersist(entryId, read.data, periodEndDate, calculatedByUserId, undefined, values)
+}
+
+/** Read-only context for the editor's preview; never persists a calculation. */
+export async function getPayrollCalculationContext(employeeId: string, periodEndDate: string) {
+  const [employee, config] = await Promise.all([
+    employeeService.get(employeeId), getStatutoryConfig(periodEndDate),
+  ])
+  return { monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0, config }
+}
+
+/** Calculate edited form values through the same engine used on save. */
+export function previewPayrollEntry(
+  entry: PayrollEntry,
+  values: PayrollEntryInputValues,
+  context: Awaited<ReturnType<typeof getPayrollCalculationContext>>,
+): PayrollEntry {
+  const input = parsePayrollEntryInputs(values)
+  const result = calculatePayroll({ ...input, monthlyBasicSalary: context.monthlyBasicSalary }, context.config)
+  return {
+    ...entry,
+    a365_basicpay: input.basicPay,
+    a365_allowances: input.allowances,
+    a365_otherearnings: input.otherEarnings,
+    a365_otherdeductions: input.otherDeductions,
+    a365_unpaidleavedays: input.unpaidLeaveDays,
+    a365_withholdingtax: result.withholdingTax,
+    a365_comment: values.a365_comment,
+    a365_unpaidleave: result.unpaidLeave,
+    a365_sss: result.sss,
+    a365_philhealth: result.philhealth,
+    a365_hdmf: result.hdmf,
+    a365_grosspay: result.grossPay,
+    a365_totaldeductions: result.totalDeductions,
+    a365_netpay: result.netPay,
+  }
 }
 
 async function calculateAndPersist(

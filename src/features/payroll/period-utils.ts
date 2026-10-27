@@ -4,10 +4,26 @@
  * load-employees planning, and roll-up totals) so services and components stay
  * thin and the logic is unit-testable.
  */
-import { round2 } from "./services/payroll-calculation"
+import { calculatePayrollTotals, round2 } from "./services/payroll-calculation"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { isFinalized, type PayrollStatusValue } from "./period-status"
 import type { PayrollEntry, PayrollPeriod } from "./types"
+
+/** Validate/correct totals using the entry's saved deductions, preserving its
+ * salary/configuration snapshot and manual tax instead of loading current rules. */
+export function calculateStoredEntryTotals(entry: PayrollEntry) {
+  return calculatePayrollTotals({
+    basicPay: entry.a365_basicpay ?? 0,
+    allowances: entry.a365_allowances ?? 0,
+    otherEarnings: entry.a365_otherearnings ?? 0,
+    otherDeductions: entry.a365_otherdeductions ?? 0,
+    unpaidLeave: entry.a365_unpaidleave ?? 0,
+    sss: entry.a365_sss ?? 0,
+    philhealth: entry.a365_philhealth ?? 0,
+    hdmf: entry.a365_hdmf ?? 0,
+    withholdingTax: entry.a365_withholdingtax ?? 0,
+  })
+}
 
 export type PayrollQuarter = 1 | 2 | 3 | 4
 export type PayrollQuarterFilter = PayrollQuarter | "all"

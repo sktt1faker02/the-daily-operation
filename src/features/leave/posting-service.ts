@@ -1,7 +1,9 @@
 import { A365_LeaveCommandService } from "@/generated/services/A365_LeaveCommandService"
 import { Office365OutlookService } from "@/generated/services/Office365OutlookService"
-import { buildRecordedLeaveEmail } from "./notification-template"
-import { requireGuid } from "./rules"
+import { notificationMailboxAddress } from "@/lib/notification-email"
+import { buildRecordedLeaveEmail, type LeaveEmailContext } from "./notification-template"
+import { dateOnly, requireGuid } from "./rules"
+import { leaveService } from "./leave-service"
 import type { LeaveEntryValues } from "./entry-rules"
 import type { LeaveRecord } from "./types"
 
@@ -89,11 +91,21 @@ export const postingService = {
     if (typeof ready.attempt !== "string" || !ready.employee || typeof ready.employee !== "object") throw new LeavePostingError("The email attempt could not be verified. Review its status before retrying.", true)
     const record = source(ready.record)
     const employee = ready.employee as { a365_employeeid: string; a365_name: string; a365_workemail?: string }
-    const draft = buildRecordedLeaveEmail(record, employee)
+    const context: LeaveEmailContext = {
+      asOf: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()),
+    }
+    try {
+      // Same complete calendar-year ledger balance as the Leave page. Read
+      // directly after commit/on retry; never use a cached or pre-submit value.
+      context.balances = await leaveService.balances(requireGuid(record._a365_employee_value ?? ""), Number(dateOnly(record.a365_startdate).slice(0, 4)))
+    } catch {
+      console.warn("Leave email balance unavailable; sending without a balance.")
+    }
+    const draft = buildRecordedLeaveEmail(record, employee, context)
     let outcome: NotificationOutcome = "failed"
     if (draft.status === "prepared") {
       try {
-        const sent = await Office365OutlookService.SendEmailV2({ To: draft.to, Subject: draft.subject, Body: draft.html, Importance: "Normal" })
+        const sent = await Office365OutlookService.SharedMailboxSendEmailV2({ MailboxAddress: notificationMailboxAddress, To: draft.to, Subject: draft.subject, Body: draft.html, Importance: "Normal" })
         outcome = sent.success ? "accepted" : "unknown"
       } catch { outcome = "unknown" }
     }

@@ -54,7 +54,7 @@ reconciles to the payslip to the peso or is an explicit, confirmed decision.
 | **SSS** | 15% of MSC; **EE 5%**; MSC floor 5,000 / **ceiling 35,000** | 5% × 35,000 = 1,750/mo → 875 ✓ |
 | **PhilHealth** | premium **5%**; **EE 2.5%** (half); floor 10,000 / ceiling 100,000 | 2.5% × 43,000 = 1,075/mo → 537.50 ✓ |
 | **HDMF/Pag-IBIG** | EE **2%**; comp cap 10,000 → max **200** | 200/mo → 100 ✓ |
-| Unpaid leave / absence | reduces **gross earnings**; does **not** change SSS/PhilHealth/HDMF | confirmed (payslip lists Absence on earnings side) |
+| Unpaid leave / absence | included in **total deductions**; does **not** change SSS/PhilHealth/HDMF | corrected by PLANS.md on 2026-10-26 |
 | Rounding | half-up to 2 decimals, PHP | confirmed |
 | Calc location | pure client-side TS service; results stored to Dataverse | confirmed (architecture.md) |
 | **Withholding tax** | BIR semi-monthly table (2023→2026, stable); **taxable-base rule TBD** | standard method yields ~1,801 vs payslip 1,325 — see §7 |
@@ -158,10 +158,10 @@ brackets (see §5).
    - `sss = round(sssLookup(monthlyBasicSalary).employeeAmount / 2)`
    - `philhealth = round((clamp(monthlyBasicSalary, floor, ceiling) * premiumRate * employeeShare) / 2)`
    - `hdmf = round((min(monthlyBasicSalary, cap) * employeeRate) / 2)`
-3. `grossPay = round(basicPay + allowances + otherEarnings - unpaidLeave)`.
-4. `taxableBase = computeTaxableBase(...)` **(TBD rule — §7)**; `withholdingTax = taxLookup(taxableBase)`.
-5. `totalDeductions = round(sss + philhealth + hdmf + withholdingTax + otherDeductions)`.
-   *(Unpaid leave already reduced gross; it is not double-counted here.)*
+3. `grossPay = round(basicPay + allowances + otherEarnings)`.
+4. `withholdingTax = round(input.withholdingTax)` (manual admin input; not recomputed).
+5. `totalDeductions = round(unpaidLeave + sss + philhealth + hdmf + withholdingTax + otherDeductions)`.
+   *(The full unpaid-leave amount is included once, in deductions.)*
 6. `netPay = round(grossPay - totalDeductions)`.
 
 **PayrollResult:** `grossPay, sss, philhealth, hdmf, unpaidLeave, withholdingTax,
@@ -226,7 +226,7 @@ grossPay 22,500.00**, and — injecting the sample withholding ₱1,325.00 — *
 is confirmed, the test computes WHT from the table instead.)
 
 **Rule/edge cases:** salary below MSC floor and above ceiling (SSS clamps);
-PhilHealth floor/ceiling clamping; HDMF cap; unpaid-leave days reduce gross via
+PhilHealth floor/ceiling clamping; HDMF cap; unpaid-leave days add a deduction via
 daily rate; rounding boundaries; missing config → typed error, not silent 0;
 zero/negative guards.
 

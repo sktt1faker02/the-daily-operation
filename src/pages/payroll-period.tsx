@@ -4,8 +4,8 @@
  * via the centralized status rules. Loading / Empty / Error
  * / Success states throughout.
  */
-import { useMemo, useRef, useState } from "react"
-import { Link, useParams, useNavigate } from "react-router-dom"
+import { useCallback, useMemo, useRef, useState } from "react"
+import { Link, useParams, useNavigate, useBeforeUnload, useBlocker } from "react-router-dom"
 import { toast } from "sonner"
 import { AlertCircle, AlertTriangle, Archive, ArrowLeft, Copy, Download, LayoutTemplate, Loader2, Save, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,8 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { PayrollEntryTable } from "@/features/payroll/payroll-entry-table"
 import { PayrollAuditTrail } from "@/features/payroll/payroll-audit-trail"
 import { PayrollEntryDialog } from "@/features/payroll/payroll-entry-dialog"
+import { PayslipReadyNotifications } from "@/features/payroll/payslip-ready-notifications"
+import type { PayslipNotificationReport } from "@/features/payroll/services/payslip-ready-notification-service"
 import { DeleteEntryDialog } from "@/features/payroll/delete-entry-dialog"
 import {
   buildPayrollDetailRows,
@@ -86,6 +88,9 @@ export default function PayrollPeriodPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PayrollAction | null>(null)
+  const statusBusyRef = useRef(false)
+  const [notificationRetryBusy, setNotificationRetryBusy] = useState(false)
+  const [notificationReport, setNotificationReport] = useState<PayslipNotificationReport | null>(null)
   const [exportBusy, setExportBusy] = useState(false)
   const [pendingLargeExport, setPendingLargeExport] = useState(false)
   const exportBusyRef = useRef(false)
@@ -97,6 +102,11 @@ export default function PayrollPeriodPage() {
   const loadEmployees = useLoadActiveEmployees(periodId)
   const copyPrevious = useCopyPreviousCutoff(periodId)
   const statusTransition = usePayrollStatusTransition(periodId)
+  const notificationBusy = statusTransition.isPending || notificationRetryBusy
+  const navigationBlocker = useBlocker(notificationBusy)
+  useBeforeUnload(useCallback(event => {
+    if (notificationBusy) { event.preventDefault(); event.returnValue = "" }
+  }, [notificationBusy]))
   const saveTemplate = useSaveTemplate(periodId)
   const templates = useTemplates()
   const applyTemplate = useApplyTemplate(periodId)
@@ -111,7 +121,7 @@ export default function PayrollPeriodPage() {
     markReady: {
       label: "Mark Ready",
       title: "Mark this payroll Ready?",
-      description: "Makes payslips visible to employees and locks entries. Unlock reopens the cutoff for corrections.",
+      description: "Updates outdated gross pay and deduction totals, makes payslips visible to employees, locks entries and emails each included employee at their Work Email. Keep this page open while notifications are sent. Unlock reopens the cutoff for corrections.",
     },
     markPaid: {
       label: "Mark as Paid",
@@ -127,16 +137,23 @@ export default function PayrollPeriodPage() {
   }
 
   const runAction = (action: PayrollAction) => {
+    if (!isAdmin || notificationBusy || statusBusyRef.current) return
     const userId = requireSystemUser()
     if (!userId) return
+    statusBusyRef.current = true
     statusTransition.mutate(
       { to: ACTION_TARGET[action], userId },
       {
-        onSuccess: () => {
+        onSuccess: (report) => {
+          if (report) setNotificationReport(report)
           toast.success(`${ACTION_META[action].label} done.`)
+          if (report && (report.error || report.recipients.some(row => row.status !== "accepted"))) {
+            toast.warning("Payroll is Ready. Some payslip notifications need attention; review the results below.")
+          }
           setPendingAction(null)
         },
         onError: (err) => toast.error(`Unable to ${ACTION_META[action].label.toLowerCase()}.`, { description: err.message }),
+        onSettled: () => { statusBusyRef.current = false },
       },
     )
   }
@@ -274,6 +291,7 @@ export default function PayrollPeriodPage() {
   }
 
   const handleArchive = () => {
+    if (notificationBusy) return
     archive.mutate(periodId, {
       onSuccess: () => {
         toast.success(`Archived ${period.data?.a365_name ?? "payroll period"}.`)
@@ -381,7 +399,7 @@ export default function PayrollPeriodPage() {
             <h1 className="text-2xl font-semibold tracking-tight">{period.data.a365_name}</h1>
             <PayrollStatusBadge status={period.data.a365_payrollstatus} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {hasEntries && editable && (
               <Button
                 variant="outline"
@@ -417,7 +435,7 @@ export default function PayrollPeriodPage() {
                 key={action}
                 variant={ACTION_META[action].variant === "destructive" ? "destructive" : action === "unlock" ? "outline" : "default"}
                 onClick={() => setPendingAction(action)}
-                disabled={statusTransition.isPending}
+                disabled={notificationBusy}
               >
                 {ACTION_META[action].label}
               </Button>
@@ -432,7 +450,7 @@ export default function PayrollPeriodPage() {
                 Save as template
               </Button>
             )}
-            <Button variant="outline" onClick={() => setConfirmArchiveOpen(true)} disabled={archive.isPending}>
+            <Button variant="outline" onClick={() => setConfirmArchiveOpen(true)} disabled={archive.isPending || notificationBusy}>
               <Archive className="size-4" aria-hidden />
               Archive
             </Button>
@@ -461,6 +479,12 @@ export default function PayrollPeriodPage() {
           </div>
         )}
       </div>
+
+      {statusTransition.isPending && pendingAction === "markReady" && <p role="status" className="text-sm text-muted-foreground">Marking payroll Ready and sending payslip notifications. Keep this page open…</p>}
+      {notificationReport?.periodId === periodId && <PayslipReadyNotifications
+        key={`${periodId}-${notificationReport.readyOn ?? "unavailable"}`}
+        initial={notificationReport} onSendingChange={setNotificationRetryBusy}
+      />}
 
       <PayrollSummaryCards gross={totals.gross} deductions={totals.deductions} net={totals.net} />
 
@@ -745,7 +769,7 @@ export default function PayrollPeriodPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={pendingAction !== null} onOpenChange={(o) => !o && setPendingAction(null)}>
+      <Dialog open={pendingAction !== null} onOpenChange={(o) => !o && !notificationBusy && setPendingAction(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{pendingAction && ACTION_META[pendingAction].title}</DialogTitle>
@@ -761,10 +785,19 @@ export default function PayrollPeriodPage() {
               disabled={statusTransition.isPending}
             >
               {statusTransition.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-              {pendingAction && ACTION_META[pendingAction].label}
+              {pendingAction === "markReady" && statusTransition.isPending ? "Marking Ready and sending emails…" : pendingAction && ACTION_META[pendingAction].label}
             </Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={navigationBlocker.state === "blocked"} onOpenChange={(open) => !open && navigationBlocker.state === "blocked" && navigationBlocker.reset()}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Payslip notifications</DialogTitle>
+          <DialogDescription>{notificationBusy ? "Please keep this page open while the notifications finish sending." : "Notifications have finished. You can continue to the other page."}</DialogDescription>
+        </DialogHeader><DialogFooter>
+          <Button variant="outline" onClick={() => navigationBlocker.state === "blocked" && navigationBlocker.reset()}>Stay on this page</Button>
+          <Button disabled={notificationBusy} onClick={() => navigationBlocker.state === "blocked" && navigationBlocker.proceed()}>Continue</Button>
+        </DialogFooter></DialogContent>
       </Dialog>
 
       <Dialog open={confirmArchiveOpen} onOpenChange={(o) => !o && setConfirmArchiveOpen(false)}>

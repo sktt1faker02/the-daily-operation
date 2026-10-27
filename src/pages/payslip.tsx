@@ -97,10 +97,7 @@ export default function PayslipPage() {
           </p>
           <Card>
             <CardContent className="p-5">
-              <PayslipBreakdown
-                entry={slip.entry}
-                otherDeductionsComment={payslipView?.otherDeductionsComment}
-              />
+              <PayslipBreakdown entry={slip.entry} />
             </CardContent>
           </Card>
         </div>

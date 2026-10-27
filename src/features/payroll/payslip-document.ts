@@ -54,7 +54,7 @@ const amountFmt = new Intl.NumberFormat("en-PH", {
 
 function money(value: number | null | undefined): string {
   if (value === null || value === undefined) return "-"
-  return amountFmt.format(value)
+  return amountFmt.format(round2(value) === 0 ? 0 : value)
 }
 
 /** Derived rates per Phase 5: daily = monthly / 22, hourly = daily / 8. */
@@ -126,15 +126,15 @@ function amountsTable(data: PayslipDocumentData): Content {
     ["Basic Pay", data.basicPay],
     ["Allowances", data.allowances],
     ["Other Earnings", data.otherEarnings],
-    ["Less: Unpaid Leave", data.unpaidLeave === null ? null : -Math.abs(data.unpaidLeave)],
   ]
   const deductions: [string, number | null][] = [
+    ["Unpaid Leave", data.unpaidLeave],
     ["SSS", data.sss],
     ["PhilHealth", data.philhealth],
     ["HDMF", data.hdmf],
     ["Withholding Tax", data.withholdingTax],
+    ["Other Deductions", data.otherDeductions],
   ]
-  if (data.otherDeductions) deductions.push(["Other Deductions", data.otherDeductions])
 
   const headerCell = (text: string): Content => ({
     text,
@@ -145,7 +145,7 @@ function amountsTable(data: PayslipDocumentData): Content {
   const label = (text: string): Content => ({ text })
   const deductionLabel = (text: string): Content => {
     const comment = data.otherDeductionsComment?.trim()
-    if (text !== "Other Deductions" || !comment) return label(text)
+    if (text !== "Other Deductions" || !data.otherDeductions || !comment) return label(text)
     return {
       stack: [
         { text },

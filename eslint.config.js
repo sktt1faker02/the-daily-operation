@@ -9,7 +9,7 @@ export default defineConfig([
   // `.agents` contains Codex instructions and imported third-party skill source;
   // it is not part of the app's lint target. `dist` is build output, while
   // `src/generated` and `.power` are produced by `pac code add-data-source`.
-  globalIgnores(['.agents/**', 'dist', 'src/generated', '.power']),
+  globalIgnores(['.agents/**', '.playwright-cli/**', 'dist', 'src/generated', '.power']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -53,6 +53,244 @@ signed-in employee/admin balance comparison remain outstanding. See the
 [server deployment evidence](docs/leave-history-access-verification.json) and
 [live access evidence](docs/leave-history-effective-access.json).
 
+### 2026-10-26 — Email included employees when payslips become Ready
+
+Implemented on the existing `Payroll-enhancements` branch, without creating or
+switching branches. Confirming Mark Ready now completes the existing financial
+transition first, then attempts one private Outlook email for each distinct
+included employee using their stored Work Email. Cancelled/failed transitions,
+Mark as Paid and Unlock do not dispatch a new notification batch. Missing or
+uncertain email outcomes do not roll back the confirmed payroll transition.
+
+Added `payslip-ready-email.ts`, `services/payslip-ready-notification-service.ts`
+and `payslip-ready-notifications.tsx`, with tests. Updated `use-payroll-status.ts`
+and `src/pages/payroll-period.tsx` for confirmation wording, pending state,
+duplicate-action guards, results, navigation protection and targeted retries.
+Recipient reads page completely before sending and deduplicate employees;
+excluded entries are not emailed. The sender checks the caller's admin role,
+period visibility/active state and original Ready timestamp on retry.
+
+Extracted the leave email's inline-table layout and stored-address validation
+into `src/lib/notification-email.ts`, preserving existing leave content and
+reusing the same visual template for payslip notifications. Emails include
+period dates and My Payroll instructions, with no financial amounts, bank data,
+recipient lists or attachments. Uncertain sends require explicit confirmation
+before retry; accepted recipients are excluded from subsequent retries. Results
+remain visible after Mark as Paid within the same page session.
+
+Extended `scripts/preview-leave-email.mjs` with `--payslip` and added
+`scripts/payroll-ready-email-ui-check.mjs`. Excluded ignored browser-generated
+output/cache from ESLint to avoid linting third-party Vite prebundles. Full
+scope and verification checklist: [payslip notifications](docs/payslip-ready-notifications.md).
+
+Verification: all 391 app tests passed across 40 files using
+`npm.cmd test -- --maxWorkers=2 --testTimeout=60000`; lint and production build
+passed (existing large-chunk warning). Five synthetic Edge scenarios passed:
+success, missing-email repair, confirmed uncertain retry, failed status update
+and mobile; cancellation and no resend on Mark as Paid are also covered.
+Email layout passed at 1000px, 390px and 320px. Whitespace/path checks passed.
+No calculation, schema, generated-source, security-role, connection or server
+assembly changes; no real financial records or emails were created by testing.
+
+Remaining limits: this follows the existing app-side Outlook pattern; keep the
+page open until sending finishes. Retry results are session-only, with no durable
+queue/notification ledger or exactly-once guarantee. Closing/crashing the browser
+can interrupt sending; check the sending account for unknown outcomes. Actual
+inbox delivery, Outlook/Gmail client rendering, hosted user access and direct
+ordinary-account security require approved live verification. No commit, push
+or deployment performed.
+
+### 2026-10-26 — Prepare combined Payroll and email work for develop
+
+Completed verification on the owner's current `Payroll-enhancements` branch.
+The email merge was already committed as `421b393`; its manual changelog
+resolution had removed four Payroll entries (128 lines). Restored those entries
+from the merge's first parent while preserving the complete email history.
+Recorded the owner's branch preference in `AGENTS.md`: remain on the current
+branch unless explicitly asked to create or switch branches.
+
+Verification: all 364 application tests passed across 36 files with
+`npm.cmd test -- --maxWorkers=2 --testTimeout=60000`; lint/build passed (existing
+bundle-size warning). Six synthetic Payroll browser scenarios passed, including
+the 25,000 gross-pay preview. Email layout checks passed at desktop, 390px and
+320px. No conflict markers or whitespace errors remain. Current origin/develop
+is included in this branch; the PR adds the email feature, tests, documentation
+and branch-workflow instruction without solution/generated/plugin artifacts.
+
+The first Payroll browser runs found missing React prebundles: the standalone
+email preview was replacing the running app's Vite cache. Isolated its cache
+under the ignored preview output directory in `scripts/preview-leave-email.mjs`
+and restarted the temporary dev server before rechecking both browser scripts.
+
+Live email delivery, mail-client dark mode and hosted-account security remain
+unverified. No live records or emails were created and no deployment or merge
+into develop was performed. Preparation changes documentation and preview-runner
+cache isolation; no production application behavior was changed.
+
+### 2026-10-26 — Verify Edit preview against the reported 25,000 example
+
+The workspace was on `Payroll-enhancements` at `5ae345f`, whose engine still
+subtracts unpaid leave from gross and whose editor lacks the corrected preview.
+Returned to the existing `fix/payroll-gross-and-deductions` branch, preserving
+local artifacts. Its shared engine and live preview already implement the
+requested formula; no further production formula change was needed.
+
+Added a regression to `src/features/payroll/payroll-entry-dialog.test.tsx` and a
+synthetic Edge scenario to `scripts/payroll-unpaid-ui-check.mjs`, starting from
+the screenshot's stale saved totals. Basic 25,000, other deductions 3,000 and
+one unpaid day show gross 25,000, total deductions 6,872.73 and net 18,127.27.
+Changing to two unpaid days keeps gross 25,000 and updates deductions to
+9,145.46 and net to 15,854.54, without saving or writing financial records.
+
+Verification: all 22 editor tests and six Edge browser scenarios passed;
+lint and production build passed (existing bundle-size warning). Initial full
+suite: 354 passed and two unrelated Leave tests timed out at five seconds while
+build/browser checks ran concurrently. Full-suite retry passed all 356 tests in
+36 files using two workers and the existing 60-second command-line timeout,
+without altering test configuration.
+The owner confirmed use of `npm run dev`; restarting Vite from the corrected
+branch and refreshing the browser is required to verify their actual session.
+No deployment, schema/security changes or live data writes were performed.
+
+### 2026-10-26 — Verify merge completion and correct test discovery
+
+Rechecked the requested payroll preview, save, template, leave-day integration,
+export, screen and PDF paths. Monetary calculations use the shared engine;
+presentation/export paths retain saved snapshots and leave integration supplies
+days only. Both owner-specified totals examples already exist and pass. No
+additional payroll formula change was required in this completion pass.
+
+Changed only `vite.config.ts` and this log after the staged merge resolution:
+exclude imported `.agents/**` tests from the app's Vitest run, preserving default
+exclusions. No tests were deleted or application tests skipped. The imported
+tools use their own test runners and runtime assumptions.
+
+Verification: `npm.cmd run build` passed (existing large-chunk warning),
+`npm.cmd run lint` passed, and `npx.cmd --no-install vitest run` passed all 355
+tests across 36 files. Conflict-marker and whitespace checks passed. Pre-commit
+HEAD: `26b6ad5222bb131406f9e644dd47a09c7a3e3ec4`. Live Dataverse/security and
+deployed-app verification remain unavailable. Commit the staged merge separately
+from this test-discovery fix; pushing remains conditional on the owner's PR scope
+gate against fetched `origin/develop`.
+
+### 2026-10-26 — Resolve develop integration for payroll totals
+
+Combined this branch's corrected gross/deduction totals, complete preview rows
+and Mark Ready reconciliation with develop's automatic unpaid-leave loading,
+manual overrides, retries, shared input parser and Processing guards. Kept all
+develop dialog tests and added the branch's corrected-preview coverage; existing
+loading/error tests cover both sides without duplicate mocks or test names.
+Kept this branch's `PLANS.md` and both enhancement histories.
+
+Resolved `payroll-entry-dialog.tsx`, its test, `services/payroll-service.ts`,
+`services/payroll-period-service.ts` and this log. Additional files changed:
+`payslip-breakdown.tsx` (hide a reason when its deduction is zero even when all
+preview rows are shown), `payslip-data.test.ts` (current-formula fixture),
+`services/payroll-calculation.test.ts` (both owner-specified numeric examples),
+and `scripts/payroll-unpaid-ui-check.mjs` (merged export mocks and explicit gross
+and deduction assertions). Keep the script: it verifies leave loading, Save,
+Cancel, lookup failure, read-only behavior and mobile layout with synthetic data.
+
+Verification: production build passed (existing large-chunk warning); lint
+passed; `npx.cmd --no-install vitest run src --maxWorkers=2 --testTimeout=60000`
+passed 355 tests across 36 files; five synthetic Edge browser scenarios passed.
+Both requested totals cases pass. Code/formula scans found no remaining runtime
+formula subtracting leave from gross or omitting it from total deductions in
+the engine, either preview path, persistence, payslip/PDF, exports, period or
+dashboard. Existing historical snapshots remain unchanged.
+
+The unrestricted `npx.cmd --no-install vitest run` encountered unrelated imported
+skill-source failures under `.agents` (including render-alm-plan, localization
+and hook tests). Stopped that run after repeated failures; exit code 1, no final
+suite totals. Test discovery configuration and third-party sources were not
+changed. Per owner instruction, no merge commit while this check fails.
+Live Dataverse, ordinary-account security and deployed-app checks were not run.
+No push, deployment or live financial writes. Pending merge parent was restored
+to verified develop `46d45aeca36d8f6525ea57ec9ed0eedddf8e9d24` after finding the
+incoming conflict index present but `MERGE_HEAD` absent. Pre-merge HEAD remains
+`26b6ad5222bb131406f9e644dd47a09c7a3e3ec4`.
+
+### 2026-10-26 — Correct gross pay and unpaid leave deductions
+
+**Request / business outcome**
+
+Execute `PLANS.md`: earnings roll up to gross pay; unpaid leave belongs in total
+deductions; net pay, statutory bases, manual tax and leave derivation stay stable.
+Work is on `fix/payroll-gross-and-deductions` with existing workspace edits preserved.
+
+**Changes**
+
+- Extended `services/payroll-calculation.ts` with one shared totals function used
+  by the engine and the stored-entry reconciliation helper in `period-utils.ts`.
+- Extended `services/payroll-service.ts`, the payroll-entry hooks and dialog with
+  a read-only live preview using the same inputs/engine as save; all preview lines
+  appear while the employee payslip's optional-row/comment rules stay intact.
+- Extended `services/payroll-period-service.ts` so Mark Ready corrects stale
+  populated totals using saved contributions, leave and manual tax, blocking a
+  net-pay mismatch. The confirmation explains the update. No lifecycle, ownership,
+  sharing or security changes were made.
+- Extended the PDF deductions column with unpaid leave and aligned blank earnings
+  cells; normalized negative zero and preserved branding/header/signatures.
+- Added/extended engine, persistence, preview, screen/PDF, dashboard and Mark Ready
+  regression tests. Corrected earlier formula guidance in Phase 5 docs,
+  statutory-contribution docs, the phase checklist and the test plan.
+
+**Verification**
+
+- Lint and production build passed.
+- 153 application tests passed with the unchanged Excel-export file excluded.
+  Its standalone run has 18 passing tests and one existing B2 pay-date failure
+  (`payroll-export.test.ts:279`: Excel serial returned instead of Date).
+  Unrestricted test discovery also includes failing upstream skill-source tests.
+- Playwright desktop/mobile fixture checks and real PDF generation passed.
+  Comparing 10,000 fixtures against the original engine confirmed exactly stable
+  net pay, statutory contributions, manual tax, daily rate and leave amounts.
+- Changed-file whitespace and obsolete-formula scans passed; the user's existing
+  `PLANS.md` EOF blank-line warning was preserved.
+
+**Remaining limitations**
+
+No live data, generated sources, schema or roles were modified. Deployment and
+existing-record correction require their respective approvals. Live Test User
+screen/PDF verification follows those steps. Mark Ready's per-entry updates are
+retryable but are not a multi-record transaction. Full acceptance evidence and
+the proposed correction process are in [the verification checklist](docs/payroll-gross-and-deductions.md).
+
+
+### 2026-10-26 — Style recorded-leave email and include remaining balance
+
+Implemented on `feature/leave-email-template`. The existing notification now
+uses a responsive white card, navy heading, readable leave details, highlighted
+remaining balance and muted Automations 365 footer. Preserves subject, stored
+Work Email, snapshot details and notification-attempt/unknown-outcome safeguards.
+The composer escapes dynamic values and uses inline HTML tables without remote
+resources. Style settings are centralized in `leaveEmailStyle`.
+
+`posting-service.ts` refreshes the same complete calendar-year ledger balances
+as the Leave page after commit and on each actual retry, scoped to the recorded
+employee and leave start year. The existing pool mapping handles VL, SL and
+Emergency. No entitlement formulas or second leave debit are introduced. A
+failed balance read omits it and logs a generic warning; it never blocks email
+or rolls back the Leave. Notification-only retry does not recreate the Leave.
+
+Changed the notification template/service and their tests, added
+`scripts/preview-leave-email.mjs`, and documented the verification checklist in
+`docs/leave-email-notification.md` and the existing Leave implementation checklist.
+Generate a fictional local preview with `node scripts/preview-leave-email.mjs`;
+HTML/screenshots under `.playwright-cli/leave-email/` remain ignored.
+
+Verification: 33 focused tests passed. Full app suite passed all 335 tests in
+35 files with `npm.cmd test -- src --maxWorkers=2 --testTimeout=60000`.
+Lint and production build passed (existing bundle-size warning). Edge layout
+checks passed at 1000px, 390px and 320px; inspected the mobile screenshot.
+Whitespace and documentation paths checked. No new dependencies or generated
+source, schema, role, server-assembly, Payroll or financial-record changes.
+
+Remaining: actual Outlook/Gmail/mobile mail light/dark-mode rendering, live
+balance/send/retry verification with an approved recipient and deployment.
+Browser checks use fictional data, block network requests and send no email.
+No commit, push or deployment performed.
+
 ### 2026-10-23 - Style new Leave Conversion confirmation and align header action
 
 Replaced new-transaction native confirm with the existing compact in-app Dialog.
@@ -1724,3 +1962,96 @@ matching the app, and include Payroll in worksheet names.
   workbook checks reload actual generated XLSX files through ExcelJS.
 - No deployment performed. Unfiltered test discovery of imported skill-source
   tests remains a separate existing limitation; application tests are green.
+
+### 2026-10-26 — General employee payroll comments in the application
+
+**Request / business outcome**
+
+Make Comment optional and always available when editing payroll, independently
+of Other Deductions. Show saved comments in a dedicated section below Net Pay
+in the application payslip and live preview; hide the section when empty.
+
+**Files / changes**
+
+- `src/features/payroll/payroll-entry-dialog.tsx`: remove the deduction-amount
+  visibility condition, describe the field as an optional payroll comment and
+  disable it while saving or when the period is read-only.
+- `src/features/payroll/payslip-breakdown.tsx`: replace the deduction Reason
+  detail with a separate Comments section using the existing `a365_comment`,
+  preserving line breaks and safely rendering long text and HTML characters.
+- `src/pages/payslip.tsx`: read application comments directly from the saved
+  entry through the shared breakdown, independently of PDF document mapping.
+- Colocated dialog/breakdown tests cover saving comments without deductions,
+  optional comments with or without deductions, read-only behavior, saved legacy
+  comments, section placement, empty values and plain-text rendering.
+- Reuse existing persistence and formatting; no schema, security, calculations,
+  finalized records or PDF generation changes. Existing deduction reasons display
+  as general comments without a data migration.
+
+**Verification checklist and results**
+
+- [x] Reproduced the old conditional behavior with regression tests before fixing.
+- [x] Comment remains visible and can be saved after deductions are cleared.
+- [x] Empty comments are accepted with zero or positive deductions.
+- [x] Existing saved comments display below Net Pay even with zero/null deductions.
+- [x] No Reason detail remains in the application; blank Comments sections hide.
+- [x] Multiline, long and HTML-character comments render safely as text.
+- [x] Read-only periods disable the comment input; existing save-error checks pass.
+- [x] All 35 targeted dialog/breakdown tests pass.
+- [x] `npm.cmd run lint`: passed.
+- [x] `npm.cmd run build`: passed with existing large-chunk warnings.
+- [x] Playwright with installed Edge: actual editor and shared payslip breakdown
+  pass at 1280px and 390px using fictional data in an ignored local harness;
+  comments update/hide correctly and neither view has horizontal overflow.
+- [x] Full suite coverage: all 395 tests passed across runs. Default `npm.cmd test`
+  hit parallel-load timeouts; `npm.cmd test -- --maxWorkers=1` passed 392/395,
+  with three Leave modal timeouts. Rerunning `src/pages/leave.test.tsx` alone
+  with one worker passed all 17 tests without changing timeout settings.
+- [x] `git diff --check`: passed.
+
+**Remaining**
+
+- Live Power Apps host and direct Dataverse security verification require testing
+  as the appropriate users. No deployment performed.
+- PDF comments retain their existing behavior, per the app-only scope.
+
+### 2026-10-26 — Shared mailbox for Leave and payslip notifications
+
+**Request / business outcome**
+
+Use `thedailyoperation@automations365.com` as the visible sender for both Leave
+and payslip-ready notifications. The owner confirmed mailbox permissions were
+already granted by the administrator.
+
+**Files / changes**
+
+- `src/lib/notification-email.ts`: one shared sender address.
+- `src/features/leave/posting-service.ts` and
+  `src/features/payroll/services/payslip-ready-notification-service.ts`: use the
+  existing generated `SharedMailboxSendEmailV2` operation with `MailboxAddress`.
+- Colocated service tests: verify the exact mailbox for initial sends and manual
+  retries, retaining recipient, authorization, commit and uncertain-outcome checks.
+- `README.md`: document sender location and Outlook connection permissions.
+- Subjects, email bodies, employee Work Email recipients, notification timing,
+  failure handling and retry rules remain unchanged. No schema, security role,
+  generated file, payroll calculation or UI changes.
+
+**Verification checklist and results**
+
+- [x] Both notification types use the requested shared mailbox.
+- [x] Leave Resend and payslip retries use the same sender.
+- [x] All 22 targeted service tests pass, including failures and access guards.
+- [x] Full suite: 395/395 tests passed using
+  `npm.cmd test -- --maxWorkers=1 --testTimeout=15000` (bounded worker count and
+  per-test allowance avoid the load-related timeouts observed earlier).
+- [x] `npm.cmd run lint`: passed.
+- [x] `npm.cmd run build`: passed with existing large-chunk warnings.
+- [x] `git diff --check`: passed.
+
+**Remaining**
+
+- No live emails sent and no deployment performed. Verify the visible From
+  address and mailbox permissions in the deployed Power Apps host; local mocks
+  cannot verify Exchange permission propagation or actual delivery.
+- Browser checks are not applicable to this transport-only change; UI and
+  templates are unchanged, and their regression tests run in the full suite.

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { employeeService } from "@/features/employees/employee-service"
 import type { Employee } from "@/features/employees/types"
@@ -57,12 +57,57 @@ beforeEach(() => {
 })
 
 describe("PayrollEntryDialog live calculation", () => {
+  it("shows the screenshot's unpaid leave in deductions while keeping gross at 25,000 during edits", async () => {
+    const user = userEvent.setup()
+    renderDialog({ ...entry, a365_basicpay: 25000, a365_allowances: 0,
+      a365_otherdeductions: 3000, a365_unpaidleavedays: 1,
+      a365_unpaidleave: 2272.73, a365_grosspay: 22727.27,
+      a365_totaldeductions: 4600, a365_netpay: 18127.27 })
+    const amount = (label: string) => screen.getByText(label, { exact: true }).closest("dt")?.nextElementSibling
+    await waitFor(() => expect(amount("Total Deductions")).toHaveTextContent("₱6,872.73"))
+    expect(amount("Gross Pay")).toHaveTextContent("₱25,000.00")
+    expect(amount("Unpaid Leave")).toHaveTextContent("₱2,272.73")
+    expect(amount("Net Pay")).toHaveTextContent("₱18,127.27")
+    const days = screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })
+    await user.clear(days)
+    await user.type(days, "2")
+    expect(amount("Gross Pay")).toHaveTextContent("₱25,000.00")
+    expect(amount("Total Deductions")).toHaveTextContent("₱9,145.46")
+    expect(amount("Net Pay")).toHaveTextContent("₱15,854.54")
+    expect(saveAndCalculateEntry).not.toHaveBeenCalled()
+  })
+  it("previews corrected totals and all lines without persisting, including live earnings and tax", async () => {
+    vi.mocked(employeeService.get).mockResolvedValue({ a365_basicmonthlysalary: 40000 } as Employee)
+    const user = userEvent.setup()
+    renderDialog({ ...entry, a365_basicpay: 20000, a365_allowances: 0,
+      a365_otherdeductions: 0, a365_unpaidleavedays: 2,
+      a365_grosspay: 16363.64, a365_totaldeductions: 1475, a365_netpay: 14888.64 })
+    expect(await screen.findByText("₱5,111.36")).toBeInTheDocument()
+    expect(screen.getByText("₱14,888.64")).toBeInTheDocument()
+    const earnings = screen.getByRole("heading", { name: "Earnings" }).parentElement!
+    const deductions = screen.getByRole("heading", { name: "Deductions" }).parentElement!
+    expect(within(earnings).getByText("Other Earnings")).toBeInTheDocument()
+    expect(within(earnings).queryByText("Unpaid Leave")).not.toBeInTheDocument()
+    expect(within(deductions).getAllByRole("term").map((term) => term.textContent)).toEqual([
+      "Unpaid Leave", "SSS", "PhilHealth", "HDMF / Pag-IBIG", "Withholding Tax", "Other Deductions", "Total Deductions",
+    ])
+    await user.clear(screen.getByLabelText("Other Earnings"))
+    await user.type(screen.getByLabelText("Other Earnings"), "750")
+    await user.clear(screen.getByLabelText("Withholding Tax"))
+    await user.type(screen.getByLabelText("Withholding Tax"), "123.45")
+    expect(within(earnings).getByText("₱20,750.00")).toBeInTheDocument()
+    expect(within(deductions).getByText("₱5,234.81")).toBeInTheDocument()
+    expect(screen.getByText("₱15,515.19")).toBeInTheDocument()
+    expect(saveAndCalculateEntry).not.toHaveBeenCalled()
+    expect(getStatutoryConfig).toHaveBeenCalledTimes(1)
+  })
   it("does not load Leave or allow edits for a non-Processing period", async () => {
     renderDialog(entry, true, false)
     await screen.findByText("₱34,400.00")
     expect(payrollUnpaidLeaveService.daysForEmployees).not.toHaveBeenCalled()
     expect(screen.getByRole("spinbutton", { name: "Unpaid Leave (days)" })).toHaveValue(0)
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled()
+    expect(screen.getByRole("textbox", { name: "Comment" })).toBeDisabled()
   })
   it("loads 2 unpaid days into the editor and calculation, without writing until Save", async () => {
     vi.mocked(payrollUnpaidLeaveService.daysForEmployees).mockResolvedValue(new Map([["employee-1", 2]]))
@@ -130,18 +175,37 @@ describe("PayrollEntryDialog live calculation", () => {
     expect(saveAndCalculateEntry).not.toHaveBeenCalled()
   })
 
-  it("previews the current reason and hides its row when deductions are cleared", async () => {
+  it("keeps the general comment and its preview when deductions are cleared, and saves both", async () => {
     const user = userEvent.setup()
     renderDialog()
     await screen.findByText("₱34,400.00")
     await user.clear(screen.getByRole("textbox", { name: "Comment" }))
     await user.type(screen.getByRole("textbox", { name: "Comment" }), "Adjustment")
-    expect(screen.getByText("Reason: Adjustment")).toBeInTheDocument()
-    expect(screen.queryByText("Reason: Late")).not.toBeInTheDocument()
+    expect(screen.getByText("Adjustment", { selector: "p" })).toBeInTheDocument()
     await user.clear(screen.getByRole("spinbutton", { name: "Other Deductions" }))
     expect(screen.getByText("₱39,400.00")).toBeInTheDocument()
     expect(screen.queryByText(/^Reason:/)).not.toBeInTheDocument()
-    expect(screen.queryByRole("textbox", { name: "Comment" })).not.toBeInTheDocument()
+    expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("Adjustment")
+    expect(screen.getByText("Adjustment", { selector: "p" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await waitFor(() => expect(saveAndCalculateEntry).toHaveBeenCalledWith(
+      "entry-1", "period-1", "2026-10-15", "admin-1",
+      expect.objectContaining({ a365_otherdeductions: "", a365_comment: "Adjustment" }),
+    ))
+  })
+
+  it.each([0, 5000])("allows an empty comment with %s other deductions", async (deductions) => {
+    const user = userEvent.setup()
+    renderDialog({ ...entry, a365_otherdeductions: deductions, a365_comment: null })
+    const comment = screen.getByRole("textbox", { name: "Comment" })
+    expect(comment).toHaveValue("")
+    expect(comment).not.toBeRequired()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled())
+    await user.click(screen.getByRole("button", { name: "Save changes" }))
+    await waitFor(() => expect(saveAndCalculateEntry).toHaveBeenCalledWith(
+      "entry-1", "period-1", "2026-10-15", "admin-1",
+      expect.objectContaining({ a365_otherdeductions: String(deductions), a365_comment: "" }),
+    ))
   })
 
   it("saves the edited inputs only on Save changes", async () => {
