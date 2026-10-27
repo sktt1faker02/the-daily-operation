@@ -6,6 +6,7 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+<<<<<<< HEAD
 ### 2026-10-26 — Email included employees when payslips become Ready
 
 Implemented on the existing `Payroll-enhancements` branch, without creating or
@@ -243,6 +244,54 @@ Remaining: actual Outlook/Gmail/mobile mail light/dark-mode rendering, live
 balance/send/retry verification with an approved recipient and deployment.
 Browser checks use fictional data, block network requests and send no email.
 No commit, push or deployment performed.
+=======
+### 2026-10-27 - Add personal Leave History under My Portal
+
+Added read-only Leave History for employees and admins linked to an employee
+record. The page uses the authenticated employee mapping, year/search and
+Status/Type/Benefit filters, existing balance calculation/formatting, paged leave
+table and personal details. There is no employee selector, Add Leave or admin
+action. Notes and notification internals are excluded from personal responses.
+
+After the owner authorized own-account access, extended the existing Dataverse
+Leave API with `myLeaves`, `myLeave` and `myCredits`. Each operation resolves the
+initiating user to exactly one employee and scopes every server query to that
+employee; foreign employee/detail IDs fail closed. Complete scoped ledger reads
+avoid partial balances from sharing gaps. Existing admin commands still require
+admin membership. Personal cache keys remain separate but use the existing
+leave-list/employee-balance invalidation prefixes.
+
+Changed portal navigation/router, `leave-history.tsx`, shared Leave balance/list
+hooks and components, extracted `choice-filter.tsx`, added personal service/detail
+components and tests, and added `PersonalLeaveReads.cs` plus server checks and
+release/access-verification scripts. Updated the native solution Leave DLL and
+35 XML assembly version references from an official solution export. Payroll
+calculations, admin leave posting and notifications remain unchanged.
+
+Verification: all 344 application tests pass with
+`npm.cmd test -- src --maxWorkers=2 --testTimeout=30000`; 22 personal server security
+checks, 56 conversion server checks and 20 existing leave policy checks pass.
+All 12 synthetic Edge checks pass, including employee/admin navigation, details,
+paging, search, refresh, mobile and failure states. Build passes with the existing
+large-chunk warning. Scoped lint passes with
+`npx.cmd eslint . --ignore-pattern '.playwright-cli/**'`. Unfiltered `npm test`
+collects unrelated imported `.agents` skill tests and was stopped after failures;
+unfiltered lint reports 12 errors in pre-existing ignored Playwright/Vite caches.
+An existing payroll export test timed out during the initial concurrent run;
+its rerun and the final complete application run pass. Documentation paths and
+`git diff --check` pass.
+
+Server assembly 1.0.3.1 is deployed and hash-verified in Development. Live schema,
+existing API configuration and baseline DLL were checked first. No role, schema,
+ownership, sharing, migration or financial-record changes were made. The linked
+admin's own live API read passes. Two eligible ordinary accounts exist, but the
+CLI returned a different caller identity for both impersonation-header attempts;
+ordinary employee A/B access remains unverified. Code App UI deployment and
+signed-in employee/admin balance comparison remain outstanding. See the
+[verification checklist](docs/leave-history-implementation-checklist.md),
+[server deployment evidence](docs/leave-history-access-verification.json) and
+[live access evidence](docs/leave-history-effective-access.json).
+>>>>>>> feature/Leave-module
 
 ### 2026-10-23 - Style new Leave Conversion confirmation and align header action
 

@@ -4,8 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatDays } from "./rules"
 import { useLeaveBalances } from "./use-leave"
 
-export function LeaveBalances({ employeeId, year }: { employeeId: string; year: number }) {
-  const query = useLeaveBalances(employeeId, year)
+export function LeaveBalances({ employeeId, year, personal = false }: { employeeId: string; year: number; personal?: boolean }) {
+  const query = useLeaveBalances(employeeId, year, personal)
   if (!employeeId) return <p className="rounded-md border border-dashed p-5 text-sm text-muted-foreground">Select an employee to view their VL and SL balances for {year}.</p>
   if (query.isPending || query.isFetching) return <div role="status" aria-label="Loading balances" aria-busy="true"><p className="mb-2 text-sm">Loading complete credit history…</p><Skeleton className="h-28 w-full" /></div>
   // An error wins over stale cached data; an unreadable balance is never zero.

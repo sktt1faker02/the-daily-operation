@@ -10,6 +10,7 @@ import MyPayrollPage from "@/pages/my-payroll"
 import PayslipPage from "@/pages/payslip"
 import NotFoundPage from "@/pages/not-found"
 import LeavePage from "@/pages/leave"
+import LeaveHistoryPage from "@/pages/leave-history"
 import LeaveConversionPage from "@/pages/leave-conversion"
 import { AdminOnly } from "@/features/payroll/role-gate"
 
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: "payroll/templates", element: <AdminOnly><PayrollTemplatesPage /></AdminOnly> },
       { path: "payroll/:periodId", element: <AdminOnly><PayrollPeriodPage /></AdminOnly> },
       { path: "my-payroll", element: <MyPayrollPage /> },
+      { path: "leave-history", element: <LeaveHistoryPage /> },
       { path: "my-payroll/:entryId", element: <PayslipPage /> },
     ],
   },

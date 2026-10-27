@@ -1,0 +1,13 @@
+{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "AssemblyVersion":  "1.0.3.1",
+    "SHA256":  "2484168F25BAEE9A071453CB98D8BBBADA2BAB3CD4F440A4F98826F4EC9F8A9C",
+    "VerifiedAt":  "2026-10-27T07:37:10.1852653Z",
+    "Authorization":  "Owner explicitly authorized own-account Leave access on October 27, 2026.",
+    "AccessMechanism":  "Read-only custom API resolves InitiatingUserId and a unique employee mapping; every query is scoped to that employee.",
+    "Roles":  "Unchanged",
+    "OwnershipAndSharing":  "Unchanged",
+    "BusinessDataWrites":  "None",
+    "AppDeployment":  "Not performed",
+    "ActualUserChecks":  "Pending separate read-only verification"
+}

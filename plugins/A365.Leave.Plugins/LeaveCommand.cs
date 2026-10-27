@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.0")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.1")]
 
 namespace A365.Leave.Plugins
 {
@@ -25,6 +25,8 @@ namespace A365.Leave.Plugins
         public bool reviewedUnknown { get; set; }
         public int year { get; set; }
         public string cursor { get; set; }
+        public string search { get; set; }
+        public string status { get; set; }
         public string version { get; set; }
         public ConversionChange[] changes { get; set; }
     }
@@ -99,11 +101,16 @@ namespace A365.Leave.Plugins
             var factory = (IOrganizationServiceFactory)services.GetService(typeof(IOrganizationServiceFactory));
             var system = factory.CreateOrganizationService(null);
             var caller = factory.CreateOrganizationService(context.InitiatingUserId);
-            RequireAdmin(system, context.InitiatingUserId);
             Request request;
             try { request = new JavaScriptSerializer { MaxJsonLength = 2000000 }.Deserialize<Request>((string)context.InputParameters["Request"]); }
             catch { Rules.Fail("The Leave request is invalid."); return; }
             if (request == null) Rules.Fail("The Leave request is missing.");
+            if (request.command == "myLeaves" || request.command == "myLeave" || request.command == "myCredits")
+            {
+                context.OutputParameters["Response"] = new JavaScriptSerializer { MaxJsonLength = 2000000 }.Serialize(PersonalLeaveReads.Execute(request, context.InitiatingUserId, system));
+                return;
+            }
+            RequireAdmin(system, context.InitiatingUserId);
             if (request.command == "conversionYears" || request.command == "conversionRows" || request.command == "conversionCreate" || request.command == "conversionSave" || request.command == "conversionMarkPaid")
             {
                 context.OutputParameters["Response"] = Json.Serialize(ConversionCommands.Execute(request, context, caller));

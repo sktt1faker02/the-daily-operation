@@ -3,7 +3,7 @@ import { CalendarDays, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ChoiceFilter } from "@/features/leave/choice-filter"
 import { LeaveAccess } from "@/features/leave/leave-access"
 import { LeaveEmployeePicker } from "@/features/leave/employee-picker"
 import { LeaveBalances } from "@/features/leave/leave-balances"
@@ -13,10 +13,6 @@ import { AddLeaveDialog } from "@/features/leave/add-leave-dialog"
 import { validYear } from "@/features/leave/rules"
 import { benefitLabels, leaveStatusLabels, leaveTypeLabels } from "@/features/leave/types"
 import type { LeaveEmployee, LeaveFilters, SourceReference } from "@/features/leave/types"
-
-function ChoiceFilter({ label, value, labels, onChange }: { label: string; value: string; labels: Readonly<Record<number, string>>; onChange: (value: string) => void }) {
-  return <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label} className="w-full sm:w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem>{Object.entries(labels).map(([key, name]) => <SelectItem key={key} value={key}>{name}</SelectItem>)}</SelectContent></Select></div>
-}
 
 function LeaveWorkspace() {
   const currentYear = new Date().getFullYear()
