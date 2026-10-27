@@ -6,6 +6,25 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-27 - Resolve Leave History integration with the latest local app
+
+Completed the interrupted merge of `Payroll-enhancements` into
+`feature/Leave-module`, preserving both enhancement histories. Then integrated
+fetched `origin/develop` at `7089040`. Its runtime already included Leave History
+but its plan and log contained committed conflict markers. Kept the clean Leave
+History requirements and the combined history; no application code needed a
+manual merge change. Work stayed on the existing feature branch.
+
+Verification: all 412 tests in 42 files pass with
+`npm.cmd test -- --maxWorkers=2 --testTimeout=60000`; standard lint and production
+build pass (existing large-chunk warning). All 12 synthetic Leave History Edge
+checks pass. The first browser attempt timed out during concurrent checks; the
+retry after build/lint completed passed. Conflict-marker and whitespace checks
+pass. The owner confirmed the target is the local `npm run dev` app; it is
+running on localhost:5173. No remote push, hosted deployment, security change or
+live business-data write was performed. Ordinary-account security UAT remains
+subject to the existing Leave History verification limits below.
+
 ### 2026-10-27 - Add personal Leave History under My Portal
 
 Added read-only Leave History for employees and admins linked to an employee
