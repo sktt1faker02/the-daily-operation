@@ -1,0 +1,13 @@
+{
+    "VerifiedAt":  "2026-10-28T05:36:09.3799994Z",
+    "CoordinationTokenUnchanged":  true,
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "ExpectedFault":  "This leave is no longer available",
+    "Version":  "1.0.3.4",
+    "FinancialWritesCommitted":  false,
+    "LeaveAndCreditCountsUnchanged":  true,
+    "TargetAndReceiptVerifiedAbsent":  true,
+    "TraceSettings":  "Unchanged",
+    "ExistingSourceDeleted":  false,
+    "Stage":  "after"
+}

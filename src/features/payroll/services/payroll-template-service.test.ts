@@ -20,7 +20,7 @@ vi.mock("./payroll-period-service", () => ({
 import { dataClient } from "@/lib/power/data-client"
 import { payrollPeriodService } from "./payroll-period-service"
 import { payrollTemplateService } from "./payroll-template-service"
-import { PayrollStatus } from "../types"
+import { LEGACY_LOCKED_STATUS, PayrollStatus } from "../period-status"
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -39,7 +39,7 @@ describe("saveTemplateFromPeriod", () => {
     vi.mocked(payrollPeriodService.getPeriod).mockResolvedValue({
       a365_payrollperiodid: "p1",
       a365_name: "Feb 1–15",
-      a365_payrollstatus: PayrollStatus.Paid,
+      a365_payrollstatus: LEGACY_LOCKED_STATUS,
     } as never)
     vi.mocked(payrollPeriodService.listEntries).mockResolvedValue([
       {

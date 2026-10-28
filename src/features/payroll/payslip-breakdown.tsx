@@ -7,6 +7,7 @@
  */
 import { formatCurrency } from "@/lib/format"
 import type { PayrollEntry } from "./types"
+import { normalizeOtherDeductionsComment } from "./payslip-data"
 
 function Row({
   label,
@@ -26,7 +27,9 @@ function Row({
         subtotal ? "border-t border-border mt-1 pt-2 font-medium text-foreground" : "",
       ].join(" ")}
     >
-      <dt className={subtotal ? "" : "text-muted-foreground"}>{label}</dt>
+      <dt className={subtotal ? "" : "text-muted-foreground"}>
+        <span>{label}</span>
+      </dt>
       <dd
         className={[
           "tabular-nums",
@@ -44,7 +47,14 @@ function has(value: number | null): boolean {
   return value !== null && value !== 0
 }
 
-export function PayslipBreakdown({ entry }: { entry: PayrollEntry }) {
+export function PayslipBreakdown({
+  entry,
+  showAllLines = false,
+}: {
+  entry: PayrollEntry
+  showAllLines?: boolean
+}) {
+  const comment = normalizeOtherDeductionsComment(entry.a365_comment)
   return (
     <div className="space-y-5 text-sm">
       <section>
@@ -54,7 +64,7 @@ export function PayslipBreakdown({ entry }: { entry: PayrollEntry }) {
         <dl>
           <Row label="Basic Pay" amount={entry.a365_basicpay} />
           <Row label="Allowances" amount={entry.a365_allowances} />
-          {has(entry.a365_otherearnings) && (
+          {(showAllLines || has(entry.a365_otherearnings)) && (
             <Row label="Other Earnings" amount={entry.a365_otherearnings} />
           )}
           <Row label="Gross Pay" amount={entry.a365_grosspay} subtotal />
@@ -66,15 +76,18 @@ export function PayslipBreakdown({ entry }: { entry: PayrollEntry }) {
           Deductions
         </h3>
         <dl>
-          {has(entry.a365_unpaidleave) && (
+          {(showAllLines || has(entry.a365_unpaidleave)) && (
             <Row label="Unpaid Leave" amount={entry.a365_unpaidleave} />
           )}
           <Row label="SSS" amount={entry.a365_sss} />
           <Row label="PhilHealth" amount={entry.a365_philhealth} />
           <Row label="HDMF / Pag-IBIG" amount={entry.a365_hdmf} />
           <Row label="Withholding Tax" amount={entry.a365_withholdingtax} />
-          {has(entry.a365_otherdeductions) && (
-            <Row label="Other Deductions" amount={entry.a365_otherdeductions} />
+          {(showAllLines || has(entry.a365_otherdeductions)) && (
+            <Row
+              label="Other Deductions"
+              amount={entry.a365_otherdeductions}
+            />
           )}
           <Row label="Total Deductions" amount={entry.a365_totaldeductions} subtotal />
         </dl>
@@ -83,6 +96,17 @@ export function PayslipBreakdown({ entry }: { entry: PayrollEntry }) {
       <dl className="border-t border-border pt-3">
         <Row label="Net Pay" amount={entry.a365_netpay} emphasis />
       </dl>
+
+      {comment && (
+        <section className="border-t border-border pt-3">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Comments
+          </h3>
+          <p className="break-words whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
+            {comment}
+          </p>
+        </section>
+      )}
     </div>
   )
 }

@@ -2,9 +2,10 @@
  * Payroll cutoff template data service. All Dataverse access for the template
  * tables stays behind this layer. Templates store INPUTS only; applying a
  * template overwrites/adds entries (shared plan logic with copy-previous) and
- * the caller recalculates. Saving is restricted to Paid/Locked periods.
+ * the caller recalculates. Saving is restricted to Locked periods.
  */
 import { dataClient } from "@/lib/power/data-client"
+import { payrollUnpaidLeaveService } from "@/features/leave/payroll-unpaid-leave"
 import { employeeService } from "@/features/employees/employee-service"
 import { EmploymentStatus } from "@/features/employees/types"
 import { planApplyInputs, type CopiedInputs } from "../period-utils"
@@ -13,13 +14,12 @@ import {
   PAYROLL_TEMPLATE_TABLE,
   PAYROLL_TEMPLATE_LINE_TABLE,
   PAYROLL_ENTRY_TABLE,
-  PayrollStatus,
   type PayrollTemplate,
   type PayrollTemplateLineRow,
   type PayrollEntry,
 } from "../types"
+import { isFinalized, isPeriodEditable } from "../period-status"
 
-const FINALIZED = new Set<PayrollStatus>([PayrollStatus.Paid, PayrollStatus.Locked])
 
 export interface PayrollTemplateSummary {
   id: string
@@ -102,8 +102,8 @@ export const payrollTemplateService = {
 
   async saveTemplateFromPeriod(periodId: string, name: string, description: string | null) {
     const period = await payrollPeriodService.getPeriod(periodId)
-    if (!FINALIZED.has(period.a365_payrollstatus)) {
-      throw new Error("A template can only be saved from a Paid or Locked payroll period.")
+    if (!isFinalized(period.a365_payrollstatus)) {
+      throw new Error("A template can only be saved from a Locked payroll period.")
     }
     const entries = await payrollPeriodService.listEntries(periodId)
 
@@ -149,9 +149,11 @@ export const payrollTemplateService = {
       payrollPeriodService.getPeriod(periodId),
     ])
     if (!template.success) throw template.error ?? new Error("Unable to load the template.")
+    if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
+    const unpaid = await payrollUnpaidLeaveService.daysForEmployees([...lines.map(line => line.employeeId), ...active.map(employee => employee.a365_employeeid)], period.a365_periodstart, period.a365_periodend)
 
     const sourceByEmployee = new Map<string, CopiedInputs>()
-    for (const l of lines) sourceByEmployee.set(l.employeeId, l.inputs)
+    for (const l of lines) sourceByEmployee.set(l.employeeId, { ...l.inputs, unpaidLeaveDays: unpaid.get(l.employeeId.toLowerCase()) ?? 0 })
 
     const plan = planApplyInputs(sourceByEmployee, existing, active, {
       id: periodId,
@@ -173,7 +175,7 @@ export const payrollTemplateService = {
       )
       if (!res.success) throw res.error ?? new Error("Unable to update payroll entry from template.")
     }
-    const created = await payrollPeriodService.createEntriesFromPlans(periodId, plan.creates)
+    const created = await payrollPeriodService.createEntriesFromPlans(periodId, plan.creates, unpaid)
     return {
       created,
       updated: plan.updates.length,

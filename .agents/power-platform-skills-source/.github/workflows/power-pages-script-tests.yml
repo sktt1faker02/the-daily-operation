@@ -1,0 +1,46 @@
+# Deliberately separate from `power-pages-alm-lint.yml`.
+# This workflow runs functional unit tests across ubuntu × windows × macos to
+# catch OS-specific regressions in Node scripts. Slow (~30s on macOS).
+# The sibling workflow runs fast policy enforcement on a single OS so red
+# checks for gate-marker / catalog drift surface before this matrix finishes.
+name: power-pages-script-tests
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "plugins/power-pages/**"
+
+jobs:
+    test-power-pages-scripts:
+        name: test-power-pages-scripts (${{ matrix.os }})
+        runs-on: ${{ matrix.os }}
+        # Defense-in-depth: opt this CI job out of telemetry transmission so even
+        # a test that forgets to isolate emission (no FAKE_HTTPS probe / temp
+        # ikey) can never POST to the production collector. Honored end-to-end
+        # because emit-spawn forwards this var to the detached dispatcher. The two
+        # positive-emission tests clear it in their own spawn env so they still
+        # exercise the real emit path.
+        env:
+            POWER_PLATFORM_SKILLS_TELEMETRY_POWER_PAGES_OPTOUT: "1"
+        strategy:
+            fail-fast: false
+            matrix:
+                os:
+                    - ubuntu-latest
+                    - windows-latest
+                    - macos-latest
+        steps:
+            - name: checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: setup-node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 20
+
+            - name: run-power-pages-script-tests
+              shell: bash
+              working-directory: plugins/power-pages/scripts/tests
+              run: node --test

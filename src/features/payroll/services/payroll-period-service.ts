@@ -4,16 +4,17 @@
  * this module. Business decisions live in the pure helpers (period-utils).
  */
 import { dataClient } from "@/lib/power/data-client"
+import { payrollUnpaidLeaveService } from "@/features/leave/payroll-unpaid-leave"
 import { employeeService } from "@/features/employees/employee-service"
+import { referenceService } from "@/features/employees/reference-service"
 import { userService } from "@/features/employees/user-service"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
-import { planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
-import { canTransition } from "../payroll-status-machine"
+import { calculateStoredEntryTotals, planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
+import { round2 } from "./payroll-calculation"
+import { canTransition, isPeriodEditable, PayrollStatus, payrollStatusLabel } from "../period-status"
 import {
   PAYROLL_PERIOD_TABLE,
   PAYROLL_ENTRY_TABLE,
-  PayrollStatus,
-  payrollStatusLabel,
   type PayrollPeriod,
   type PayrollEntry,
 } from "../types"
@@ -25,6 +26,7 @@ const PERIOD_SELECT: (keyof PayrollPeriod)[] = [
   "a365_periodend",
   "a365_paydate",
   "a365_payrollstatus",
+  "statecode",
   "a365_lockedon",
   "createdon",
   // Audit trail (Phase 9): lifecycle date stamps + actor lookup GUIDs. Actor
@@ -62,6 +64,22 @@ const ENTRY_SELECT = [
   "_a365_employee_value",
   "_a365_payrollperiod_value",
 ]
+
+async function retrieveAllPages<T>(table: string, options: Parameters<typeof dataClient.retrieveMultipleRecordsAsync<T>>[1]): Promise<T[]> {
+  const records: T[] = []
+  let skipToken: string | undefined
+  do {
+    const result = await dataClient.retrieveMultipleRecordsAsync<T>(table, {
+      ...options,
+      maxPageSize: 500,
+      ...(skipToken ? { skipToken } : {}),
+    })
+    if (!result.success) throw result.error ?? new Error("Unable to load payroll export data.")
+    records.push(...(result.data ?? []))
+    skipToken = result.skipToken
+  } while (skipToken)
+  return records
+}
 
 export const payrollPeriodService = {
   async listPeriods(): Promise<PayrollPeriod[]> {
@@ -108,8 +126,9 @@ export const payrollPeriodService = {
   },
 
   /**
-   * Move a period to `to`, validated against the centralized state machine, and
-   * stamp the matching audit columns. Unlock (→ Processing) clears the lock date.
+   * Move a period to `to`, validated against the centralized lifecycle rules,
+   * and stamp all matching audit columns in the same update. Unlock (→ Processing)
+   * clears the lock date.
    * The plug-in enforces entry immutability; this writes the period lifecycle.
    */
   async transitionStatus(
@@ -124,15 +143,50 @@ export const payrollPeriodService = {
         `Cannot change payroll from ${payrollStatusLabel(from)} to ${payrollStatusLabel(to)}.`,
       )
     }
+    if (to === PayrollStatus.Ready) {
+      const entries = await payrollPeriodService.listEntries(periodId)
+      const uncalculatedCount = entries.filter(
+        (entry) => entry.a365_isincluded && !hasCalculatedResults(entry),
+      ).length
+      if (uncalculatedCount > 0) {
+        throw new Error(
+          `Calculate all included payroll entries before marking this period Ready (${uncalculatedCount} remaining).`,
+        )
+      }
+      // Reconcile old populated totals before finalization. Use saved deduction
+      // amounts so a formula correction never picks up newer salaries or rules.
+      const corrections = entries.filter((entry) => entry.a365_isincluded).map((entry) => {
+        const totals = calculateStoredEntryTotals(entry)
+        if (!Object.values(totals).every(Number.isFinite) ||
+          Math.round(totals.netPay * 100) !== Math.round(round2(entry.a365_netpay ?? 0) * 100)) {
+          throw new Error(`Recalculate ${entry.a365_name || "the payroll entry"} before marking this period Ready; its saved net pay does not reconcile.`)
+        }
+        return { entry, totals }
+      }).filter(({ entry, totals }) =>
+        Math.round(round2(entry.a365_grosspay ?? 0) * 100) !== Math.round(totals.grossPay * 100) ||
+        Math.round(round2(entry.a365_totaldeductions ?? 0) * 100) !== Math.round(totals.totalDeductions * 100),
+      )
+      for (const { entry, totals } of corrections) {
+        const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
+          PAYROLL_ENTRY_TABLE, entry.a365_payrollentryid, {
+            a365_grosspay: totals.grossPay,
+            a365_totaldeductions: totals.totalDeductions,
+            a365_netpay: totals.netPay,
+            a365_calculatedon: new Date().toISOString(),
+            "a365_CalculatedBy@odata.bind": `/systemusers(${actingUserId})`,
+          },
+        )
+        if (!result.success) throw result.error ?? new Error("Unable to correct payroll totals. The period is still Processing; retry Mark Ready.")
+      }
+    }
     const now = new Date().toISOString()
     const payload: Record<string, unknown> = { a365_payrollstatus: to }
     if (to === PayrollStatus.Ready) {
       payload.a365_readyon = now
       payload["a365_ReadyBy@odata.bind"] = `/systemusers(${actingUserId})`
-    } else if (to === PayrollStatus.Paid) {
+    } else if (to === PayrollStatus.Locked) {
       payload.a365_paidon = now
       payload["a365_PaidBy@odata.bind"] = `/systemusers(${actingUserId})`
-    } else if (to === PayrollStatus.Locked) {
       payload.a365_lockedon = now
       payload["a365_LockedBy@odata.bind"] = `/systemusers(${actingUserId})`
     } else if (to === PayrollStatus.Processing) {
@@ -157,7 +211,7 @@ export const payrollPeriodService = {
       },
     )
     if (!result.success) throw result.error ?? new Error("Unable to load archived periods.")
-    return result.data ?? []
+    return (result.data ?? []).map((period) => ({ ...period, statecode: 1 }))
   },
 
   /**
@@ -194,7 +248,7 @@ export const payrollPeriodService = {
       a365_periodstart: input.start,
       a365_periodend: input.end,
       a365_paydate: input.payDate || null,
-      a365_payrollstatus: PayrollStatus.Draft,
+      a365_payrollstatus: PayrollStatus.Processing,
     }
     const result = await dataClient.createRecordAsync<Record<string, unknown>, PayrollPeriod>(
       PAYROLL_PERIOD_TABLE,
@@ -227,14 +281,65 @@ export const payrollPeriodService = {
     if (employeeIds.length > 0) {
       const filter = employeeIds.map((id) => `a365_employeeid eq ${id}`).join(" or ")
       const employees = await employeeService.list({ filter })
-      const nameById = new Map(employees.map((e) => [e.a365_employeeid, e.a365_name]))
+      const employeeById = new Map(employees.map((employee) => [employee.a365_employeeid, employee]))
+      const departmentNames = await referenceService.getDepartmentNamesByIds(
+        employees
+          .map((employee) => employee._a365_department_value)
+          .filter((id): id is string => Boolean(id)),
+      )
       for (const entry of entries) {
-        entry.a365_employeename = entry._a365_employee_value
-          ? nameById.get(entry._a365_employee_value) ?? undefined
+        const employee = entry._a365_employee_value
+          ? employeeById.get(entry._a365_employee_value)
           : undefined
+        entry.a365_employeename = employee?.a365_name
+        entry.a365_employeenumber = employee?.a365_employeenumber
+        entry.a365_departmentname = employee?._a365_department_value
+          ? departmentNames.get(employee._a365_department_value)
+          : undefined
+        entry.a365_bankname = employee?.a365_bankname
+        entry.a365_bankaccountnumber = employee?.a365_bankaccountnumber
       }
     }
     return entries
+  },
+
+  /** Loads export entries in bounded period batches and follows Dataverse continuation tokens. */
+  async listEntriesForExport(periodIds: string[], onProgress?: (completedPeriods: number) => void): Promise<Map<string, PayrollEntry[]>> {
+    const result = new Map<string, PayrollEntry[]>(periodIds.map((id) => [id, []]))
+    const periodBatches: string[][] = []
+    for (let index = 0; index < periodIds.length; index += 10) periodBatches.push(periodIds.slice(index, index + 10))
+    let completed = 0
+    for (const batch of periodBatches) {
+      const filter = batch.map((id) => `_a365_payrollperiod_value eq ${id}`).join(" or ")
+      const entries = await retrieveAllPages<PayrollEntry>(PAYROLL_ENTRY_TABLE, {
+        select: ENTRY_SELECT,
+        filter,
+        orderBy: ["a365_name asc"],
+      })
+      const employeeIds = [...new Set(entries.map((entry) => entry._a365_employee_value).filter((id): id is string => Boolean(id)))]
+      const employeeRecords: Employee[] = []
+      for (let index = 0; index < employeeIds.length; index += 20) {
+        const employeeFilter = employeeIds.slice(index, index + 20).map((id) => `a365_employeeid eq ${id}`).join(" or ")
+        employeeRecords.push(...await employeeService.list({ filter: employeeFilter }))
+      }
+      const employeesById = new Map(employeeRecords.map((employee) => [employee.a365_employeeid, employee]))
+      const departmentNames = await referenceService.getDepartmentNamesByIds(
+        employeeRecords.map((employee) => employee._a365_department_value).filter((id): id is string => Boolean(id)),
+      )
+      for (const entry of entries) {
+        const employee = entry._a365_employee_value ? employeesById.get(entry._a365_employee_value) : undefined
+        entry.a365_employeename = employee?.a365_name
+        entry.a365_employeenumber = employee?.a365_employeenumber
+        entry.a365_departmentname = employee?._a365_department_value ? departmentNames.get(employee._a365_department_value) : undefined
+        entry.a365_bankname = employee?.a365_bankname
+        entry.a365_bankaccountnumber = employee?.a365_bankaccountnumber
+        const periodId = entry._a365_payrollperiod_value
+        if (periodId && result.has(periodId)) result.get(periodId)!.push(entry)
+      }
+      completed += batch.length
+      onProgress?.(completed)
+    }
+    return result
   },
 
   /**
@@ -291,12 +396,12 @@ export const payrollPeriodService = {
 
   /**
    * Populate a period by copying the previous cutoff. Source = the most recent
-   * *finalized* (Paid or Locked) period that starts before the target; in-progress
-   * periods (Draft/Processing/Ready) are skipped, since their inputs aren't
-   * settled. Each returning employee's ALL inputs are carried forward — Basic Pay,
-   * Allowances, Other Earnings, Other Deductions, Unpaid Leave days, and
-   * Withholding Tax — so the admin starts from a full copy and manually adjusts
-   * only what changed. Employees not yet in the period are added; employees
+   * most recent Locked period that starts before the target; Processing and
+   * Ready periods are skipped, since their inputs aren't
+   * settled. Basic Pay, Allowances, Other Earnings, Other Deductions and
+   * Withholding Tax carry forward; unpaid days come from Issued Unpaid Leave
+   * in the target cutoff rather than the previous cutoff. Employees not yet
+   * in the period are added; employees
    * already present are **updated** (overwritten) with the source values.
    * Calculated results (gross, statutory, total deductions, net) are never copied
    * — the caller recalculates afterward. Employees absent from the source (e.g.
@@ -338,8 +443,8 @@ export const payrollPeriodService = {
 
   /** Create entries from precomputed plans. Exposed so payroll-template-service
    *  can reuse the shared create logic when applying a template. */
-  async createEntriesFromPlans(periodId: string, plans: NewEntryPlan[]): Promise<number> {
-    return createPlannedEntries(periodId, plans)
+  async createEntriesFromPlans(periodId: string, plans: NewEntryPlan[], preparedUnpaidDays?: Map<string, number>): Promise<number> {
+    return createPlannedEntries(periodId, plans, preparedUnpaidDays)
   },
 }
 
@@ -355,7 +460,11 @@ async function applyInputsToPeriod(
   active: Employee[],
   existing: PayrollEntry[],
 ): Promise<{ created: number; updated: number; skipped: number }> {
-  const plan = planApplyInputs(sourceByEmployee, existing, active, { id: periodId, name: periodName })
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
+  const unpaid = await payrollUnpaidLeaveService.daysForEmployees([...sourceByEmployee.keys(), ...active.map(employee => employee.a365_employeeid)], period.a365_periodstart, period.a365_periodend)
+  const inputsForCutoff = new Map([...sourceByEmployee].map(([id, inputs]) => [id, { ...inputs, unpaidLeaveDays: unpaid.get(id.toLowerCase()) ?? 0 }]))
+  const plan = planApplyInputs(inputsForCutoff, existing, active, { id: periodId, name: periodName })
   for (const { entryId, inputs } of plan.updates) {
     const result = await dataClient.updateRecordAsync<Record<string, unknown>, PayrollEntry>(
       PAYROLL_ENTRY_TABLE,
@@ -372,7 +481,7 @@ async function applyInputsToPeriod(
     )
     if (!result.success) throw result.error ?? new Error("Unable to update payroll entry.")
   }
-  const created = await createPlannedEntries(periodId, plan.creates)
+  const created = await createPlannedEntries(periodId, plan.creates, unpaid)
   return { created, updated: plan.updates.length, skipped: plan.skipped }
 }
 
@@ -381,7 +490,13 @@ async function applyInputsToPeriod(
  * copyFromPreviousCutoff. Stops on the first failure and reports how many were
  * added before it (partial-write visibility). Returns the created count.
  */
-async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Promise<number> {
+async function createPlannedEntries(periodId: string, plans: NewEntryPlan[], preparedUnpaidDays?: Map<string, number>): Promise<number> {
+  if (!plans.length) return 0
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (!isPeriodEditable(period.a365_payrollstatus)) throw new Error("Payroll entries can only be populated while the period is Processing.")
+  // Complete all Leave reads before the first entry write; a failed lookup
+  // must never produce apparently valid zero-day inputs.
+  const unpaid = preparedUnpaidDays ?? await payrollUnpaidLeaveService.daysForEmployees(plans.map(plan => plan.employeeId), period.a365_periodstart, period.a365_periodend)
   let created = 0
   for (const plan of plans) {
     const payload: Record<string, unknown> = {
@@ -393,7 +508,7 @@ async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Pr
       a365_allowances: plan.allowances,
       a365_otherearnings: plan.otherEarnings,
       a365_otherdeductions: plan.otherDeductions,
-      a365_unpaidleavedays: plan.unpaidLeaveDays,
+      a365_unpaidleavedays: unpaid.get(plan.employeeId.toLowerCase()) ?? 0,
       a365_withholdingtax: plan.withholdingTax,
       a365_comment: plan.comment || null,
     }
@@ -414,4 +529,17 @@ async function createPlannedEntries(periodId: string, plans: NewEntryPlan[]): Pr
     created += 1
   }
   return created
+}
+
+function hasCalculatedResults(entry: PayrollEntry): boolean {
+  return Boolean(entry.a365_calculatedon) && [
+    entry.a365_grosspay,
+    entry.a365_sss,
+    entry.a365_philhealth,
+    entry.a365_hdmf,
+    entry.a365_unpaidleave,
+    entry.a365_withholdingtax,
+    entry.a365_totaldeductions,
+    entry.a365_netpay,
+  ].every((value) => value !== null && value !== undefined && Number.isFinite(value))
 }

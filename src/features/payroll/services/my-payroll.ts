@@ -1,11 +1,12 @@
 /**
  * Employee-facing payroll (the "My Payroll" portal). Composes an employee's own
- * entries with their periods and exposes only finalized payslips (Paid or
- * Locked) — in-progress cutoffs (Draft/Processing/Ready) are never shown to the
+ * entries with their periods and exposes only Ready or Locked payslips —
+ * Processing cutoffs are never shown to the
  * employee. Record access is Dataverse-enforced; this is the employee's own data.
  */
 import { payrollPeriodService } from "./payroll-period-service"
-import { PayrollStatus, type PayrollEntry, type PayrollPeriod } from "../types"
+import { isVisibleToEmployee } from "../period-status"
+import type { PayrollEntry, PayrollPeriod } from "../types"
 
 /** One finalized payslip: the entry paired with the period it belongs to. */
 export interface Payslip {
@@ -14,10 +15,8 @@ export interface Payslip {
 }
 
 /** Statuses an employee is allowed to see a payslip for (money released / closed). */
-const VISIBLE_STATUSES = new Set<PayrollStatus>([PayrollStatus.Paid, PayrollStatus.Locked])
-
 /**
- * Keep only entries whose period is Paid or Locked, pair each with its period,
+ * Keep only entries whose period is Ready or Locked, pair each with its period,
  * and sort newest cutoff first. Pure so the visibility rule is unit-testable.
  */
 export function selectVisiblePayslips(
@@ -29,7 +28,7 @@ export function selectVisiblePayslips(
   for (const entry of entries) {
     const periodId = entry._a365_payrollperiod_value
     const period = periodId ? periodById.get(periodId) : undefined
-    if (period && VISIBLE_STATUSES.has(period.a365_payrollstatus)) {
+    if (period && isVisibleToEmployee(period.a365_payrollstatus)) {
       slips.push({ entry, period })
     }
   }

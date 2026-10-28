@@ -2,6 +2,11 @@
 
 ## Milestone 1: Payroll -- Task Phases Breakdown
 
+> **Template and phase reference:** Use this document's milestone, phase, goal,
+> task checklist, and deliverable structure when planning Payroll work. Record
+> completed enhancement history in the root `Payroll-Enhancements.md` instead
+> of adding change-log entries here.
+
 **Project:** Central Hub 2 -- The Daily Operation\
 **Company:** Automations 365\
 **Primary Stack:** Power Apps Code Apps + Dataverse + Power Automate\
@@ -139,7 +144,7 @@ pay.
 
 ### Tasks
 
-- [x] Define Gross Pay calculation (basic + allowances + other − unpaid leave)
+- [x] Define Gross Pay calculation (basic + allowances + other earnings)
 - [x] Define Unpaid Leave calculation (days × daily rate; daily = monthly ÷ 22)
 - [x] Create SSS contribution configuration/table (`a365_ssscontribution`, 61 brackets)
 - [x] Create PhilHealth contribution configuration/table (`a365_philhealthcontribution`)
@@ -150,7 +155,7 @@ pay.
 - [x] Implement PhilHealth automatic calculation (verified 537.50/cutoff)
 - [x] Implement HDMF automatic calculation (verified 100/cutoff)
 - [~] Implement withholding tax automatic calculation — bracket table + calc ship; **taxable-base rule TBD (accountant)**, isolated to `computeTaxableBase` (spec §7)
-- [x] Calculate Total Deductions
+- [x] Calculate Total Deductions (unpaid leave + SSS + PhilHealth + HDMF + manual tax + other deductions)
 - [x] Calculate Net Pay
 - [x] Handle rounding rules (`round2`, half-up 2dp)
 - [x] Handle calculation errors and missing configuration (typed throw, not silent 0)
@@ -353,7 +358,7 @@ document storage.
       browser's PDF viewer, with its own download — on the employee payslip page
       `src/pages/payslip.tsx` and in the admin payroll-entry dialog)
 - [x] Define document naming convention (`payslipFileName` →
-      `Payslip_<periodEnd>_<empno>_<Last-First>`, set as the PDF's document title)
+      `Payslip_<periodEnd>_<empno>_<Last-First>.pdf`, set as the PDF's document title)
 - [~] Test document access as Employee and Admin (access stays Dataverse-enforced —
   the payslip only renders data the caller can already read; covered in Phase 12 §11)
 - [~] SharePoint document storage — **deferred (out of scope for now, PLANS.md)**:
@@ -382,7 +387,7 @@ experience before production.
 - [x] Test PhilHealth scenarios (537.50)
 - [x] Test HDMF scenarios (100.00 cap)
 - [x] Test withholding tax scenarios (manual passthrough + zero honored)
-- [x] Test unpaid leave scenarios (daily = monthly/22 reduces gross)
+- [x] Test unpaid leave scenarios (daily = monthly/22; leave amount belongs in deductions)
 - [x] Test allowances (load/copy plans + gross)
 - [x] Test payroll copying (`period-utils.test.ts` `planCopyEntries`)
 - [~] Test payroll approval — **N/A in V1** (no approver role)

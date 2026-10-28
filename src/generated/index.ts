@@ -4,9 +4,17 @@
  */
 
 // Models
+export * as A365_DeleteEmployeeModel from './models/A365_DeleteEmployeeModel';
+export * as A365_DeletePayrollEntryModel from './models/A365_DeletePayrollEntryModel';
+export * as A365_DeletePayrollPeriodModel from './models/A365_DeletePayrollPeriodModel';
+export * as A365_LeaveCommandModel from './models/A365_LeaveCommandModel';
 export * as A365_departmentsModel from './models/A365_departmentsModel';
 export * as A365_employeesModel from './models/A365_employeesModel';
 export * as A365_hdmfcontributionsModel from './models/A365_hdmfcontributionsModel';
+export * as A365_leavecashconversionsModel from './models/A365_leavecashconversionsModel';
+export * as A365_leaveconversionyearsModel from './models/A365_leaveconversionyearsModel';
+export * as A365_leavecredittransactionsModel from './models/A365_leavecredittransactionsModel';
+export * as A365_leavesModel from './models/A365_leavesModel';
 export * as A365_payrollentriesModel from './models/A365_payrollentriesModel';
 export * as A365_payrollperiodsModel from './models/A365_payrollperiodsModel';
 export * as A365_payrolltemplatelinesModel from './models/A365_payrolltemplatelinesModel';
@@ -16,14 +24,23 @@ export * as A365_positionsModel from './models/A365_positionsModel';
 export * as A365_ssscontributionsModel from './models/A365_ssscontributionsModel';
 export * as A365_taxbracketsModel from './models/A365_taxbracketsModel';
 export * as CommonModels from './models/CommonModels';
+export * as Office365OutlookModel from './models/Office365OutlookModel';
 export * as RolesModel from './models/RolesModel';
 export * as SystemusersModel from './models/SystemusersModel';
 export * as WhoAmIModel from './models/WhoAmIModel';
 
 // Services
+export * from './services/A365_DeleteEmployeeService';
+export * from './services/A365_DeletePayrollEntryService';
+export * from './services/A365_DeletePayrollPeriodService';
+export * from './services/A365_LeaveCommandService';
 export * from './services/A365_departmentsService';
 export * from './services/A365_employeesService';
 export * from './services/A365_hdmfcontributionsService';
+export * from './services/A365_leavecashconversionsService';
+export * from './services/A365_leaveconversionyearsService';
+export * from './services/A365_leavecredittransactionsService';
+export * from './services/A365_leavesService';
 export * from './services/A365_payrollentriesService';
 export * from './services/A365_payrollperiodsService';
 export * from './services/A365_payrolltemplatelinesService';
@@ -32,6 +49,7 @@ export * from './services/A365_philhealthcontributionsService';
 export * from './services/A365_positionsService';
 export * from './services/A365_ssscontributionsService';
 export * from './services/A365_taxbracketsService';
+export * from './services/Office365OutlookService';
 export * from './services/RolesService';
 export * from './services/SystemusersService';
 export * from './services/WhoAmIService';

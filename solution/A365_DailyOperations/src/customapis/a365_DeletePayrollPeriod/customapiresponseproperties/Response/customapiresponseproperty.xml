@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Response">
+  <description default="Deletion JSON Response">
+    <label description="Deletion JSON Response" languagecode="1033" />
+  </description>
+  <displayname default="Response">
+    <label description="Response" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>a365_DeletePayrollPeriod.Response</name>
+  <type>10</type>
+</customapiresponseproperty>

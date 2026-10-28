@@ -1,6 +1,6 @@
 /**
- * Employee portal data: the signed-in employee's finalized payslips (Paid /
- * Locked only). Depends on the current employee resolving first.
+ * Employee portal data: the signed-in employee's Ready or Locked payslips.
+ * Depends on the current employee resolving first.
  */
 import { useQuery } from "@tanstack/react-query"
 import { listPayslipsForEmployee } from "../services/my-payroll"
@@ -20,6 +20,8 @@ export function useMyPayslips() {
     isPending: employee.isPending || (Boolean(employeeId) && query.isPending),
     isError: employee.isError || query.isError,
     error: employee.error ?? query.error,
+    employeeLookupFailed: employee.isError,
+    retryEmployeeLookup: employee.refetch,
     /** True once we know the user has no linked employee record (not a payslip owner). */
     noEmployeeRecord: employee.isSuccess && !employee.data,
   }

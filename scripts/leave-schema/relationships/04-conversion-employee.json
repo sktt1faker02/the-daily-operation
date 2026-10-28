@@ -1,0 +1,11 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+  "SchemaName": "a365_employee_leavecashconversion",
+  "ReferencedEntity": "a365_employee", "ReferencedAttribute": "a365_employeeid", "ReferencingEntity": "a365_leavecashconversion",
+  "CascadeConfiguration": { "Assign": "NoCascade", "Delete": "Restrict", "Merge": "NoCascade", "Reparent": "NoCascade", "Share": "NoCascade", "Unshare": "NoCascade" },
+  "Lookup": {
+    "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "SchemaName": "a365_Employee",
+    "DisplayName": { "LocalizedLabels": [{ "Label": "Employee", "LanguageCode": 1033 }] },
+    "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true }
+  }
+}
