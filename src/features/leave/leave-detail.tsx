@@ -9,6 +9,7 @@ import { benefitLabels, conversionStatusLabels, leaveStatusLabels, leaveTypeLabe
 import type { SourceReference } from "./types"
 import { useLeaveDetail } from "./use-leave"
 import { RetryLeaveEmail } from "./retry-email-button"
+import { leaveAllocationDisplay } from "./allocation"
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 whitespace-pre-wrap break-words text-sm">{children ?? "—"}</dd></div>
@@ -18,6 +19,7 @@ export function LeaveDetail({ source, onClose }: { source: SourceReference | nul
   const query = useLeaveDetail(source)
   const data = query.isError ? undefined : query.data
   const record = data ? data.record : null
+  const allocation = record && "a365_startdate" in record ? leaveAllocationDisplay(record) : null
   const employee = data?.employees[0]
   const actor = (id?: string) => id ? data?.actors.get(id) || "User name unavailable" : "—"
   return <Dialog open={source !== null} onOpenChange={open => { if (!open) onClose() }}>
@@ -30,6 +32,8 @@ export function LeaveDetail({ source, onClose }: { source: SourceReference | nul
         {"a365_startdate" in record ? <>
           <Field label="Type">{choiceLabel(leaveTypeLabels, record.a365_leavetype)}</Field><Field label="Benefit">{choiceLabel(benefitLabels, record.a365_benefit)}</Field>
           <Field label="Status"><Badge variant="outline">{choiceLabel(leaveStatusLabels, record.a365_leavestatus)}</Badge></Field><Field label="Days">{formatDays(record.a365_days)}</Field>
+          <Field label="Paid days">{allocation?.paid}</Field><Field label="Unpaid days">{allocation?.unpaid}</Field>
+          <Field label="Unpaid dates">{allocation?.unpaidDates}</Field>
           <Field label="Start date">{formatLeaveDate(record.a365_startdate)}</Field><Field label="End date">{formatLeaveDate(record.a365_enddate)}</Field>
           <Field label="Issued by">{actor(record._a365_issuedby_value)}</Field><Field label="Issued on">{formatDateTime(record.a365_issuedon)}</Field>
           <Field label="Note">{record.a365_note}</Field>

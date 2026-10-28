@@ -11,7 +11,7 @@ namespace A365.Leave.Plugins
     /// resolved server-side; no table privileges, sharing or ownership changes.</summary>
     public static class PersonalLeaveReads
     {
-        private static readonly string[] LeaveColumns = { "a365_name", "a365_employee", "a365_leavetype", "a365_benefit", "a365_startdate", "a365_enddate", "a365_days", "a365_leavestatus", "a365_issuedon" };
+        private static readonly string[] LeaveColumns = { "a365_name", "a365_employee", "a365_leavetype", "a365_benefit", "a365_startdate", "a365_enddate", "a365_days", "a365_leavestatus", "a365_issuedon", "a365_paiddays", "a365_unpaiddays", "a365_allocationjson" };
         private static readonly string[] CreditColumns = { "a365_employee", "a365_year", "a365_creditpool", "a365_days" };
 
         public static object Execute(Request request, Guid user, IOrganizationService system)
@@ -56,7 +56,7 @@ namespace A365.Leave.Plugins
                         query.Criteria.AddCondition("a365_leavestatus", ConditionOperator.Equal, status);
                     }
                     Choice(query, "a365_leavetype", request.leaveType, new[] { 749910000, 749910001, 749910002 });
-                    Choice(query, "a365_benefit", request.benefit, new[] { 749910000, 749910001 });
+                    Choice(query, "a365_benefit", request.benefit, new[] { 749910000, 749910001, 749910002 });
                 }
                 int page = 1;
                 if (!String.IsNullOrEmpty(request.cursor) && (!Int32.TryParse(request.cursor, out page) || page < 1 || page > (credits ? 100 : 2500))) Rules.Fail("Invalid history page. Refresh to retry.");

@@ -1,9 +1,17 @@
 import type { A365_leaves } from "@/generated/models/A365_leavesModel"
 import type { A365_leavecashconversions } from "@/generated/models/A365_leavecashconversionsModel"
 import type { A365_leavecredittransactions } from "@/generated/models/A365_leavecredittransactionsModel"
+import { A365_leavesa365_benefit } from "@/generated/models/A365_leavesModel"
+
+export const requestedBenefitLabels = { 749910000: A365_leavesa365_benefit[749910000], 749910001: A365_leavesa365_benefit[749910001] }
+export const benefitLabels: Readonly<Record<number, string>> = A365_leavesa365_benefit
+export interface LeaveAllocationFields {
+  a365_paiddays?: number | null
+  a365_unpaiddays?: number | null
+  a365_allocationjson?: string | null
+}
 
 export {
-  A365_leavesa365_benefit as benefitLabels,
   A365_leavesa365_leavestatus as leaveStatusLabels,
   A365_leavesa365_leavetype as leaveTypeLabels,
   A365_leavesa365_notificationstatus as notificationStatusLabels,
@@ -16,10 +24,11 @@ export {
 
 export type LeaveRecord = Pick<A365_leaves,
   "a365_leaveid" | "a365_name" | "_a365_employee_value" | "a365_leavetype" |
-  "a365_benefit" | "a365_startdate" | "a365_enddate" | "a365_days" |
+  "a365_startdate" | "a365_enddate" | "a365_days" |
   "a365_leavestatus" | "a365_note" | "_a365_issuedby_value" | "a365_issuedon" |
   "_a365_cancelledby_value" | "a365_cancelledon" | "a365_cancellationreason"> &
-  Partial<Pick<A365_leaves, "a365_notificationstatus" | "a365_notifiedon">>
+  Partial<Pick<A365_leaves, "a365_notificationstatus" | "a365_notifiedon">> &
+  LeaveAllocationFields & { a365_benefit: number }
 export type ConversionRecord = Pick<A365_leavecashconversions,
   "a365_leavecashconversionid" | "a365_name" | "_a365_employee_value" |
   "a365_year" | "a365_days" | "a365_dailyrateused" | "a365_amount" |

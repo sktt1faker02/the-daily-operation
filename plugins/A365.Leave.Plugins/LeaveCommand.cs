@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.1")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.4")]
 
 namespace A365.Leave.Plugins
 {
@@ -17,6 +17,10 @@ namespace A365.Leave.Plugins
         public string operationId { get; set; }
         public int leaveType { get; set; }
         public int benefit { get; set; }
+        public int allocationVersion { get; set; }
+        public decimal? expectedPaidDays { get; set; }
+        public decimal? expectedUnpaidDays { get; set; }
+        public decimal? expectedRestoredDays { get; set; }
         public string startDate { get; set; }
         public string endDate { get; set; }
         public string note { get; set; }
@@ -32,6 +36,20 @@ namespace A365.Leave.Plugins
     }
     public sealed class Holiday { public string date { get; set; } public string name { get; set; } }
     public sealed class Coverage { public int year { get; set; } public bool complete { get; set; } }
+    public sealed class AllocatedDay
+    {
+        public string date { get; set; }
+        public decimal paidDays { get; set; }
+        public decimal unpaidDays { get; set; }
+    }
+    public sealed class LeaveAllocation
+    {
+        public int version { get; set; }
+        public AllocatedDay[] days { get; set; }
+        public decimal PaidDays { get { return days.Sum(day => day.paidDays); } }
+        public decimal UnpaidDays { get { return days.Sum(day => day.unpaidDays); } }
+        public int Benefit { get { return PaidDays == 0 ? 749910001 : UnpaidDays == 0 ? 749910000 : 749910002; } }
+    }
     public sealed class Policy
     {
         public string version { get; set; }
@@ -79,13 +97,33 @@ namespace A365.Leave.Plugins
             return total;
         }
         private static bool Weekend(DateTime day) { return day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday; }
-        public static int Benefit(int requested, decimal balance, decimal days) { return requested == 749910000 && balance >= days ? 749910000 : 749910001; }
+        public static int Benefit(int requested, decimal balance, decimal days)
+        {
+            return requested != 749910000 || balance <= 0 ? 749910001 : balance >= days ? 749910000 : 749910002;
+        }
+        public static LeaveAllocation Allocate(int requested, decimal balance, DateTime start, DateTime end, Policy policy)
+        {
+            Days(start, end, policy);
+            if (requested != 749910000 && requested != 749910001) Fail("Select Paid or Unpaid.");
+            if (balance != Math.Round(balance, 2)) Fail("The credit balance precision needs review.");
+            decimal remaining = requested == 749910000 ? Math.Max(0, balance) : 0;
+            var holidays = new HashSet<string>(policy.holidays.Select(day => day.date));
+            var allocated = new List<AllocatedDay>();
+            for (var day = start; day <= end; day = day.AddDays(1))
+            {
+                if (Weekend(day) || holidays.Contains(Iso(day))) continue;
+                decimal paid = Math.Min(1, remaining);
+                allocated.Add(new AllocatedDay { date = Iso(day), paidDays = paid, unpaidDays = 1 - paid });
+                remaining -= paid;
+            }
+            return new LeaveAllocation { version = 1, days = allocated.ToArray() };
+        }
         public static void Fail(string message) { throw new InvalidPluginExecutionException("LEAVE: " + message); }
     }
 
     /// <summary>Unbound synchronous Custom API action. All writes use this
     /// database transaction; never execute ExecuteTransaction here.</summary>
-    public sealed class LeaveCommand : IPlugin
+    public sealed partial class LeaveCommand : IPlugin
     {
         internal const string Api = "a365_LeaveCommand";
         private const string Ledger = "a365_leavecredittransaction";
@@ -119,6 +157,7 @@ namespace A365.Leave.Plugins
             object response;
             if (request.command == "diagnostics") response = new { policyVersion = "2026-10-22.1", isInTransaction = context.IsInTransaction, serverValidation = true };
             else if (request.command == "prepareEmail" || request.command == "completeEmail") response = Email(request, system, caller);
+            else if (request.command == "deletePreview" || request.command == "delete") response = DeleteLeave(request, context, system, caller);
             else if (request.command == "preview" || request.command == "issue") response = Post(request, context, system, caller);
             else { Rules.Fail("Unknown Leave command."); return; }
             context.OutputParameters["Response"] = Json.Serialize(response);
@@ -146,6 +185,9 @@ namespace A365.Leave.Plugins
             }
             else operationId = Guid.Empty;
 
+            if (request.command == "issue" && request.allocationVersion != 1)
+                Rules.Fail("Refresh the application to review the paid and unpaid breakdown before submitting.");
+
             var status = employee.GetAttributeValue<OptionSetValue>("a365_employmentstatus");
             if (status == null || (status.Value != 749910000 && status.Value != 749910002)) Rules.Fail("Only Active or On Leave employees can receive leave.");
             var today = DateTime.UtcNow.AddHours(8).Date;
@@ -169,7 +211,7 @@ namespace A365.Leave.Plugins
             decimal vl = current.Where(r => Choice(r, "a365_creditpool") == 749910000).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
             decimal sl = current.Where(r => Choice(r, "a365_creditpool") == 749910001).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
             if (String.IsNullOrEmpty(request.startDate) && String.IsNullOrEmpty(request.endDate) && request.command == "preview")
-                return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)null, benefit = (int?)null, pool = (string)null };
+                return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)null, benefit = (int?)null, pool = (string)null, allocationVersion = 1, paidDays = (decimal?)null, unpaidDays = (decimal?)null, allocation = (AllocatedDay[])null };
 
             var start = Rules.Day(request.startDate);
             var end = Rules.Day(request.endDate);
@@ -185,8 +227,11 @@ namespace A365.Leave.Plugins
             overlap.Criteria.AddCondition("a365_enddate", ConditionOperator.OnOrAfter, start);
             if (caller.RetrieveMultiple(overlap).Entities.Count != 0) Rules.Fail("These dates overlap an Issued leave record.");
             int pool = request.leaveType == 749910001 ? 749910001 : 749910000;
-            int benefit = Rules.Benefit(request.benefit, pool == 749910000 ? vl : sl, days);
-            if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL" };
+            var allocation = Rules.Allocate(request.benefit, pool == 749910000 ? vl : sl, start, end, policy);
+            int benefit = allocation.Benefit;
+            if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL", allocationVersion = 1, paidDays = (decimal?)allocation.PaidDays, unpaidDays = (decimal?)allocation.UnpaidDays, allocation = allocation.days };
+            if (request.expectedPaidDays != allocation.PaidDays || request.expectedUnpaidDays != allocation.UnpaidDays)
+                Rules.Fail("The paid/unpaid breakdown changed. Refresh the credit preview and review it before submitting again.");
 
             var leave = new Entity(Source, operationId);
             leave["a365_name"] = "Leave " + Rules.Iso(start) + " to " + Rules.Iso(end);
@@ -196,14 +241,18 @@ namespace A365.Leave.Plugins
             leave["a365_requestedbenefit"] = request.benefit;
             leave["a365_startdate"] = start; leave["a365_enddate"] = end;
             leave["a365_days"] = days; leave["a365_note"] = request.note ?? "";
+            leave["a365_paiddays"] = allocation.PaidDays;
+            leave["a365_unpaiddays"] = allocation.UnpaidDays;
+            // Only serialize the versioned per-date contract, not computed properties.
+            leave["a365_allocationjson"] = Json.Serialize(new { version = 1, days = allocation.days });
             leave["a365_issuedby"] = new EntityReference("systemuser", context.InitiatingUserId);
             leave["a365_issuedon"] = DateTime.UtcNow;
             leave["a365_leavestatus"] = new OptionSetValue(749910000);
             leave["a365_notificationstatus"] = new OptionSetValue(749910000);
             caller.Create(leave);
-            if (benefit == 749910000)
+            if (allocation.PaidDays > 0)
             {
-                var deduction = Movement(employeeId, period, period >= Rules.JanuaryResetEffective ? period.Year : start.Year, pool, 749910002, -days, "LEAVE-" + operationId.ToString("D") + "-DEDUCTION", null);
+                var deduction = Movement(employeeId, period, period >= Rules.JanuaryResetEffective ? period.Year : start.Year, pool, 749910002, -allocation.PaidDays, "LEAVE-" + operationId.ToString("D") + "-DEDUCTION", null);
                 deduction["a365_leave"] = leave.ToEntityReference();
                 caller.Create(deduction);
             }
@@ -301,6 +350,9 @@ namespace A365.Leave.Plugins
                 a365_leavetype = Choice(row, "a365_leavetype"), a365_benefit = Choice(row, "a365_benefit"),
                 a365_startdate = Rules.Iso(row.GetAttributeValue<DateTime>("a365_startdate")), a365_enddate = Rules.Iso(row.GetAttributeValue<DateTime>("a365_enddate")),
                 a365_days = row.GetAttributeValue<decimal>("a365_days"), a365_leavestatus = Choice(row, "a365_leavestatus"),
+                a365_paiddays = row.Contains("a365_paiddays") ? (decimal?)row.GetAttributeValue<decimal>("a365_paiddays") : null,
+                a365_unpaiddays = row.Contains("a365_unpaiddays") ? (decimal?)row.GetAttributeValue<decimal>("a365_unpaiddays") : null,
+                a365_allocationjson = row.GetAttributeValue<string>("a365_allocationjson"),
                 a365_issuedon = row.GetAttributeValue<DateTime>("a365_issuedon").ToUniversalTime().ToString("o"),
                 a365_notificationstatus = Choice(row, "a365_notificationstatus")
             };
@@ -379,6 +431,18 @@ namespace A365.Leave.Plugins
                         Request request = null;
                         try { if (parent.InputParameters.Contains("Request")) request = new JavaScriptSerializer().Deserialize<Request>((string)parent.InputParameters["Request"]); } catch { }
                         bool conversion = context.PrimaryEntityName == "a365_leavecashconversion" || context.PrimaryEntityName == "a365_leaveconversionyear";
+                        if (request != null && request.command == "delete")
+                        {
+                            bool sourceDelete = context.PrimaryEntityName == "a365_leave" && context.MessageName == "Delete";
+                            // Dataverse merges single-record Create/Update
+                            // pipelines with their bulk equivalents. These
+                            // paired events inherit the same trusted API gate.
+                            bool createOrUpdate = context.MessageName == "Create" || context.MessageName == "CreateMultiple" || context.MessageName == "Update" || context.MessageName == "UpdateMultiple";
+                            bool ledgerWrite = context.PrimaryEntityName == "a365_leavecredittransaction" && createOrUpdate;
+                            bool coordination = context.PrimaryEntityName == "a365_leavecoordination" && createOrUpdate;
+                            if (sourceDelete || ledgerWrite || coordination) return;
+                            Rules.Fail("Leave deletion cannot modify these records.");
+                        }
                         if (request != null && (conversion ? request.command == "conversionCreate" || request.command == "conversionSave" || (request.command == "conversionMarkPaid" && context.PrimaryEntityName == "a365_leaveconversionyear" && (context.MessageName == "Update" || context.MessageName == "SetState")) : request.command == "issue" || request.command == "prepareEmail" || request.command == "completeEmail")) return;
                         Rules.Fail("This Leave command cannot modify these records.");
                     }

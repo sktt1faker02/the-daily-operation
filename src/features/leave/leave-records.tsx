@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Eye, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -6,12 +7,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency, formatDateTime } from "@/lib/format"
 import { choiceLabel, formatDays, formatLeaveDate } from "./rules"
 import { benefitLabels, conversionStatusLabels, leaveStatusLabels, leaveTypeLabels, poolLabels, transactionTypeLabels } from "./types"
-import type { LeaveFilters, SourceReference } from "./types"
+import type { LeaveFilters, LeaveRecord, SourceReference } from "./types"
 import { useLeavePage } from "./use-leave"
+import { leaveAllocationDisplay } from "./allocation"
+import { DeleteLeaveDialog } from "./delete-leave-dialog"
 
 export function LeaveRecords({ filters, onOpen, personal = false }: { filters: LeaveFilters; onOpen: (source: SourceReference) => void; personal?: boolean }) {
   const query = useLeavePage(filters, personal)
   const [index, setIndex] = useState(0)
+  const [deleting, setDeleting] = useState<LeaveRecord | null>(null)
   const page = query.data?.pages[index]
   const title = filters.section === "leave" ? "Leave records" : filters.section === "credits" ? "Credit history" : "Cash conversions"
   const names = new Map(page?.employees.map(employee => [employee.a365_employeeid.toLowerCase(), employee.a365_name]))
@@ -34,9 +38,9 @@ export function LeaveRecords({ filters, onOpen, personal = false }: { filters: L
         {page.leaves.map(row => <TableRow key={row.a365_leaveid}>
           <TableCell className="font-medium">{row.a365_name}</TableCell><TableCell>{employeeName(row._a365_employee_value)}</TableCell>
           <TableCell>{choiceLabel(leaveTypeLabels, row.a365_leavetype)}</TableCell><TableCell>{choiceLabel(benefitLabels, row.a365_benefit)}</TableCell>
-          <TableCell className="whitespace-nowrap">{formatLeaveDate(row.a365_startdate)} – {formatLeaveDate(row.a365_enddate)}</TableCell><TableCell className="tabular-nums">{formatDays(row.a365_days)}</TableCell>
+          <TableCell className="whitespace-nowrap">{formatLeaveDate(row.a365_startdate)} – {formatLeaveDate(row.a365_enddate)}</TableCell><TableCell className="tabular-nums">{formatDays(row.a365_days)}{row.a365_benefit === 749910002 && <span className="block whitespace-nowrap text-xs text-muted-foreground">{leaveAllocationDisplay(row).paid} paid / {leaveAllocationDisplay(row).unpaid} unpaid</span>}</TableCell>
           <TableCell><Badge variant="outline">{choiceLabel(leaveStatusLabels, row.a365_leavestatus)}</Badge></TableCell>
-          <TableCell><Button variant="ghost" size="sm" aria-label={`View ${row.a365_name}`} onClick={() => onOpen({ kind: "leave", id: row.a365_leaveid })}>Details</Button></TableCell>
+          <TableCell><div className="flex items-center gap-1"><Button variant="ghost" size="icon" aria-label={`View ${row.a365_name}`} title="View leave" onClick={() => onOpen({ kind: "leave", id: row.a365_leaveid })}><Eye className="size-4" aria-hidden="true" /></Button>{!personal && <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label={`Delete ${row.a365_name}`} title="Delete leave" onClick={() => setDeleting(row)}><Trash2 className="size-4" aria-hidden="true" /></Button>}</div></TableCell>
         </TableRow>)}
         {page.conversions.map(row => <TableRow key={row.a365_leavecashconversionid}>
           <TableCell className="font-medium">{row.a365_name}</TableCell><TableCell>{employeeName(row._a365_employee_value)}</TableCell><TableCell>{row.a365_year}</TableCell>
@@ -57,5 +61,6 @@ export function LeaveRecords({ filters, onOpen, personal = false }: { filters: L
       <Button variant="outline" size="sm" disabled={query.isFetching || index === 0} onClick={() => setIndex(index - 1)}>Previous page</Button>
       <Button variant="outline" size="sm" disabled={query.isFetching || (!query.hasNextPage && index >= query.data!.pages.length - 1)} onClick={() => void next()}>Next page</Button>
     </div></div>
+    {deleting && !personal && <DeleteLeaveDialog record={deleting} employeeName={employeeName(deleting._a365_employee_value)} onClose={() => setDeleting(null)} onDeleted={() => { setDeleting(null); setIndex(0) }} />}
   </section>
 }

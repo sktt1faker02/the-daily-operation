@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <SdkMessageProcessingStep Name="A365 Conversion Guard a365_leavecashconversion Create" SdkMessageProcessingStepId="{5c08b6d8-cace-f111-a05c-70a8a5036aa3}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SdkMessageId>9ebdbb1b-ea3e-db11-86a7-000a3a5473e8</SdkMessageId>
-  <PluginTypeName>A365.Leave.Plugins.ProtectLeaveWrites, A365.Leave.Plugins, Version=1.0.3.1, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d</PluginTypeName>
+  <PluginTypeName>A365.Leave.Plugins.ProtectLeaveWrites, A365.Leave.Plugins, Version=1.0.3.4, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d</PluginTypeName>
   <PluginTypeId>308034c7-e2cd-f111-a05a-000d3a8014e4</PluginTypeId>
   <PrimaryEntity>a365_leavecashconversion</PrimaryEntity>
   <AsyncAutoDelete>0</AsyncAutoDelete>

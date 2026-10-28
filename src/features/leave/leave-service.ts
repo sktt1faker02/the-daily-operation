@@ -12,7 +12,7 @@ import { postingService } from "./posting-service"
 import { emptyLeaveEntry } from "./entry-rules"
 import { calculateConversion, currentLeaveYear } from "./conversion-rules"
 
-const leaveSelect = ["a365_leaveid", "a365_name", "_a365_employee_value", "a365_leavetype", "a365_benefit", "a365_startdate", "a365_enddate", "a365_days", "a365_leavestatus", "a365_note", "_a365_issuedby_value", "a365_issuedon", "_a365_cancelledby_value", "a365_cancelledon", "a365_cancellationreason", "a365_notificationstatus", "a365_notifiedon"] satisfies (keyof LeaveRecord)[]
+const leaveSelect = ["a365_leaveid", "a365_name", "_a365_employee_value", "a365_leavetype", "a365_benefit", "a365_startdate", "a365_enddate", "a365_days", "a365_leavestatus", "a365_note", "_a365_issuedby_value", "a365_issuedon", "_a365_cancelledby_value", "a365_cancelledon", "a365_cancellationreason", "a365_notificationstatus", "a365_notifiedon", "a365_paiddays", "a365_unpaiddays", "a365_allocationjson"] satisfies (keyof LeaveRecord)[]
 const conversionSelect = ["a365_leavecashconversionid", "a365_name", "_a365_employee_value", "a365_year", "a365_days", "a365_dailyrateused", "a365_amount", "a365_conversionstatus", "_a365_convertedby_value", "a365_convertedon", "_a365_cancelledby_value", "a365_cancelledon", "a365_cancellationreason"] satisfies (keyof ConversionRecord)[]
 const creditSelect = ["a365_leavecredittransactionid", "a365_name", "_a365_employee_value", "a365_year", "a365_creditpool", "a365_days", "a365_transactiontype", "a365_transactionkey", "a365_periodkey", "a365_note", "createdon", "_a365_leave_value", "_a365_cashconversion_value"] satisfies (keyof CreditRecord)[]
 const employeeSelect = ["a365_employeeid", "a365_name", "a365_employeenumber"]

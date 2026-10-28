@@ -76,6 +76,13 @@ public static class PersonalLeaveReadsTests
         Check(((System.Collections.ICollection)result["rows"]).Count == 1 && !json.Contains(Foreign.ToString()), "own list only");
         Check(!json.Contains("Internal") && !json.Contains("a365_note") && !fake.Queries.Last().ColumnSet.Columns.Contains("a365_note"), "allowlisted fields only");
         Check(fake.Queries.Last().PageInfo.Count == 20 && fake.Queries.Last().Orders[0].AttributeName == "a365_startdate", "stable paged list");
+        var ownLeave = fake.Rows.First(r => r.LogicalName == "a365_leave" && r.GetAttributeValue<EntityReference>("a365_employee").Id == Employee);
+        ownLeave["a365_benefit"] = new OptionSetValue(749910002);
+        ownLeave["a365_paiddays"] = 4m; ownLeave["a365_unpaiddays"] = 1m;
+        ownLeave["a365_allocationjson"] = "{\"version\":1,\"days\":[]}";
+        request.benefit = 749910002; json = new JavaScriptSerializer().Serialize(Read(fake, request));
+        Check(json.Contains("a365_paiddays") && json.Contains("a365_unpaiddays") && json.Contains("a365_allocationjson"), "own allocation fields projected");
+        Check(fake.Queries.Last().Criteria.Conditions.Any(c => c.AttributeName == "a365_benefit" && (int)c.Values[0] == 749910002), "partially paid filter scoped server-side");
         request.employeeId = Foreign.ToString(); Denied(() => Read(fake, request), "spoofed employee rejected");
         request.employeeId = null; Denied(() => Read(fake, request), "missing employee rejected");
         var detail = Request("myLeave"); detail.operationId = fake.Rows.First(r => r.LogicalName == "a365_leave" && ((EntityReference)r["a365_employee"]).Id == Foreign).Id.ToString();

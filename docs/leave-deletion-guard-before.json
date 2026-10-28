@@ -1,0 +1,13 @@
+{
+    "VerifiedAt":  "2026-10-28T05:33:39.9266586Z",
+    "CoordinationTokenUnchanged":  true,
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "ExpectedFault":  "Leave deletion cannot modify these records",
+    "Version":  "1.0.3.3",
+    "FinancialWritesCommitted":  false,
+    "LeaveAndCreditCountsUnchanged":  true,
+    "TargetAndReceiptVerifiedAbsent":  true,
+    "TraceSettings":  "Unchanged",
+    "ExistingSourceDeleted":  false,
+    "Stage":  "before"
+}

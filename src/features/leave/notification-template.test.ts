@@ -11,6 +11,16 @@ const record: LeaveRecord = {
 }
 
 describe("Recorded Leave email composition", () => {
+  it("shows the saved partially paid breakdown and unpaid date", () => {
+    const days = [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 }))
+    const draft = buildRecordedLeaveEmail({ ...record, a365_startdate: "2026-10-26", a365_enddate: "2026-10-30", a365_days: 5, a365_benefit: 749910002,
+      a365_paiddays: 4, a365_unpaiddays: 1, a365_allocationjson: JSON.stringify({ version: 1, days }) }, employee)
+    if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
+    expect(draft.text).toContain("Benefit: Partially Paid")
+    expect(draft.text).toContain("Paid days: 4.00")
+    expect(draft.text).toContain("Unpaid days: 1.00")
+    expect(draft.text).toContain("Unpaid dates: Oct 30, 2026 (1.00 days)")
+  })
   it.each([
     [749910000, "VL", "9.17"],
     [749910001, "SL", "4.50"],
@@ -49,7 +59,7 @@ describe("Recorded Leave email composition", () => {
     if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
     const document = new DOMParser().parseFromString(draft.html, "text/html")
     expect(document.querySelector("h1")?.textContent).toBe("Your leave has been recorded")
-    expect(document.querySelectorAll("li")).toHaveLength(5)
+    expect(document.querySelectorAll("li")).toHaveLength(7)
     expect(document.querySelector("body")?.getAttribute("bgcolor")).toBe("#f3f5f8")
     expect(document.querySelector('table[style*="max-width:600px"]')).not.toBeNull()
     expect(document.querySelector("script,img,link,style,iframe")).toBeNull()

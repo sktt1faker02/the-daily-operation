@@ -10,6 +10,14 @@
       "x-ms-dataverse-primary-id": "a365_leaveid",
       "x-ms-dataverse-primary-name": "a365_name",
       "properties": {
+        "a365_allocationjson": {
+          "type": "string",
+          "title": "Allocation JSON",
+          "x-ms-dataverse-attribute": "a365_allocationjson",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "a365_AllocationJson",
+          "maxLength": 100000
+        },
         "a365_benefit": {
           "type": "string",
           "title": "Benefit",
@@ -19,13 +27,16 @@
           "required": true,
           "enum": [
             "Paid",
-            "Unpaid"
+            "Unpaid",
+            "Partially Paid"
           ],
           "x-ms-enum-values": [
             749910000,
-            749910001
+            749910001,
+            749910002
           ],
           "Color": [
+            null,
             null,
             null
           ],
@@ -309,6 +320,13 @@
           "x-ms-dataverse-type": "DateTimeType",
           "x-ms-schema-name": "a365_NotifiedOn"
         },
+        "a365_paiddays": {
+          "type": "string",
+          "title": "Paid Days",
+          "x-ms-dataverse-attribute": "a365_paiddays",
+          "x-ms-dataverse-type": "DecimalType",
+          "x-ms-schema-name": "a365_PaidDays"
+        },
         "a365_requestedbenefit": {
           "type": "string",
           "title": "Requested Benefit",
@@ -323,6 +341,13 @@
           "x-ms-dataverse-type": "DateTimeType",
           "x-ms-schema-name": "a365_StartDate",
           "required": true
+        },
+        "a365_unpaiddays": {
+          "type": "string",
+          "title": "Unpaid Days",
+          "x-ms-dataverse-attribute": "a365_unpaiddays",
+          "x-ms-dataverse-type": "DecimalType",
+          "x-ms-schema-name": "a365_UnpaidDays"
         },
         "createdby": {
           "type": "string",

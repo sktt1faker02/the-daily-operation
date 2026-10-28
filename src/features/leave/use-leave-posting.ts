@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { postingService } from "./posting-service"
+import { postingService, type ReviewedAllocation } from "./posting-service"
 import type { LeaveEntryValues } from "./entry-rules"
 
 export function useLeavePostingPreview(values: LeaveEntryValues) {
@@ -12,7 +12,7 @@ export function useLeavePostingPreview(values: LeaveEntryValues) {
 export function useIssueLeave() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: ({ values, operationId, onCommitted }: { values: LeaveEntryValues; operationId: string; onCommitted?: () => void }) => postingService.submit(values, operationId, onCommitted),
+    mutationFn: ({ values, operationId, reviewed, onCommitted }: { values: LeaveEntryValues; operationId: string; reviewed: ReviewedAllocation; onCommitted?: () => void }) => postingService.submit(values, operationId, reviewed, onCommitted),
     retry: false,
     onSuccess: async (_result, variables) => {
       await Promise.all([

@@ -6,6 +6,134 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-10-28 - Fix Leave deletion guard for merged single/bulk pipelines
+
+Reproduced the owner's `Leave deletion cannot modify these records` error in
+Dev using a verified nonexistent source/receipt ID so the request could not
+delete an existing leave. The 1.0.3.3 guard rejected the automatically merged
+CreateMultiple/UpdateMultiple events triggered by single-record coordination
+and ledger SDK writes. Confirmed the registrations and Microsoft's documented
+pipeline behavior; no trace-logging or organization settings were changed.
+
+Updated `LeaveCommand.cs` to signed version 1.0.3.4 and permit the paired
+single/bulk Create/Update events only inside the admin-validated deletion path
+for coordination and ledger tables. Source updates/creates, ledger deletion,
+direct bulk calls and preview writes remain blocked. Added failing-first guard
+regressions and taught the synthetic deletion service to run both pipeline
+guards. Added `verify-deletion-guard.ps1` and before/after evidence, and allowed
+the existing read-only preview checker to accept an explicit release version.
+
+The after probe passes the actual Dataverse coordination pipeline and stops at
+the intentional missing-record check. Both probes verify unchanged lock token
+and Leave/credit counts, proving rollback without deleting real source data.
+Read-only deletion preview also passes. All 439 application tests, lint/build,
+249 local plugin checks (including 42 guard and 44 deletion checks) and 26 admin
+Leave Edge checks pass; the existing bundle warning remains. Updated the Dev
+assembly and native source snapshot; local solution packing passes. No financial
+records were deleted or restored, no emails sent, and no schema/role changes or
+hosted app push occurred. Actual financial deletion/restoration and ordinary-
+account/concurrency UAT remain with the owner.
+
+### 2026-10-28 - Add Leave view/trash actions and transactional credit restoration
+
+Replaced Details text with an accessible Eye icon. Added an admin-only Trash
+icon and confirmation showing the server-verified credit restoration amount and
+original balance period. The owner explicitly chose permanent deletion with
+credit restoration, without adding/changing statuses. Personal Leave History
+keeps View only. Confirmation supports loading, blocked credit checks, retry,
+pending-submit protection and cancellation without writes.
+
+Signed Leave plugin 1.0.3.3 implements `deletePreview` and `delete` in
+`plugins/A365.Leave.Plugins/DeleteLeave.cs`. After the existing admin gate and
+employee lock, it verifies the source and original ledger, records a Restoration
+receipt with the financial snapshot/actors/timestamps, detaches the retained
+credit movements and deletes the source atomically. Unpaid/already-restored
+records create a zero-day audit receipt. Receipt identity prevents duplicate
+restorations on retries. The final validated source delete uses the system
+service because the ordinary admin role intentionally has no direct Delete
+privilege; guards still reject direct writes and ledger deletion. No role or
+schema changes were needed. Inconsistent history blocks deletion for review.
+
+Changed the Leave records component, new delete dialog/hook, existing posting
+service, plugin dispatcher/guards, server build and tests, browser scenarios and
+native assembly references. Added `docs/leave-record-actions.md`, deletion tests,
+read-only live verification and `docs/leave-deletion-verification.json`.
+Generalized the existing native-source sync script's input paths/version for the
+new verified release, preserving unrelated metadata and UTF-8 text.
+
+Verification: all 439 app tests in 43 files pass, lint/build pass (existing bundle
+warning), 233 local plugin checks pass including 44 deletion checks and 26 guard
+checks, and 45 synthetic Edge checks pass. Live plugin 1.0.3.3 and the read-only
+impact for an existing unpaid record pass; Leave/credit counts are unchanged.
+Native exported DLL matches the deployed/local signed hash and solution packing
+passes. Existing payroll entries/payslips are not recalculated. No real leave
+records were deleted, financial fixtures created or emails sent during checks.
+Owner manual UAT, live deletion/rollback/concurrency and ordinary-account access
+checks remain pending. No hosted Code App deployment or remote git push.
+
+### 2026-10-28 - Restore Leave records and complete approved split-leave setup
+
+Fixed the Leave Management read failure caused by selecting allocation columns
+before they existed. After the owner approved all previously requested setup,
+confirmed the Dev connection and `A365_DailyOperations` solution/publisher;
+added and published audited optional Paid Days, Unpaid Days and Allocation JSON
+fields plus Partially Paid (749910002). Refreshed the Leave data source with the
+installed Power Apps CLI; generated model/schema changes were produced by tooling.
+Updated the existing signed Leave assembly to 1.0.3.2 without changing its
+identity, registrations, roles or ownership/sharing. Native solution export
+synced the four affected Leave attribute definitions and Leave assembly/version
+references; preserved unrelated source. Local solution packing passes.
+
+Live checks: the exact app-equivalent 2026 list query now returns 22 records;
+an existing detail, payroll query, signed-in admin's personal history and a
+five-workday allocation preview all pass. The live API remains synchronous with
+20 active write guards. No business records were created/changed, no historical
+payroll was recalculated and no emails were sent. Evidence is recorded in
+`docs/partial-paid-leave-verification.json`; the setup/check/sync scripts are
+`partial-paid-schema.ps1`, `verify-partial-paid.ps1` and
+`pull-partial-paid-source.ps1` under `scripts/leave-schema/`.
+
+After generation, all 434 tests in 43 files, lint, production build and all 42
+synthetic Edge checks pass. Existing bundle-size warning remains. The earlier
+pending-schema limitation below is resolved in Dev. Owner manual UAT and live
+ordinary-account isolation, concurrency and transaction rollback checks remain
+pending; no financial test records were created for them. No hosted Code App
+push, remote git push, role changes or data migration were performed.
+
+### 2026-10-28 - Prepare one-record paid/unpaid leave allocation
+
+Implemented an Issued / Partially Paid leave snapshot: available credits cover
+the earliest workdays, including fractional credits; remaining portions are
+unpaid. Preview and issuance share server allocation rules. Issuance checks the
+reviewed counts under the existing employee lock, writes one source and debits
+only paid days. Retries return the original snapshot without duplicate debits.
+Payroll reads the saved unpaid dates for each cutoff; historical leave and
+existing payroll/payslip snapshots are not migrated or recalculated.
+
+Changed `plugins/A365.Leave.Plugins/LeaveCommand.cs` and personal read projection,
+the leave types/allocation validator, posting service/hook/form, admin/personal
+tables and details, email composition, payroll leave reader, colocated tests and
+synthetic browser scripts. Added local issuance checks and
+[`docs/partial-paid-leave.md`](docs/partial-paid-leave.md) with the acceptance
+checklist and exact proposed schema/manual release steps. PLANS.md links to it.
+
+Verification: 434 application tests in 43 files pass; lint and production build
+pass (existing large-chunk warning). Signed plugin 1.0.3.2 compiles; 182 local
+plugin checks pass across policy (48), issuance (35), personal reads (24), write
+guards (19) and conversions (56). All 42 synthetic Edge checks pass across admin
+leave (23), personal history (12) and payroll unpaid leave (7). Updated stale
+admin harness mocks/tab assertions after their failures; no application change
+was required to resolve those harness failures.
+
+Not enabled in Dataverse yet: live metadata confirms the proposed three columns
+and Partially Paid choice do not exist. Schema approval/setup, generated source
+refresh and plugin deployment are required before owner testing; new field reads
+fail against the unchanged schema. No schema, role, ownership/sharing, historical
+record or live financial changes were made. Solution metadata/binaries have not
+been exported from a live release. Direct ordinary-account access, actual
+transaction rollback and concurrent spending remain unverified live. Owner will
+perform manual UAT after setup; no hosted app deployment or remote push occurred.
+
 ### 2026-10-27 - Resolve Leave History integration with the latest local app
 
 Completed the interrupted merge of `Payroll-enhancements` into

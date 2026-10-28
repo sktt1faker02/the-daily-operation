@@ -1,4 +1,28 @@
-# Active: Employee Leave History under My Portal
+# Active: Leave row view and delete actions
+
+Owner confirmed on 2026-10-28: use a view icon and a trash icon in admin Leave
+Management. Delete the source record and restore credits used; remove unpaid
+leave from future lookups. Keep existing statuses and finalized payroll values.
+See [requirements and verification](docs/leave-record-actions.md).
+Implementation and Dev plugin 1.0.3.4 are ready; the merged single/bulk guard
+failure reported during manual testing is fixed. Before/after rollback probes
+verify the correction without deleting existing leave. Owner manual UAT continues.
+
+# Completed: One leave record with paid/unpaid allocation
+
+Owner confirmed on 2026-10-28: implement one Issued record with a Partially Paid
+benefit when available credits cover only part of the leave, applying credits to
+the earliest dates. Payroll counts only the saved unpaid portions in each cutoff.
+Full requirements, verification checklist and manual schema/release steps:
+[Partially paid leave](docs/partial-paid-leave.md).
+
+Schema changes and deployment remain subject to the existing approval rules.
+The owner approved the requested Dev setup on 2026-10-28. Schema publication,
+generated source refresh and Leave plugin 1.0.3.2 deployment are complete;
+actual list/detail, payroll reads and personal-history/preview checks pass.
+Owner manual testing remains pending.
+
+# Previous: Employee Leave History under My Portal
 
 ## Requirements
 

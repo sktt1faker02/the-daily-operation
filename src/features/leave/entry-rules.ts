@@ -1,5 +1,5 @@
 import type { LeaveEmployee } from "./types"
-import { benefitLabels, leaveTypeLabels } from "./types"
+import { requestedBenefitLabels, leaveTypeLabels } from "./types"
 import { dateOnly, requireGuid } from "./rules"
 
 export interface LeaveEntryValues {
@@ -19,7 +19,7 @@ export function validateLeaveEntry(values: LeaveEntryValues): Partial<Record<key
   const errors: Partial<Record<keyof LeaveEntryValues, string>> = {}
   try { requireGuid(values.employee?.a365_employeeid ?? "") } catch { errors.employee = "Select an employee." }
   if (!Object.hasOwn(leaveTypeLabels, values.leaveType)) errors.leaveType = "Select a leave type."
-  if (!Object.hasOwn(benefitLabels, values.benefit)) errors.benefit = "Select Paid or Unpaid."
+  if (!Object.hasOwn(requestedBenefitLabels, values.benefit)) errors.benefit = "Select Paid or Unpaid."
   for (const field of ["startDate", "endDate"] as const) {
     try {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(values[field])) throw new Error("Invalid date.")

@@ -4,7 +4,8 @@
  */
 export const A365_leavesa365_benefit = {
   749910000: 'Paid',
-  749910001: 'Unpaid'
+  749910001: 'Unpaid',
+  749910002: 'Partially Paid'
 } as const;
 export type A365_leavesa365_benefit = keyof typeof A365_leavesa365_benefit;
 export const A365_leavesa365_leavestatus = {
@@ -36,6 +37,7 @@ export const A365_leavesstatuscode = {
 export type A365_leavesstatuscode = keyof typeof A365_leavesstatuscode;
 
 export interface A365_leavesBase {
+  a365_allocationjson?: string;
   a365_benefit: A365_leavesa365_benefit;
   a365_cancellationreason?: string;
   "a365_CancelledBy@odata.bind"?: string;
@@ -55,8 +57,10 @@ export interface A365_leavesBase {
   a365_note?: string;
   a365_notificationstatus: A365_leavesa365_notificationstatus;
   a365_notifiedon?: string;
+  a365_paiddays?: number;
   a365_requestedbenefit?: number;
   a365_startdate: string;
+  a365_unpaiddays?: number;
   importsequencenumber?: number;
   overriddencreatedon?: string;
   statecode: A365_leavesstatecode;

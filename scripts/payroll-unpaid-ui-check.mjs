@@ -3,7 +3,7 @@
 import assert from "node:assert/strict"
 import { pathToFileURL } from "node:url"
 const { chromium } = await import(pathToFileURL(process.argv[2]).href)
-const base = "http://127.0.0.1:3103"
+const base = process.env.LEAVE_TEST_BASE_URL || "http://127.0.0.1:3103"
 const employeeId = "10000000-0000-0000-0000-000000000001"
 const entry = { a365_payrollentryid: "entry", _a365_employee_value: employeeId, a365_name: "Synthetic payroll", a365_employeename: "Test Employee", a365_isincluded: true, a365_basicpay: 25000, a365_allowances: 0, a365_otherearnings: 0, a365_otherdeductions: 0, a365_withholdingtax: 0, a365_unpaidleavedays: 0, a365_comment: null }
 const leave = { a365_leaveid: "leave", _a365_employee_value: employeeId, a365_startdate: "2026-10-22", a365_enddate: "2026-10-23", a365_days: 2, a365_benefit: 749910001, a365_leavestatus: 749910000 }
@@ -11,11 +11,12 @@ const config = { sss: [{ compensationFrom: 0, compensationTo: null, msc: 35000, 
 const browser = await chromium.launch({ channel: "msedge", headless: true })
 let checks = 0
 try {
-  for (const scenario of ["save", "cancel", "error", "readonly", "mobile", "screenshot"]) {
+  for (const scenario of ["save", "cancel", "error", "readonly", "mobile", "screenshot", "partial"]) {
     const scenarioEntry = scenario === "screenshot" ? { ...entry, a365_otherdeductions: 3000,
       a365_unpaidleavedays: 1, a365_unpaidleave: 2272.73, a365_grosspay: 22727.27,
       a365_totaldeductions: 4600, a365_netpay: 18127.27 } : entry
-    const scenarioLeave = scenario === "screenshot"
+    const scenarioLeave = scenario === "partial" ? { ...leave, a365_startdate: "2026-10-26", a365_enddate: "2026-10-30", a365_days: 5, a365_benefit: 749910002, a365_paiddays: 4, a365_unpaiddays: 1,
+      a365_allocationjson: JSON.stringify({ version: 1, days: [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 })) }) } : scenario === "screenshot"
       ? { ...leave, a365_enddate: "2026-10-22", a365_days: 1 } : leave
     const context = await browser.newContext({ viewport: { width: scenario === "mobile" ? 390 : 1280, height: 900 } })
     const page = await context.newPage()
@@ -53,6 +54,13 @@ try {
     } else if (scenario === "readonly") {
       assert.equal(await days.inputValue(), "0")
       assert.equal(await days.isDisabled(), true)
+    } else if (scenario === "partial") {
+      await dialog.getByText(/1.00 unpaid leave days recorded/).waitFor()
+      assert.equal(await days.inputValue(), "1")
+      assert.equal(await page.evaluate(() => window.__saves.length), 0)
+      await dialog.getByRole("button", { name: "Save changes" }).click()
+      await dialog.waitFor({ state: "hidden" })
+      assert.equal(await page.evaluate(() => window.__saves[0][4].a365_unpaidleavedays), "1")
     } else if (scenario === "screenshot") {
       await dialog.getByText("₱6,872.73", { exact: true }).waitFor()
       const amount = label => dialog.getByText(label, { exact: true }).locator("..").locator("+ dd")

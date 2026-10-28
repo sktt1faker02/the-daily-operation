@@ -2,8 +2,10 @@ import { A365_leavesService } from "@/generated/services/A365_leavesService"
 import type { A365_leaves } from "@/generated/models/A365_leavesModel"
 import policy from "./approved-policy.json"
 import { dateOnly, requireGuid } from "./rules"
+import { leaveAllocation } from "./allocation"
+import type { LeaveAllocationFields } from "./types"
 
-export type PayrollLeave = Pick<A365_leaves, "a365_leaveid" | "_a365_employee_value" | "a365_startdate" | "a365_enddate" | "a365_days" | "a365_benefit" | "a365_leavestatus">
+export type PayrollLeave = Pick<A365_leaves, "a365_leaveid" | "_a365_employee_value" | "a365_startdate" | "a365_enddate" | "a365_days" | "a365_leavestatus"> & LeaveAllocationFields & { a365_benefit: number }
 
 function workdays(start: string, end: string): number {
   const holidays = new Set(policy.holidays.map(day => day.date))
@@ -28,13 +30,19 @@ export function unpaidLeaveDaysForPeriod(leaves: PayrollLeave[], employeeId: str
   const seen = new Set<string>()
   let total = 0
   for (const leave of leaves) {
-    if (leave._a365_employee_value?.toLowerCase() !== employeeId.toLowerCase() || leave.a365_leavestatus !== 749910000 || leave.a365_benefit !== 749910001) continue
-    if (seen.has(leave.a365_leaveid)) throw new Error("Duplicate leave records were returned. Refresh and try again.")
-    seen.add(leave.a365_leaveid)
+    if (leave._a365_employee_value?.toLowerCase() !== employeeId.toLowerCase() || leave.a365_leavestatus !== 749910000 || leave.a365_benefit === 749910000) continue
+    const id = leave.a365_leaveid.toLowerCase()
+    if (seen.has(id)) throw new Error("Duplicate leave records were returned. Refresh and try again.")
+    seen.add(id)
     const from = dateOnly(leave.a365_startdate), to = dateOnly(leave.a365_enddate)
     if (to < from || !Number.isFinite(leave.a365_days) || leave.a365_days <= 0) throw new Error("An unpaid leave record has invalid dates or days.")
     const overlapStart = from > start ? from : start, overlapEnd = to < end ? to : end
     if (overlapEnd < overlapStart) continue
+    const allocation = leaveAllocation(leave)
+    if (allocation.days) {
+      total += allocation.days.filter(day => day.date >= overlapStart && day.date <= overlapEnd).reduce((sum, day) => sum + Math.round(day.unpaidDays * 100), 0) / 100
+      continue
+    }
     const fullDays = workdays(from, to)
     if (from === to && leave.a365_days === 0.5 && fullDays === 1) total += 0.5
     else {
@@ -42,7 +50,7 @@ export function unpaidLeaveDaysForPeriod(leaves: PayrollLeave[], employeeId: str
       total += workdays(overlapStart, overlapEnd)
     }
   }
-  return total
+  return Math.round(total * 100) / 100
 }
 
 /** Read-only boundary reused by entry creation and the explicit Processing editor. */
@@ -59,8 +67,8 @@ export const payrollUnpaidLeaveService = {
       let skipToken: string | undefined
       do {
         const result = await A365_leavesService.getAll({
-          select: ["a365_leaveid", "_a365_employee_value", "a365_startdate", "a365_enddate", "a365_days", "a365_benefit", "a365_leavestatus"],
-          filter: `a365_leavestatus eq 749910000 and a365_benefit eq 749910001 and a365_startdate le ${end} and a365_enddate ge ${start} and (${batch.map(id => `_a365_employee_value eq ${id}`).join(" or ")})`,
+          select: ["a365_leaveid", "_a365_employee_value", "a365_startdate", "a365_enddate", "a365_days", "a365_benefit", "a365_leavestatus", "a365_paiddays", "a365_unpaiddays", "a365_allocationjson"],
+          filter: `a365_leavestatus eq 749910000 and (a365_benefit eq 749910001 or a365_benefit eq 749910002) and a365_startdate le ${end} and a365_enddate ge ${start} and (${batch.map(id => `_a365_employee_value eq ${id}`).join(" or ")})`,
           orderBy: ["a365_leaveid asc"], maxPageSize: 500, skipToken,
         })
         if (!result.success || !result.data) throw new Error("Unable to load unpaid leave. No payroll entries were created. Check access and retry.")

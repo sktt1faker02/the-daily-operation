@@ -37,6 +37,30 @@ beforeEach(() => {
 function renderPage() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })}><LeaveHistoryPage /></QueryClientProvider>) }
 
 describe("personal Leave History", () => {
+  it("shows the partially paid breakdown and unpaid date in a single read-only record", async () => {
+    const days = [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 }))
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockImplementation(async raw => {
+      const request = JSON.parse(raw); requests.push(request)
+      return { success: true, data: { Response: JSON.stringify({ employeeId, employeeName: employee.a365_name, rows: request.command === "myCredits" ? [] : [{ ...record,
+        a365_benefit: 749910002, a365_days: 5, a365_startdate: "2026-10-26", a365_enddate: "2026-10-30", a365_paiddays: 4, a365_unpaiddays: 1, a365_allocationjson: JSON.stringify({ version: 1, days }) }] }) } }
+    })
+    const user = userEvent.setup(); renderPage()
+    const table = await screen.findByRole("table", { name: "Leave records" })
+    expect(within(table).getByText("Partially Paid")).toBeVisible()
+    expect(within(table).getByText("4 paid / 1 unpaid")).toBeVisible()
+    expect(within(table).getAllByRole("row")).toHaveLength(2)
+    const view = within(table).getByRole("button", { name: "View Recorded leave" })
+    expect(view).toHaveAttribute("title", "View leave")
+    expect(within(table).queryByText("Details")).not.toBeInTheDocument()
+    expect(within(table).queryByRole("button", { name: /delete/i })).not.toBeInTheDocument()
+    view.focus()
+    await user.keyboard("{Enter}")
+    const dialog = await screen.findByRole("dialog", { name: "Leave details" })
+    expect(await within(dialog).findByText("Oct 30, 2026 (1 day)")).toBeVisible()
+    expect(within(dialog).getByText("Paid days").nextElementSibling).toHaveTextContent("4")
+    expect(within(dialog).getByText("Unpaid days").nextElementSibling).toHaveTextContent("1")
+    expect(requests.every(request => request.employeeId === employeeId)).toBe(true)
+  })
   it("shows own records and balances with read-only details and no admin actions", async () => {
     const user = userEvent.setup(); renderPage()
     const table = await screen.findByRole("table", { name: "Leave records" })

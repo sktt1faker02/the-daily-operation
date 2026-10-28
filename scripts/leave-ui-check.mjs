@@ -18,6 +18,8 @@ const leave = {
   a365_leavetype: 749910002, a365_benefit: 749910000, a365_startdate: "2026-01-01T00:00:00+14:00", a365_enddate: "2026-01-01",
   a365_days: 1, a365_leavestatus: 749910001, a365_issuedon: "2026-01-01T00:00:00Z", a365_note: "Test note", a365_cancellationreason: "Test cancellation",
 }
+const splitLeave = { ...leave, a365_benefit: 749910002, a365_leavestatus: 749910000, a365_startdate: "2026-10-26", a365_enddate: "2026-10-30", a365_days: 5, a365_paiddays: 4, a365_unpaiddays: 1,
+  a365_allocationjson: JSON.stringify({ version: 1, days: [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 })) }) }
 let checks = 0
 async function scenario(name, role = "admin", width = 1280) {
   const context = await browser.newContext({ viewport: { width, height: 900 } })
@@ -34,19 +36,22 @@ async function scenario(name, role = "admin", width = 1280) {
       export const postingService = {
         async preview(values){
           const complete=Boolean(values.startDate&&values.endDate&&values.leaveType&&values.benefit);
-          return {policyVersion:'2026-10-22.1',periodStart:'2026-04-01',periodEnd:'2027-03-31',VL:7.5,SL:5,pendingVL:0,pendingSL:0,days:complete?1:null,benefit:complete?Number(values.benefit):null,pool:complete?'VL':null};
+          return {policyVersion:'2026-10-22.1',periodStart:'2026-04-01',periodEnd:'2027-03-31',VL:7.5,SL:5,pendingVL:0,pendingSL:0,allocationVersion:1,paidDays:complete?(values.benefit==='749910000'?1:0):null,unpaidDays:complete?(values.benefit==='749910001'?1:0):null,allocation:null,days:complete?1:null,benefit:complete?Number(values.benefit):null,pool:complete?'VL':null};
         },
-        async submit(values,id,onCommitted){onCommitted?.();return {record:{...${JSON.stringify(leave)},a365_leaveid:id,a365_leavestatus:749910000},notification:'failed'};},
+        async submit(values,id,reviewed,onCommitted){onCommitted?.();return {record:{...${JSON.stringify(leave)},a365_leaveid:id,a365_leavestatus:749910000},notification:'failed'};},
         async notify(){return 'accepted';}
+        ,async deletionPreview(){if(${JSON.stringify(name)}==='delete-error')throw new LeavePostingError('Credit history needs review.');return {restoredDays:${name === "delete" ? 4 : 1},pool:'VL',creditPeriod:'2026-04-01',year:2026};}
+        ,async deleteLeave(record,expected){if(${JSON.stringify(name)}==='delete'&&expected!==4)throw new Error('Unexpected reviewed credits');window.leaveDeleteCalls=(window.leaveDeleteCalls||0)+1;window.leaveRemoved=true;}
       };
     `
     if (path === "/src/features/leave/leave-service.ts") body = `
+      export const buildLeaveFilter = () => '';
       const employee = ${JSON.stringify(employee)};
-      const record = ${JSON.stringify(leave)};
+      const record = ${JSON.stringify(["partial", "delete"].includes(name) ? splitLeave : leave)};
       export const leaveService = {
         async list(filters, token) {
           if (${JSON.stringify(name)} === 'error') throw new Error('Synthetic failure');
-          const rows = ${JSON.stringify(name)} === 'empty' || filters.search === 'absent' ? [] : [{...record,a365_name:token ? 'Second record' : 'Test leave'}];
+          const rows = window.leaveRemoved || ${JSON.stringify(name)} === 'empty' || filters.search === 'absent' ? [] : [{...record,a365_name:token ? 'Second record' : 'Test leave'}];
           return {leaves:filters.section==='leave'?rows:[],credits:[],conversions:[],employees:[employee],next:!token&&rows.length?'second':undefined};
         },
         async searchEmployees(){return {rows:[employee]};},
@@ -66,7 +71,7 @@ async function scenario(name, role = "admin", width = 1280) {
 try {
   let run = await scenario("records")
   let { page } = run
-  await page.getByRole("heading", { name: "Leave Management", exact: true }).waitFor()
+  await page.getByRole("heading", { name: "Leave Management", exact: true }).waitFor().catch(async error => { console.error({ errors: run.errors, text: await page.locator("body").innerText() }); throw error })
   assert.equal(await page.getByRole("link", { name: "Leave Management", exact: true }).count(), 1)
   await page.getByRole("button", { name: "View Test leave" }).click()
   await page.getByRole("dialog", { name: "Leave details" }).getByText("Test note", { exact: true }).waitFor()
@@ -80,10 +85,8 @@ try {
   await page.getByRole("option", { name: /Test Employee/ }).click()
   await page.getByRole("region", { name: "Leave balances" }).waitFor()
   await page.getByText("7.5", { exact: false }).waitFor()
-  await page.getByRole("tab", { name: "Credit History" }).click()
-  await page.getByRole("table", { name: "Credit history" }).waitFor()
-  await page.getByRole("tab", { name: "Cash Conversions" }).click()
-  await page.getByRole("table", { name: "Cash conversions" }).waitFor()
+  assert.equal(await page.getByRole("tab", { name: "Credit History" }).count(), 0)
+  assert.equal(await page.getByRole("tab", { name: "Cash Conversions" }).count(), 0)
   assert.deepEqual(run.errors, [])
   checks += 8
   await page.getByRole("button", { name: "Add Leave", exact: true }).click()
@@ -114,6 +117,41 @@ try {
   await modal.waitFor({ state: "hidden" })
   assert.deepEqual(run.errors, [])
   checks += 7
+  await run.context.close()
+
+  run = await scenario("partial")
+  const splitTable = run.page.getByRole("table", { name: "Leave records" })
+  await splitTable.getByText("Partially Paid", { exact: true }).waitFor()
+  await splitTable.getByText("4 paid / 1 unpaid", { exact: true }).waitFor()
+  await splitTable.getByRole("button", { name: "View Test leave" }).click()
+  const splitDialog = run.page.getByRole("dialog", { name: "Leave details" })
+  await splitDialog.getByText("Oct 30, 2026 (1 day)", { exact: true }).waitFor()
+  await splitDialog.getByText("Issued", { exact: true }).waitFor()
+  assert.deepEqual(run.errors, []); checks++
+  await run.context.close()
+
+  run = await scenario("delete", "admin", 390)
+  await run.page.getByRole("button", { name: "Delete Test leave" }).click()
+  let deleteDialog = run.page.getByRole("dialog", { name: "Delete leave record?" })
+  await deleteDialog.getByText(/4 VL days will be restored/).waitFor()
+  assert.equal(await run.page.evaluate(() => window.leaveDeleteCalls || 0), 0)
+  await deleteDialog.getByRole("button", { name: "Cancel", exact: true }).click()
+  assert.equal(await run.page.evaluate(() => window.leaveDeleteCalls || 0), 0)
+  await run.page.getByRole("button", { name: "Delete Test leave" }).click()
+  deleteDialog = run.page.getByRole("dialog", { name: "Delete leave record?" })
+  await deleteDialog.getByRole("button", { name: "Delete leave", exact: true }).click()
+  await deleteDialog.waitFor({ state: "hidden" })
+  await run.page.getByText(/No leave records match/).waitFor()
+  assert.equal(await run.page.evaluate(() => window.leaveDeleteCalls), 1)
+  assert.deepEqual(run.errors, []); checks += 2
+  await run.context.close()
+  run = await scenario("delete-error")
+  await run.page.getByRole("button", { name: "Delete Test leave" }).click()
+  deleteDialog = run.page.getByRole("dialog", { name: "Delete leave record?" })
+  await deleteDialog.getByText("Credit history needs review.", { exact: false }).waitFor()
+  assert.equal(await deleteDialog.getByRole("button", { name: "Delete leave", exact: true }).isDisabled(), true)
+  assert.equal(await run.page.evaluate(() => window.leaveDeleteCalls || 0), 0)
+  assert.deepEqual(run.errors, []); checks++
   await run.context.close()
 
   for (const name of ["empty", "error", "balance-error"]) {

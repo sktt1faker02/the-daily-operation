@@ -5,6 +5,7 @@ import type { LeaveRecord } from "./types"
 import { benefitLabels, leaveTypeLabels } from "./types"
 import { dateOnly, formatLeaveDate, requireGuid } from "./rules"
 import { formatCreditDays, leaveCreditPool } from "./entry-rules"
+import { leaveAllocation } from "./allocation"
 
 type RecipientEmployee = Pick<A365_employees, "a365_employeeid" | "a365_name" | "a365_workemail">
 
@@ -31,6 +32,7 @@ export function buildRecordedLeaveEmail(record: LeaveRecord, employee: Recipient
     throw new Error("The recorded leave dates or days are invalid.")
   }
   const to = storedWorkEmail(employee.a365_workemail)
+  const allocation = leaveAllocation(record)
   // Exactly one stored address. Reject separators and header injection; never
   // fall back to the signed-in admin or an address entered in a modal.
   if (!to) {
@@ -47,6 +49,9 @@ export function buildRecordedLeaveEmail(record: LeaveRecord, employee: Recipient
     ["Start date", formatLeaveDate(record.a365_startdate)],
     ["End date", formatLeaveDate(record.a365_enddate)],
     ["Recorded days", formatCreditDays(record.a365_days)],
+    ["Paid days", formatCreditDays(allocation.paidDays)],
+    ["Unpaid days", formatCreditDays(allocation.unpaidDays)],
+    ...(allocation.days && allocation.unpaidDays > 0 ? [["Unpaid dates", allocation.days.filter(day => day.unpaidDays > 0).map(day => `${formatLeaveDate(day.date)} (${formatCreditDays(day.unpaidDays)} days)`).join(", ")] as [string, string]] : []),
   ]
   const lines = [
     `Hello ${employee.a365_name},`,

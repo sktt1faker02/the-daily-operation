@@ -67,7 +67,36 @@ public static class ProtectLeaveWritesTests
         child.MessageName = "Update"; child.PrimaryEntityName = "a365_leavecashconversion";
         Check(child, false, "payment cannot modify employee conversion values");
         child.PrimaryEntityName = "a365_leave"; Check(child, false, "payment cannot modify Leave");
-        return 19;
+        api.InputParameters["Request"] = "{\"command\":\"delete\"}";
+        child.PrimaryEntityName = "a365_leave"; child.MessageName = "Delete"; Check(child, true, "validated source deletion");
+        child.MessageName = "Update"; Check(child, false, "deletion cannot edit source values");
+        child.PrimaryEntityName = "a365_leavecredittransaction"; Check(child, true, "deletion can detach original credit movements");
+        child.MessageName = "Create"; Check(child, true, "deletion can create restoration receipt");
+        child.MessageName = "Delete"; Check(child, false, "deletion cannot erase credit movements");
+        child.PrimaryEntityName = "a365_leavecashconversion"; Check(child, false, "deletion cannot erase conversions");
+        api.InputParameters["Request"] = "{\"command\":\"deletePreview\"}";
+        child.PrimaryEntityName = "a365_leave"; Check(child, false, "deletion preview cannot mutate records");
+        api.InputParameters["Request"] = "{\"command\":\"delete\"}";
+        foreach (string entity in new[] { "a365_leavecredittransaction", "a365_leavecoordination" }) {
+            child.PrimaryEntityName = entity;
+            foreach (string message in new[] { "Create", "CreateMultiple", "Update", "UpdateMultiple" }) {
+                child.MessageName = message; Check(child, true, "validated merged deletion pipeline " + entity + " " + message);
+            }
+            foreach (string message in new[] { "CreateMultiple", "UpdateMultiple" }) {
+                var bulkDirect = Context(message, true); bulkDirect.PrimaryEntityName = entity;
+                Check(bulkDirect, false, "direct bulk writes remain blocked " + entity + " " + message);
+            }
+        }
+        child.PrimaryEntityName = "a365_leave";
+        foreach (string message in new[] { "CreateMultiple", "UpdateMultiple" }) {
+            child.MessageName = message; Check(child, false, "deletion cannot bulk create/edit sources");
+        }
+        api.InputParameters["Request"] = "{\"command\":\"deletePreview\"}";
+        child.MessageName = "UpdateMultiple";
+        foreach (string entity in new[] { "a365_leavecredittransaction", "a365_leavecoordination" }) {
+            child.PrimaryEntityName = entity; Check(child, false, "preview cannot authorize bulk writes");
+        }
+        return 42;
     }
 
     public static void VerifyLegacyMarkerDependency()

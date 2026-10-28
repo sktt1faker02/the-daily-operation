@@ -10,7 +10,7 @@ import { LeavePostingError, postingService } from "@/features/leave/posting-serv
 
 vi.mock("@/features/leave/posting-service", async importOriginal => ({
   ...await importOriginal<typeof import("@/features/leave/posting-service")>(),
-  postingService: { preview: vi.fn(), submit: vi.fn(), notify: vi.fn() },
+  postingService: { preview: vi.fn(), submit: vi.fn(), notify: vi.fn(), deletionPreview: vi.fn(), deleteLeave: vi.fn() },
 }))
 
 const access = vi.hoisted(() => ({ isAdmin: true, roleSettled: true, roleError: false }))
@@ -63,9 +63,11 @@ beforeEach(() => {
     const balances = await leaveService.balances(values.employee?.a365_employeeid ?? "", 2026)
     const complete = Boolean(values.startDate && values.endDate && values.leaveType && values.benefit)
     return { policyVersion: "2026-10-22.1", periodStart: "2026-04-01", periodEnd: "2027-03-31", ...balances, pendingVL: 0, pendingSL: 0,
-      days: complete ? 1 : null, benefit: complete ? Number(values.benefit) : null, pool: complete ? "VL" : null }
+      allocationVersion: 1, paidDays: complete ? (values.benefit === "749910000" ? 1 : 0) : null, unpaidDays: complete ? (values.benefit === "749910001" ? 1 : 0) : null, allocation: null, days: complete ? 1 : null, benefit: complete ? Number(values.benefit) : null, pool: complete ? "VL" : null }
   })
   vi.mocked(postingService.submit).mockResolvedValue({ record: { ...record, a365_leavestatus: 749910000 }, notification: "accepted" })
+  vi.mocked(postingService.deletionPreview).mockResolvedValue({ restoredDays: 1, pool: "VL", creditPeriod: "2026-04-01", year: 2026 })
+  vi.mocked(postingService.deleteLeave).mockResolvedValue(undefined)
 })
 
 describe("Leave access boundary", () => {
@@ -103,6 +105,22 @@ describe("Add Leave modal", () => {
     await user.click(screen.getByRole("option", { name: "Paid" }))
     await waitFor(() => expect(within(dialog).getByRole("button", { name: "Submit" })).toBeEnabled())
   }
+
+  it("reviews a four-paid/one-unpaid split while keeping only Paid and Unpaid as inputs", async () => {
+    vi.mocked(postingService.preview).mockResolvedValue({ policyVersion: "2026-10-22.1", periodStart: "2026-04-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, allocationVersion: 1,
+      days: 5, benefit: 749910002, pool: "VL", paidDays: 4, unpaidDays: 1,
+      allocation: [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 })) })
+    const { user, dialog } = await openModal()
+    await completeForm(user, dialog)
+    expect(within(dialog).getByText("Benefit: Partially Paid. Paid: 4.00 days; Unpaid: 1.00 days.")).toBeVisible()
+    expect(within(dialog).getByText("4.00 days will be deducted from VL.")).toBeVisible()
+    expect(within(dialog).getByText(/Unpaid dates: Oct 30, 2026/)).toBeVisible()
+    await user.click(within(dialog).getByRole("combobox", { name: "Benefit" }))
+    expect(screen.queryByRole("option", { name: "Partially Paid" })).not.toBeInTheDocument()
+    await user.keyboard("{Escape}")
+    await user.click(within(dialog).getByRole("button", { name: "Submit" }))
+    await waitFor(() => expect(postingService.submit).toHaveBeenCalledWith(expect.any(Object), expect.any(String), { paidDays: 4, unpaidDays: 1 }, expect.any(Function)))
+  })
 
   it("posts only after valid server preview, refreshes the list and closes on confirmed commit even when email fails", async () => {
     vi.mocked(postingService.submit).mockResolvedValue({ record: { ...record, a365_leavestatus: 749910000 }, notification: "failed" })
@@ -170,7 +188,8 @@ describe("Add Leave modal", () => {
     expect(await within(dialog).findByText("1.00 days will be deducted from VL.")).toBeVisible()
     await user.click(within(dialog).getByRole("combobox", { name: "Benefit" }))
     await user.click(screen.getByRole("option", { name: "Unpaid" }))
-    expect(await within(dialog).findByText("This request will be Unpaid; no credits will be deducted.")).toBeVisible()
+    expect(await within(dialog).findByText("Benefit: Unpaid. Paid: 0.00 days; Unpaid: 1.00 days.")).toBeVisible()
+    expect(within(dialog).getByText("No credits will be deducted.")).toBeVisible()
   })
 
   it("retains entries and blocks submission when balance reads fail", async () => {
@@ -229,6 +248,61 @@ describe("Add Leave modal", () => {
 })
 
 describe("Leave workspace", () => {
+  it("confirms deletion, restores the reviewed credits and refreshes the records", async () => {
+    const user = userEvent.setup()
+    vi.mocked(leaveService.list).mockResolvedValue({ ...emptyPage, leaves: [record], employees: [employee] })
+    vi.mocked(postingService.deleteLeave).mockImplementation(async () => { vi.mocked(leaveService.list).mockResolvedValue(emptyPage) })
+    renderPage()
+    const trash = await screen.findByRole("button", { name: "Delete Test leave" })
+    expect(trash).toHaveAttribute("title", "Delete leave")
+    expect(within(await screen.findByRole("table", { name: "Leave records" })).queryByText("Details")).not.toBeInTheDocument()
+    await user.click(trash)
+    const dialog = screen.getByRole("dialog", { name: "Delete leave record?" })
+    expect(await within(dialog).findByText(/1 VL days will be restored/)).toBeVisible()
+    expect(within(dialog).getByText(/Existing payroll entries and finalized payslips will not be recalculated/)).toBeVisible()
+    expect(postingService.deleteLeave).not.toHaveBeenCalled()
+    await user.click(within(dialog).getByRole("button", { name: "Delete leave" }))
+    await waitFor(() => expect(postingService.deleteLeave).toHaveBeenCalledWith(record, 1))
+    expect(await screen.findByText(/No leave records match/)).toBeVisible()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+  it("keeps confirmation cancellable without writing and blocks unavailable credit checks", async () => {
+    const user = userEvent.setup()
+    vi.mocked(leaveService.list).mockResolvedValue({ ...emptyPage, leaves: [record], employees: [employee] })
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: "Delete Test leave" }))
+    let dialog = screen.getByRole("dialog", { name: "Delete leave record?" })
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    expect(postingService.deleteLeave).not.toHaveBeenCalled()
+    vi.mocked(postingService.deletionPreview).mockRejectedValue(new LeavePostingError("Credit history needs review.", false))
+    await user.click(screen.getByRole("button", { name: "Delete Test leave" }))
+    dialog = screen.getByRole("dialog", { name: "Delete leave record?" })
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Credit history needs review.")
+    expect(within(dialog).getByRole("button", { name: "Delete leave" })).toBeDisabled()
+    expect(postingService.deleteLeave).not.toHaveBeenCalled()
+  })
+  it("keeps a failed deletion retryable without duplicating a pending submit", async () => {
+    const user = userEvent.setup()
+    vi.mocked(leaveService.list).mockResolvedValue({ ...emptyPage, leaves: [record], employees: [employee] })
+    let finish!: () => void
+    vi.mocked(postingService.deleteLeave).mockRejectedValueOnce(new LeavePostingError("Deletion outcome is uncertain. Retry.", true))
+      .mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    renderPage()
+    await user.click(await screen.findByRole("button", { name: "Delete Test leave" }))
+    const dialog = screen.getByRole("dialog", { name: "Delete leave record?" })
+    const confirm = within(dialog).getByRole("button", { name: "Delete leave" })
+    await waitFor(() => expect(confirm).toBeEnabled())
+    await user.click(confirm)
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Deletion outcome is uncertain")
+    await user.click(confirm)
+    expect(await within(dialog).findByRole("button", { name: /Deleting/ })).toBeDisabled()
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled()
+    await user.keyboard("{Escape}")
+    expect(dialog).toBeVisible()
+    expect(postingService.deleteLeave).toHaveBeenCalledTimes(2)
+    await act(async () => { finish() })
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  })
   it("shows loading and verified empty states with clearly unavailable posting actions", async () => {
     vi.mocked(leaveService.list).mockReturnValue(new Promise(() => {}))
     const view = renderPage()

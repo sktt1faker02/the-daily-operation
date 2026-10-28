@@ -16,7 +16,8 @@ async function scenario({ admin = false, width = 1280, linked = true, failed = f
     assert.equal(request.employeeId, employeeId)
     assert.ok(["myLeaves", "myLeave", "myCredits"].includes(request.command))
     if (failed) return { success: false, data: {}, error: { message: "PRIVATE BACKEND ERROR" } }
-    const record = i => ({ a365_leaveid: `20000000-0000-0000-0000-${String(i).padStart(12, "0")}`, _a365_employee_value: employeeId, a365_name: `Leave record ${i}`, a365_leavetype: 749910000, a365_benefit: 749910000, a365_days: 1, a365_leavestatus: 749910000, a365_startdate: "2026-10-27", a365_enddate: "2026-10-27", a365_issuedon: "2026-10-27T04:00:00Z" })
+    const record = i => ({ a365_leaveid: `20000000-0000-0000-0000-${String(i).padStart(12, "0")}`, _a365_employee_value: employeeId, a365_name: `Leave record ${i}`, a365_leavetype: 749910000, a365_benefit: 749910002, a365_days: 5, a365_leavestatus: 749910000, a365_startdate: "2026-10-26", a365_enddate: "2026-10-30", a365_issuedon: "2026-10-27T04:00:00Z", a365_paiddays: 4, a365_unpaiddays: 1,
+      a365_allocationjson: JSON.stringify({ version: 1, days: [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 })) }) })
     let rows; let next
     if (request.command === "myCredits") rows = [{ a365_leavecredittransactionid: "30000000-0000-0000-0000-000000000003", _a365_employee_value: employeeId, a365_year: request.year, a365_creditpool: 749910000, a365_days: 7.5 }]
     else if (request.command === "myLeave") rows = [{ ...record(1), a365_leaveid: request.operationId }]
@@ -48,6 +49,8 @@ try {
     assert.equal(await page.getByRole("combobox", { name: "Employee" }).count(), 0); checks++
     await table.getByRole("button", { name: "View Leave record 1", exact: true }).click()
     const dialog = page.getByRole("dialog", { name: "Leave details" }); await dialog.getByText("Leave record 1", { exact: true }).waitFor()
+    await dialog.getByText("Partially Paid", { exact: true }).waitFor()
+    await dialog.getByText("Oct 30, 2026 (1 day)", { exact: true }).waitFor()
     assert.equal(await dialog.getByRole("button", { name: /resend|edit|cancel|delete|issue/i }).count(), 0)
     await page.keyboard.press("Escape"); await dialog.waitFor({ state: "hidden" }); checks++
     await page.getByRole("button", { name: "Next page" }).click(); await table.getByText("Leave record 21", { exact: true }).waitFor()

@@ -104,7 +104,7 @@
       <RootComponent type="1" schemaName="a365_leavecredittransaction" behavior="0" />
       <RootComponent type="1" schemaName="a365_leavecoordination" behavior="0" />
       <RootComponent type="1" schemaName="a365_leavepolicy" behavior="0" />
-      <RootComponent type="91" id="{1d8034c7-e2cd-f111-a05a-000d3a8014e4}" schemaName="A365.Leave.Plugins, Version=1.0.0.0, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d" behavior="0" />
+      <RootComponent type="91" id="{1d8034c7-e2cd-f111-a05a-000d3a8014e4}" schemaName="A365.Leave.Plugins, Version=1.0.3.4, Culture=neutral, PublicKeyToken=8a2e448c3a6ea56d" behavior="0" />
       <RootComponent type="92" id="{1131c3d7-e4cd-f111-a05a-000d3a8014e4}" behavior="0" />
       <RootComponent type="92" id="{1d4e1ae3-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />
       <RootComponent type="92" id="{3efa95d4-e4cd-f111-a05c-70a8a5036aa3}" behavior="0" />

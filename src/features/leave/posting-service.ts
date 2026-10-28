@@ -6,6 +6,7 @@ import { dateOnly, requireGuid } from "./rules"
 import { leaveService } from "./leave-service"
 import type { LeaveEntryValues } from "./entry-rules"
 import type { LeaveRecord } from "./types"
+import { leaveAllocation, type AllocatedDay } from "./allocation"
 
 export interface PostingPreview {
   policyVersion: string
@@ -18,8 +19,14 @@ export interface PostingPreview {
   days: number | null
   benefit: number | null
   pool: "VL" | "SL" | null
+  allocationVersion: 1
+  paidDays: number | null
+  unpaidDays: number | null
+  allocation: AllocatedDay[] | null
 }
 export type NotificationOutcome = "accepted" | "failed" | "unknown"
+export interface ReviewedAllocation { paidDays: number; unpaidDays: number }
+export interface LeaveDeletionPreview { restoredDays: number; pool: "VL" | "SL"; creditPeriod: string; year: number }
 
 export class LeavePostingError extends Error {
   readonly uncertain: boolean
@@ -57,23 +64,50 @@ function source(value: unknown): LeaveRecord {
   if (typeof row.a365_days !== "number" || !Number.isFinite(row.a365_days) || row.a365_leavestatus !== 749910000 || typeof row.a365_issuedon !== "string") {
     throw new LeavePostingError("The saved Leave response could not be verified. Retry the same operation.", true)
   }
+  try { leaveAllocation(row as unknown as LeaveRecord) }
+  catch { throw new LeavePostingError("The saved paid/unpaid allocation could not be verified. Retry the same operation.", true) }
   return row as unknown as LeaveRecord
 }
 
 export const postingService = {
+  async deletionPreview(record: LeaveRecord): Promise<LeaveDeletionPreview> {
+    const id = requireGuid(record.a365_leaveid), employeeId = requireGuid(record._a365_employee_value ?? "")
+    const result = await command({ command: "deletePreview", operationId: id, employeeId })
+    if (result.recordId !== id || result.employeeId !== employeeId || result.deleted !== false || typeof result.restoredDays !== "number" || !Number.isFinite(result.restoredDays) || result.restoredDays < 0 || !["VL", "SL"].includes(String(result.pool)) || typeof result.creditPeriod !== "string" || !Number.isInteger(result.year)) {
+      throw new LeavePostingError("The deletion impact could not be verified. Refresh and try again.", false)
+    }
+    dateOnly(result.creditPeriod)
+    return result as unknown as LeaveDeletionPreview
+  },
+  async deleteLeave(record: LeaveRecord, expectedRestoredDays: number): Promise<void> {
+    const id = requireGuid(record.a365_leaveid), employeeId = requireGuid(record._a365_employee_value ?? "")
+    const result = await command({ command: "delete", operationId: id, employeeId, expectedRestoredDays })
+    if (result.deleted !== true || result.recordId !== id || result.employeeId !== employeeId || result.restoredDays !== expectedRestoredDays) {
+      throw new LeavePostingError("The deletion outcome could not be confirmed. Retry the same record; credits will not be restored twice.", true)
+    }
+  },
   async preview(values: LeaveEntryValues): Promise<PostingPreview> {
     const complete = Boolean(values.startDate && values.endDate && values.leaveType && values.benefit)
     const response = await command({ command: "preview", employeeId: values.employee?.a365_employeeid,
       ...(complete ? { startDate: values.startDate, endDate: values.endDate, leaveType: Number(values.leaveType), benefit: Number(values.benefit) } : {}),
     })
+    if (response.allocationVersion !== 1) throw new LeavePostingError("The Leave server update for paid/unpaid allocation is required. Contact your administrator.", false)
     if (["VL", "SL", "pendingVL", "pendingSL"].some(key => typeof response[key] !== "number" || !Number.isFinite(response[key])) || typeof response.periodStart !== "string" || typeof response.periodEnd !== "string" || (response.days !== null && typeof response.days !== "number")) {
       throw new LeavePostingError("Complete period credits could not be verified. Refresh the preview.", false)
+    }
+    if (response.days !== null) {
+      try {
+        leaveAllocation({ a365_days: Number(response.days), a365_benefit: Number(response.benefit), a365_startdate: values.startDate, a365_enddate: values.endDate,
+          a365_paiddays: response.paidDays as number, a365_unpaiddays: response.unpaidDays as number,
+          a365_allocationjson: JSON.stringify({ version: 1, days: response.allocation }) })
+      } catch { throw new LeavePostingError("The paid/unpaid preview could not be verified. Refresh the preview.", false) }
     }
     return response as unknown as PostingPreview
   },
 
-  async submit(values: LeaveEntryValues, operationId: string, onCommitted?: () => void) {
-    const record = source(await command({ command: "issue", operationId: requireGuid(operationId), employeeId: values.employee?.a365_employeeid,
+  async submit(values: LeaveEntryValues, operationId: string, reviewed: ReviewedAllocation, onCommitted?: () => void) {
+    const record = source(await command({ command: "issue", allocationVersion: 1, operationId: requireGuid(operationId), employeeId: values.employee?.a365_employeeid,
+      expectedPaidDays: reviewed.paidDays, expectedUnpaidDays: reviewed.unpaidDays,
       leaveType: Number(values.leaveType), benefit: Number(values.benefit), startDate: values.startDate, endDate: values.endDate, note: values.note,
     }))
     if (record.a365_leaveid.toLowerCase() !== operationId.toLowerCase()) throw new LeavePostingError("The operation identity could not be verified. Retry the same request.", true)
