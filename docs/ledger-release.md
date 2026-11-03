@@ -147,7 +147,7 @@ paths and actual handler IDs before releasing; preflight is not live security pr
 
 ## Technical limits requiring live release verification
 
-- 50 ledger rows per server page; export follows every cursor and rejects changed
+- 10 ledger rows per server page; export follows every cursor and rejects changed
   revisions, duplicate rows, incomplete counts and read/aggregate failures before download.
 - Money uses decimal server arithmetic and exact centavos for client validation.
   PHP is the single company currency, not an exchange-rate or multi-account feature.

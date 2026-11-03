@@ -32,6 +32,26 @@ describe("Ledger Management", () => {
     await waitFor(() => expect(ledgerService.list).toHaveBeenCalledWith(expect.anything(), "page2"))
     expect(screen.getByText("Company balance")).toBeInTheDocument()
   })
+  it("opens HTTPS references in a new tab with keyboard access", async () => {
+    const reference = "https://example.com/receipt?id=0001&year=2026"
+    vi.mocked(ledgerService.list).mockResolvedValue({ ...page, rows: [{ ...page.rows[0], reference }] })
+    const user = userEvent.setup(); mount()
+    const link = await screen.findByRole("link")
+    expect(link).toHaveAccessibleName(reference + " (opens in a new tab)")
+    expect(link).toHaveAttribute("href", reference)
+    expect(link).toHaveAttribute("target", "_blank")
+    expect(link).toHaveAttribute("rel", "noopener noreferrer")
+    link.focus(); await user.tab({ shift: true }); await user.tab()
+    expect(link).toHaveFocus()
+  })
+  it.each(["Invoice 0001", "javascript:alert(1)", "data:text/html,test", "http://example.com", "https://", "https://bad host", "//example.com", ""])("keeps non-HTTPS or invalid references as text: %s", async reference => {
+    vi.mocked(ledgerService.list).mockResolvedValue({ ...page, rows: [{ ...page.rows[0], reference }] })
+    mount()
+    const table = await screen.findByRole("table", { name: "Ledger records" })
+    expect(within(table).queryByRole("link")).not.toBeInTheDocument()
+    const row = within(table).getAllByRole("row")[1]
+    expect(within(row).getAllByRole("cell")[2]).toHaveTextContent(reference || "\u2014")
+  })
   it("shows loading, empty and filtered-empty states", async () => {
     vi.mocked(ledgerService.list).mockResolvedValue({ ...page, rows: [], next: null }); const user = userEvent.setup(); mount()
     expect(screen.getByRole("status", { name: "" })).toHaveTextContent("Loading ledger")

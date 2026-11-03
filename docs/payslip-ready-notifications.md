@@ -33,6 +33,13 @@ light background, white card, navy heading, payroll-period details, My Payroll
 instructions and the Automations 365 footer. Dynamic text is escaped. The app's
 existing Dataverse permissions remain the payslip-access boundary.
 
+Owner update, 2026-11-03: new payslip-ready emails include an **Open The Daily
+Operation** button and the same app URL in the plain-text draft. The HTTPS play
+URL uses the environment/app IDs from `power.config.json`, without local-host,
+tenant-session or tracking parameters. Employees sign in and select **My Payroll**;
+the link does not grant record access. Previously delivered emails are unchanged.
+The existing Mark Ready trigger and notification retry behavior are unchanged.
+
 The results panel distinguishes sender **acceptance**, missing/invalid Work
 Email, unreadable employees and uncertain sends. Acceptance is not confirmation
 of inbox delivery. One recipient's problem does not prevent later recipients

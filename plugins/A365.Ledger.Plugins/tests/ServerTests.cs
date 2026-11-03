@@ -83,6 +83,11 @@ sealed class Boundary : IOrganizationService, IOrganizationServiceFactory, IServ
         if (query.EntityName == "organization") { var organization = new Entity("organization", Guid.NewGuid()); organization["isauditenabled"] = AuditEnabled; return new EntityCollection(new List<Entity> { organization }); }
         if (query.EntityName == "role") return new EntityCollection(Admin ? new List<Entity> { new Entity("role", Guid.NewGuid()) } : new List<Entity>());
         var rows = Rows.Values.Where(row => row.LogicalName == query.EntityName && Matches(row, query.Criteria)).Select(Copy).ToList();
+        if (query.PageInfo.Count > 0) {
+            if (query.EntityName == LedgerCommand.Table) rows = rows.OrderByDescending(row => row.GetAttributeValue<DateTime>("a365_date")).ThenBy(row => row.Id).ToList();
+            var offset = (query.PageInfo.PageNumber - 1) * query.PageInfo.Count;
+            return new EntityCollection(rows.Skip(offset).Take(query.PageInfo.Count).ToList()) { MoreRecords = rows.Count > offset + query.PageInfo.Count, PagingCookie = "synthetic-page" };
+        }
         return new EntityCollection(rows) { MoreRecords = false };
     }
     static object Value(object value) { var option = value as OptionSetValue; if (option != null) return option.Value; var reference = value as EntityReference; return reference == null ? value : reference.Id; }
@@ -230,6 +235,19 @@ static class Tests
         Check(Convert.ToDecimal(filteredTotals["debit"]) == 3000m && Convert.ToDecimal(filteredTotals["credit"]) == 0m && Convert.ToDecimal(filteredTotals["net"]) == -3000m, "Filtered totals independent of company balance");
         Check(beforeRead == totals.Get(LedgerCommand.Coordination, LedgerCommand.Company).RowVersion, "List/export reads make no coordination or business writes");
         Reject(() => totals.Run(new Request { command = "list", revision = "stale-export" }), "Concurrent revision rejects export");
+        var paging = Fixture();
+        for (int index = 0; index < 23; index++) paging.Run(Manual("1"));
+        var seen = new HashSet<string>(); string cursor = null;
+        foreach (var expected in new[] { 10, 10, 3 }) {
+            var result = (Dictionary<string, object>)paging.Run(new Request { command = "list", cursor = cursor });
+            var pageRows = (object[])result["rows"];
+            Check(pageRows.Length == expected, "Ledger pages contain ten rows and a partial final page");
+            foreach (Dictionary<string, object> row in pageRows) Check(seen.Add((string)row["id"]), "Paging never repeats a ledger row");
+            var pageTotals = (Dictionary<string, object>)result["totals"];
+            Check(Convert.ToInt32(pageTotals["count"]) == 23 && Convert.ToDecimal(pageTotals["debit"]) == 23m && Convert.ToDecimal(result["balance"]) == -23m, "Totals and balance cover every row on every page");
+            cursor = (string)result["next"];
+        }
+        Check(cursor == null && seen.Count == 23, "Paging terminates after returning every ledger row");
         Console.WriteLine("Passed " + assertions + " Ledger server contract assertions. Transaction rollback is simulated; live Dataverse checks remain required.");
     }
 }

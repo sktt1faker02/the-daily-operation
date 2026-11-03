@@ -10,7 +10,7 @@ const artifacts = new URL("../artifacts/ledger.local/", import.meta.url)
 await mkdir(artifacts, { recursive: true })
 const categories = ["Utilities", "Payroll", "Government Contributions", "Taxes", "Software and Licenses", "Rent and Coworking", "Capital Deposits", "Capital Withdrawals", "Client Payments"].map((label, index) => ({ label, value: 749910000 + index }))
 const rows = Array.from({ length: 53 }, (_, index) => ({
-  id: `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`, date: "2026-11-03", receipt: index === 0 ? "0001" : "", reference: "",
+  id: `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`, date: "2026-11-03", receipt: index === 0 ? "0001" : "", reference: index === 0 ? "https://example.com/receipt?or=0001" : index === 1 ? "Invoice 0002" : index === 2 ? "javascript:alert(1)" : "",
   direction: index === 0 ? "credit" : "debit", amount: index === 0 ? 10000 : index === 1 ? -100 : 1,
   category: categories[index === 0 ? 6 : index === 1 ? 1 : 0].value, description: index === 0 ? "Capital deposit" : index === 1 ? "Signed payroll" : `Internet ${index}`,
   version: "1", periodId: null, employeeId: null, entryId: null, periodName: null, reopened: false, postedOn: null, postedBy: null,
@@ -56,8 +56,8 @@ try {
           if(request.command==='list'){
             let selected=state.empty?[]:rows.filter(row=>(!request.search||[row.description,row.receipt,row.reference].some(value=>value.toLowerCase().includes(request.search.toLowerCase())))&&(!request.category||String(row.category)===request.category)&&(!request.direction||row.direction===request.direction)&&(!request.start||row.date>=request.start)&&(!request.end||row.date<=request.end));
             const debit=selected.filter(row=>row.direction==='debit').reduce((sum,row)=>sum+row.amount,0),credit=selected.filter(row=>row.direction==='credit').reduce((sum,row)=>sum+row.amount,0);
-            const offset=request.cursor?50:0;
-            response={rows:selected.slice(offset,offset+50),totals:{debit,credit,net:credit-debit,count:selected.length},balance:state.empty?0:10049,revision:'one',next:selected.length>offset+50?'second':null,categories};
+            const offset=request.cursor?Number(request.cursor):0;
+            response={rows:selected.slice(offset,offset+10),totals:{debit,credit,net:credit-debit,count:selected.length},balance:state.empty?0:10049,revision:'one',next:selected.length>offset+10?String(offset+10):null,categories};
           }else if(request.command==='historyJobs')response={jobs:[]};
           else if(request.command==='historyPreview')response={periods:[],manual:[],missing:0,revision:'one'};
           else if(request.command==='save')response={id:request.id??request.operationId};
@@ -70,11 +70,30 @@ try {
     await page.goto(base, { waitUntil: "domcontentloaded" })
     const table = page.getByRole("table", { name: "Ledger records" })
     await table.getByText("0001", { exact: true }).waitFor()
+    const reference = table.getByRole("link", { name: "https://example.com/receipt?or=0001 (opens in a new tab)" })
+    assert.equal(await reference.getAttribute("href"), "https://example.com/receipt?or=0001")
+    assert.equal(await reference.getAttribute("target"), "_blank")
+    assert.equal(await reference.getAttribute("rel"), "noopener noreferrer")
+    await reference.focus()
+    assert.equal(await reference.evaluate(element => element === document.activeElement), true)
+    assert.equal(await table.getByRole("link").count(), 1)
+    await table.getByText("Invoice 0002", { exact: true }).waitFor()
+    await table.getByText("javascript:alert(1)", { exact: true }).waitFor()
     assert.equal(await table.getByRole("columnheader").count(), 8)
-    assert.equal(await table.locator("tbody tr").count(), 50)
+    assert.equal(await table.locator("tbody tr").count(), 10)
     await page.getByRole("button", { name: "Next", exact: true }).click()
     await page.getByText("Page 2", { exact: true }).waitFor()
-    assert.equal(await table.locator("tbody tr").count(), 3)
+    assert.equal(await table.locator("tbody tr").count(), 10)
+    for (let number = 3; number <= 6; number++) {
+      await page.getByRole("button", { name: "Next", exact: true }).click()
+      await page.getByText(`Page ${number}`, { exact: true }).waitFor()
+      assert.equal(await table.locator("tbody tr").count(), number === 6 ? 3 : 10)
+    }
+    assert.equal(await page.getByRole("button", { name: "Next", exact: true }).isDisabled(), true)
+    for (let number = 5; number >= 2; number--) {
+      await page.getByRole("button", { name: "Previous", exact: true }).click()
+      await page.getByText(`Page ${number}`, { exact: true }).waitFor()
+    }
     await page.getByRole("button", { name: "Previous", exact: true }).click()
     await table.getByText("0001", { exact: true }).waitFor()
     await page.getByRole("button", { name: "Edit Capital deposit", exact: true }).click()

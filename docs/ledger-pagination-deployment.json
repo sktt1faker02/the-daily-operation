@@ -1,0 +1,21 @@
+{
+  "Environment": "https://org9a7651f0.crm5.dynamics.com",
+  "AssemblyVersion": "1.0.0.3",
+  "PageSize": 10,
+  "LiveRecordsOnPage": 10,
+  "LiveTotalRecords": 10,
+  "LiveHasNext": false,
+  "LiveTotalsUnchanged": true,
+  "LiveRecordsUnchanged": true,
+  "BusinessDataWrites": "None",
+  "VerifiedAt": "2026-11-03T13:45:16.494Z",
+  "SHA256": "CD48444982A6AFB88EA9926B24A025E46C06B3099788A2B045F915873C9DC1EB",
+  "ServerContractAssertions": 95,
+  "AppTests": 502,
+  "BrowserChecks": "Passed at 1280px and 390px; six pages for 53 rows and complete export",
+  "NativeExport": "artifacts/ledger.local/pagination-solution",
+  "Limits": "Live ledger has only 10 records; multi-page navigation verified with synthetic records. Hosted signed-in browser UAT not exercised.",
+  "Lint": "Passed",
+  "Build": "Passed; existing large-chunk warning",
+  "NativeHashMatchesTested": true
+}

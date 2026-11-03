@@ -9,7 +9,7 @@ using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Sdk.Messages;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.0.2")]
+[assembly: System.Reflection.AssemblyVersion("1.0.0.3")]
 namespace A365.Ledger.Plugins
 {
     public sealed class Request
@@ -283,7 +283,7 @@ namespace A365.Ledger.Plugins
             var fingerprint = Rules.Fingerprint(new Request { start = request.start, end = request.end, category = request.category, direction = request.direction, search = request.search });
             var cursor = string.IsNullOrEmpty(request.cursor) ? new Cursor { page = 1, filter = fingerprint } : Json.Deserialize<Cursor>(Encoding.UTF8.GetString(Convert.FromBase64String(request.cursor)));
             if (cursor.page < 1 || cursor.page > 100000 || cursor.filter != fingerprint) Rules.Fail("Refresh the ledger paging controls.");
-            var query = new QueryExpression(Table) { ColumnSet = new ColumnSet(true), Criteria = criteria, PageInfo = new PagingInfo { Count = 50, PageNumber = cursor.page, PagingCookie = cursor.cookie } };
+            var query = new QueryExpression(Table) { ColumnSet = new ColumnSet(true), Criteria = criteria, PageInfo = new PagingInfo { Count = 10, PageNumber = cursor.page, PagingCookie = cursor.cookie } };
             query.AddOrder("a365_date", OrderType.Descending); query.AddOrder(Table + "id", OrderType.Ascending);
             var page = caller.RetrieveMultiple(query);
             var totals = Aggregate(caller, criteria); var company = Aggregate(caller, new FilterExpression());

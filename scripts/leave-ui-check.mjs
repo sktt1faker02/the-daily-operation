@@ -73,6 +73,9 @@ try {
   let { page } = run
   await page.getByRole("heading", { name: "Leave Management", exact: true }).waitFor().catch(async error => { console.error({ errors: run.errors, text: await page.locator("body").innerText() }); throw error })
   assert.equal(await page.getByRole("link", { name: "Leave Management", exact: true }).count(), 1)
+  assert.equal(await page.getByRole("searchbox", { name: "Search record name", exact: true }).count(), 0)
+  assert.equal(await page.getByRole("combobox", { name: "Status", exact: true }).count(), 0)
+  for (const name of ["Employee", "Leave type", "Benefit"]) assert.equal(await page.getByRole("combobox", { name, exact: true }).count(), 1)
   await page.getByRole("button", { name: "View Test leave" }).click()
   await page.getByRole("dialog", { name: "Leave details" }).getByText("Test note", { exact: true }).waitFor()
   assert.equal(await page.getByRole("dialog").getByText("Jan 1, 2026", { exact: true }).count(), 2)

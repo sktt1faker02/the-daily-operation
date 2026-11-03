@@ -10,7 +10,7 @@ labels, not confirmed Dataverse logical names, choice values or deployed tables.
 | --- | --- |
 | Date | Business date, date-only; backdating/closed periods need a policy. |
 | OR Number | Text preserving prefixes/zeros; optional; any numbering/uniqueness validation remains to be designed. |
-| Reference | Optional plain text; no document-link or upload feature in this scope. |
+| Reference | Optional text; valid HTTPS URLs open in a new tab; other values remain text. No document management or upload feature. |
 | Debit | Source-style money out. Manual amount positive; payroll Debit preserves signed net pay, including zero/negative, with explicit Debit direction. |
 | Credit | Source-style money in; not automatically revenue. |
 | Chart of Account | Single-select Dataverse Choice: Utilities, Payroll, Government Contributions and the other documented categories. Exactly one category per ledger record; no allocation lines. |

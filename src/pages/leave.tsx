@@ -12,7 +12,7 @@ import { LeaveDetail } from "@/features/leave/leave-detail"
 import { AddLeaveDialog } from "@/features/leave/add-leave-dialog"
 import { ResetLeaveDialog } from "@/features/leave/reset-leave-dialog"
 import { validYear } from "@/features/leave/rules"
-import { benefitLabels, leaveStatusLabels, leaveTypeLabels } from "@/features/leave/types"
+import { benefitLabels, leaveTypeLabels } from "@/features/leave/types"
 import type { LeaveEmployee, LeaveFilters, SourceReference } from "@/features/leave/types"
 
 function LeaveWorkspace() {
@@ -20,7 +20,6 @@ function LeaveWorkspace() {
   const [employee, setEmployee] = useState<LeaveEmployee | null>(null)
   const [filters, setFilters] = useState<LeaveFilters>({ section: "leave", year: currentYear, employeeId: "", search: "", status: "all", type: "all", benefit: "all" })
   const [year, setYear] = useState(String(currentYear))
-  const [search, setSearch] = useState("")
   const [validation, setValidation] = useState("")
   const [source, setSource] = useState<SourceReference | null>(null)
   const [addLeaveOpen, setAddLeaveOpen] = useState(false)
@@ -31,17 +30,15 @@ function LeaveWorkspace() {
     <form className="flex flex-wrap items-end gap-4" onSubmit={event => {
       event.preventDefault()
       if (!validYear(Number(year))) { setValidation("Enter a whole year from 1900 to 9998."); return }
-      setValidation(""); setFilters(previous => ({ ...previous, year: Number(year), search: search.trim() }))
+      setValidation(""); setFilters(previous => ({ ...previous, year: Number(year) }))
     }}>
       <div className="space-y-2"><Label>Employee</Label><div><LeaveEmployeePicker value={employee} onSelect={selected => { setEmployee(selected); setFilters(previous => ({ ...previous, employeeId: selected?.a365_employeeid ?? "" })) }} /></div></div>
       <div className="w-28 space-y-2"><Label htmlFor="leave-year">Year</Label><Input id="leave-year" type="number" min={1900} max={9998} step={1} required value={year} onChange={event => setYear(event.target.value)} aria-invalid={Boolean(validation)} aria-describedby={validation ? "leave-filter-error" : undefined} /></div>
-      <div className="min-w-48 flex-1 space-y-2"><Label htmlFor="leave-search">Search record name</Label><Input id="leave-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search records…" /></div>
       <Button type="submit" variant="outline">Apply filters</Button>
       {validation && <p id="leave-filter-error" role="alert" className="w-full text-sm text-destructive">{validation}</p>}
     </form>
     <LeaveBalances employeeId={filters.employeeId} year={filters.year} />
     <div className="flex flex-wrap gap-4">
-      <ChoiceFilter label="Status" value={filters.status} labels={leaveStatusLabels} onChange={status => setFilters(previous => ({ ...previous, status }))} />
       <ChoiceFilter label="Leave type" value={filters.type} labels={leaveTypeLabels} onChange={type => setFilters(previous => ({ ...previous, type }))} />
       <ChoiceFilter label="Benefit" value={filters.benefit} labels={benefitLabels} onChange={benefit => setFilters(previous => ({ ...previous, benefit }))} />
     </div>

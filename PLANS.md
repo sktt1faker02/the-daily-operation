@@ -62,8 +62,8 @@ and other cash movements, payroll synchronization, historical posting and export
    - Title: **Ledger Management**. Proposed subtitle: **Record and review business
      receipts and payments.**
    - Preserve all seven spreadsheet columns and add **Action**. Keep OR Number
-     as text, including leading zeros. Reference is optional plain text. Document
-     attachments, document links and SharePoint integration are out of scope for now.
+     as text, including leading zeros. Reference is optional text; valid HTTPS URLs open in a new tab. Document
+     attachments, managed document links and SharePoint integration remain out of scope.
    - Recommend **Debit (Money out)** and **Credit (Money in)** to preserve the
      source convention, subject to confirmation. This is a cashbook convention,
      not double-entry posting. Keep actions in consistent positions.
@@ -110,7 +110,8 @@ and other cash movements, payroll synchronization, historical posting and export
 
 5. **Search, filters, paging and totals**
    - Propose date range, Chart of Account category and direction filters plus search over Description,
-     OR Number and Reference; deterministic date/ID sorting and server paging.
+     OR Number and Reference; deterministic date/ID sorting and server paging with
+     **10 records per page**.
    - Show money out, money in and net movement over the complete authorized
      filtered result, independent of the visible page; label the totals' scope.
    - One company account. Opening funds come from recorded Capital Deposits; no
@@ -125,7 +126,8 @@ and other cash movements, payroll synchronization, historical posting and export
 
 6. **References and module boundaries**
    - OR Number and Reference remain optional text fields. No document table,
-     attachment control, upload, clickable document link or SharePoint setup now.
+     attachment control, upload or SharePoint setup now. Valid HTTPS references
+     are clickable with a new-tab indicator; other references remain plain text.
      Any future document feature will follow the project document repository rules.
    - Automatic payroll posting below is in scope for future implementation. No
      additional Leave posting, email or unrelated background workflow is requested.
@@ -271,7 +273,7 @@ Future criteria; none is claimed complete by this draft. Concrete checks are in
 - [ ] L6: Company balance equals all recorded Credit minus Debit; Capital Deposits supplies opening funds once, with no separate opening adjustment. Filtered totals are page-independent and separate from company balance.
 - [ ] L7: Choice metadata preserves historical categories; invalid/unapproved values are rejected and no separate account-maintenance page is introduced.
 - [ ] L8: Payroll Admin can create/edit/delete ledger rows with audit/deletion confirmation; unlock preserves rows, re-payment updates/recreates without conflict prompts and deletes linked rows whose source payroll entries were deleted.
-- [ ] L9: OR Number/Reference remain optional text; no attachment, document-link, document-table or SharePoint setup is added.
+- [ ] L9: OR Number/Reference remain optional text; valid HTTPS references open in a new tab; no attachment, document-table or SharePoint setup is added.
 - [ ] L10: Loading/empty/error states, keyboard access and desktop/mobile layouts pass.
 - [ ] L11: Payroll/Leave calculations, historical values and existing notifications remain unchanged; only the requested paid-payroll ledger integration is added.
 - [ ] L12: Targeted/full tests, lint, build and relevant Playwright pass; live security limits are reported.

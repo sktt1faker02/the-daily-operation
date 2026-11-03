@@ -1,6 +1,7 @@
 import { buildNotificationEmail, storedWorkEmail } from "@/lib/notification-email"
 import { formatDate } from "@/lib/format"
 import type { PayrollPeriod } from "./types"
+import { appId, environmentId } from "../../../power.config.json"
 
 export interface PayslipEmailEmployee {
   a365_employeeid: string
@@ -22,9 +23,10 @@ export function buildPayslipReadyEmail(employee: PayslipEmailEmployee, period: P
   ]
   if (period.a365_paydate) details.push(["Pay date", formatDate(period.a365_paydate.slice(0, 10))])
   const highlight = "Open The Daily Operation and select My Payroll to view your payslip."
+  const action = { label: "Open The Daily Operation", href: `https://apps.powerapps.com/play/e/${environmentId}/app/${appId}` }
   return {
     to, subject: title,
-    text: [greeting, introduction, ...details.map(([key, value]) => `${key}: ${value}`), highlight].join("\n"),
-    html: buildNotificationEmail({ title, greeting, introduction, detailsHeading: "Payroll details", details, highlight, asOf }),
+    text: [greeting, introduction, ...details.map(([key, value]) => `${key}: ${value}`), highlight, `${action.label}: ${action.href}`].join("\n"),
+    html: buildNotificationEmail({ title, greeting, introduction, detailsHeading: "Payroll details", details, highlight, action, asOf }),
   }
 }

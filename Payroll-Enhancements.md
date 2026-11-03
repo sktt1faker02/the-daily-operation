@@ -6,6 +6,59 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-03 - App link in payslip-ready notifications
+
+Added an Open The Daily Operation button to new payslip-ready HTML emails and
+the same clean HTTPS URL to plain-text drafts. Environment/app IDs come from the
+existing power.config.json deployment configuration; TypeScript JSON imports are
+enabled. The email retains My Payroll instructions, recipient privacy and the
+existing Mark Ready/retry lifecycle. Previously delivered emails are unchanged.
+
+Extended the shared email layout with an optional escaped action link, used only
+by the payslip composer. Updated the composer tests, desktop/mobile preview checks
+and docs/payslip-ready-notifications.md. Fictional email preview passes at 1000,
+390 and 320 pixels with keyboard-accessible links and no horizontal overflow.
+No email sending, schema/security changes or business-record writes during testing.
+All 502 tests in 48 files, lint, build and email browser checks pass; existing
+large-chunk build warnings remain. Published the tested app to the confirmed Dev
+app/solution with the installed pa CLI. No commit or Git push. Actual inbox
+rendering and signed-in employee link navigation remain unverified; no live email
+was sent or retried as part of this change.
+
+### 2026-11-03 - Ledger pages limited to ten records
+
+Changed the Ledger server list query from 50 to 10 rows per page in signed plugin
+1.0.0.3 and deployed it to the confirmed existing Dev environment. Cursor paging,
+full-result totals, company balance and complete Excel export retain their behavior.
+The existing app consumes server pages directly, so no client publication is needed.
+
+Updated the server contract boundary to honor paging and verified 23 rows across
+10/10/3 pages without repeats or missing rows, with stable full-result totals.
+Extended desktop/mobile browser checks to navigate all six pages of 53 synthetic
+records and export every row. Updated PLANS.md and the Ledger release page-size
+requirement. All 95 server checks and 502 app tests pass. Read-only live comparison
+confirms existing records, totals and balance are unchanged. No schema, security,
+business-record writes, historical posting, commit or Git push.
+Lint, build and desktop/mobile Playwright pass; existing build chunk warnings
+remain. Native solution export contains the tested signed 1.0.0.3 assembly
+(hash verified). Evidence: [pagination deployment](docs/ledger-pagination-deployment.json).
+The live ledger currently has ten rows; multi-page behavior is verified with
+synthetic records. Hosted signed-in browser UAT remains unverified.
+
+### 2026-11-03 - Clickable HTTPS references in Ledger Management
+
+Owner approved rendering valid HTTPS Reference values as links opening in a new
+tab. Added LedgerReference with URL validation, underlined text, an external-link
+icon, keyboard focus and an accessible new-tab label. Other reference values and
+empty placeholders retain text rendering. The optional form field explains both
+formats. Existing records, export values and Dataverse schema are unchanged.
+
+Updated PLANS.md, ledger-data-model.md and ledger-verification.md to reflect the
+latest owner decision. Added page tests for valid links, keyboard access, blank
+references and unsupported/invalid URLs; extended the synthetic desktop/mobile
+Ledger browser checks. Final verification and Dev publication are recorded below
+when complete.
+
 ### 2026-11-03 - Deploy connected VL and conversion balances to Dev
 
 Owner authorized the paired Leave server/app release. Verified the Dev connection,

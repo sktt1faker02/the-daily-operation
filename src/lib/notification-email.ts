@@ -26,6 +26,7 @@ export interface NotificationEmailContent {
   detailsHeading: string
   details: readonly (readonly [string, string])[]
   highlight?: string | null
+  action?: { label: string; href: string }
   asOf: string
 }
 
@@ -44,6 +45,7 @@ export function buildNotificationEmail(content: NotificationEmailContent): strin
 <p style="margin:0 0 8px;"><strong>${escapeHtml(content.detailsHeading)}:</strong></p>
 <ul style="margin:0;padding-left:20px;">${content.details.map(([label, value]) => `<li style="padding:3px 0;"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`).join("")}</ul>
 ${content.highlight ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr><td bgcolor="${s.balance}" style="padding:16px;background-color:${s.balance};color:${s.title};border-radius:6px;">${escapeHtml(content.highlight)}</td></tr></table>` : ""}
+${content.action ? `<p style="margin:20px 0 0;"><a href="${escapeHtml(content.action.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;background-color:${s.title};color:#ffffff;text-decoration:underline;font-weight:bold;border-radius:4px;">${escapeHtml(content.action.label)}</a></p>` : ""}
 </td></tr>
 <tr><td align="center" bgcolor="${s.footer}" style="padding:16px 24px;background-color:${s.footer};color:${s.muted};font-family:${s.font};font-size:11px;line-height:1.6;border-top:1px solid ${s.border};">© ${escapeHtml(content.asOf.slice(0, 4))} Automations 365<br>${s.footerText}</td></tr>
 </table>

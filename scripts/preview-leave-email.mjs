@@ -43,6 +43,13 @@ try {
         await page.route("**/*", route => route.abort())
         await page.setContent(draft.html)
         await page.getByRole("heading", { name: payslip ? "Your payslip is ready" : "Your leave has been recorded" }).waitFor()
+        if (payslip) {
+          const link = page.getByRole("link", { name: "Open The Daily Operation", exact: true })
+          assert.equal(await link.getAttribute("href"), "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f")
+          assert.equal(await link.getAttribute("target"), "_blank")
+          await link.focus()
+          assert.equal(await link.evaluate(element => element === document.activeElement), true)
+        }
         assert.equal(await page.getByText(payslip ? "Open The Daily Operation and select My Payroll to view your payslip." : "Remaining VL balance: 9.17 days (as of Oct 26, 2026)").count(), 1)
         assert.equal(await page.locator("li").count(), payslip ? 4 : 5)
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)

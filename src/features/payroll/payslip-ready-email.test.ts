@@ -17,6 +17,11 @@ describe("Payslip-ready email", () => {
     expect(draft.text).toContain("Pay date: Oct 31, 2026")
     expect(draft.html).toContain("Test &lt;Employee&gt;")
     expect(draft.html).toContain("My Payroll")
+    const appUrl = "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f"
+    expect(draft.html).toContain(`href="${appUrl}"`)
+    expect(draft.html).toContain('target="_blank" rel="noopener noreferrer"')
+    expect(draft.text).toContain(`Open The Daily Operation: ${appUrl}`)
+    expect(draft.html).not.toMatch(/localhost|127\.0\.0\.1|tenantId=|hint=|sourcetime=/)
     expect(draft.html).toContain("#f3f5f8")
     expect(draft.html).toContain("© 2026 Automations 365")
     expect(draft.html).not.toMatch(/<script|<img|<link|salary|Net Pay|Bank Account|Withholding Tax/i)
