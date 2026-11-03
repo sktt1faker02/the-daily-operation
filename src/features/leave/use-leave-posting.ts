@@ -4,7 +4,7 @@ import type { LeaveEntryValues } from "./entry-rules"
 
 export function useLeavePostingPreview(values: LeaveEntryValues) {
   return useQuery({
-    queryKey: ["leave", "posting-preview", values.employee?.a365_employeeid, values.leaveType, values.benefit, values.startDate, values.endDate],
+    queryKey: ["leave", "posting-preview", values.employee?.a365_employeeid, values.leaveType, values.benefit, values.startDate, values.endDate, Boolean(values.halfDay)],
     queryFn: () => postingService.preview(values), enabled: Boolean(values.employee), retry: false, staleTime: 0,
   })
 }
@@ -19,7 +19,7 @@ export function useIssueLeave() {
         client.invalidateQueries({ queryKey: ["leave", "list"] }),
         client.invalidateQueries({ queryKey: ["leave", "balances", variables.values.employee?.a365_employeeid] }),
         client.invalidateQueries({ queryKey: ["leave", "posting-preview", variables.values.employee?.a365_employeeid] }),
-        client.invalidateQueries({ queryKey: ["leave", "conversion-employees"] }),
+        client.invalidateQueries({ queryKey: ["leave", "conversion", "rows"] }),
       ])
     },
   })

@@ -1,5 +1,13 @@
 # Leave Conversion transactions and editing — 2026-10-23
 
+**Latest owner decision, 2026-11-03:** unpaid conversions are now connected to
+recorded VL for the same employee/year, with manual chosen limits retained and
+payable days capped at 5 and live VL. Reset restores unpaid current-year limits
+to 10/5; paid years stay frozen. This supersedes the older independent 10/5-only
+snapshot behavior below for unpaid values. See [requirements and verification](leave-conversion-balance-sync.md).
+Plugin 1.0.3.6 and the matching app are deployed to Dev. The requested 2026
+comparison now returns VL 8 in both modules; [release evidence](leave-conversion-balance-deployment.json).
+
 Status: approved schema and implementation are deployed to Dev. On 2026-10-23,
 the owner separately authorized the tested Leave plugin 1.0.2.0, conversion
 guards and Code App deployment to repair loading. Refresh balances is removed.

@@ -27,6 +27,7 @@ it("previews all active employees and cancelling makes no financial writes", asy
   const { user, close } = setup()
   expect(await screen.findByText("3 active employees")).toBeVisible()
   expect(screen.getByText(/even when leave has already been used/)).toBeVisible()
+  expect(screen.getByText(/Unpaid leave conversions for this year also return/)).toBeVisible()
   expect(screen.getByText(/Employee and list filters do not restrict/)).toBeVisible()
   await user.click(screen.getByRole("button", { name: "Cancel" }))
   expect(close).toHaveBeenCalledOnce()
@@ -40,6 +41,7 @@ it("confirms once, sends the reviewed impact and refreshes balance/preview cache
   expect(postingService.resetBalances).toHaveBeenCalledExactlyOnceWith(preview, expect.any(String))
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "balances"] })
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "posting-preview"] })
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "conversion", "rows"] })
 })
 it("blocks confirmation while loading or with no active employees", async () => {
   vi.mocked(postingService.resetPreview).mockResolvedValue({ ...preview, employeeCount: 0 })

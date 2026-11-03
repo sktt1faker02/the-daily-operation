@@ -1,3 +1,4 @@
+param([string]$AssemblyVersion = '1.0.3.5', [string]$EvidenceFile = 'docs/leave-reset-deployment.json')
 # Read-only verification: never sends resetBalances, issue, delete or other mutations.
 $ErrorActionPreference = 'Stop'
 $resetRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -20,7 +21,7 @@ function Reset-Read([string]$Path, [string]$Command = '') {
     return $resetData
 }
 $resetAssemblies = Reset-Read '/api/data/v9.2/pluginassemblies?$select=name,version,content&$filter=name eq ''A365.Leave.Plugins'''
-if (@($resetAssemblies.value).Count -ne 1 -or $resetAssemblies.value[0].version -cne '1.0.3.5') { throw 'Expected deployed Leave 1.0.3.5.' }
+if (@($resetAssemblies.value).Count -ne 1 -or $resetAssemblies.value[0].version -cne $AssemblyVersion) { throw "Expected deployed Leave $AssemblyVersion." }
 $resetDownloaded = Join-Path $resetWork 'deployed-Leave.dll'
 [IO.File]::WriteAllBytes($resetDownloaded, [Convert]::FromBase64String($resetAssemblies.value[0].content))
 $resetHash = (Get-FileHash -LiteralPath $resetDownloaded -Algorithm SHA256).Hash
@@ -36,12 +37,12 @@ $resetGuards = Reset-Read '/api/data/v9.2/sdkmessageprocessingsteps?$select=name
 if (@($resetGuards.value).Count -ne 20 -or @($resetGuards.value | Where-Object { $_.statecode -ne 0 -or $_.mode -ne 0 -or $_.stage -ne 20 }).Count) { throw 'Expected 20 active synchronous Leave write guards.' }
 $resetEvidence = @{
     VerifiedAt = [DateTime]::UtcNow.ToString('o'); Environment = $resetEnvironment; Solution = 'A365_DailyOperations'
-    AssemblyVersion = '1.0.3.5'; SHA256 = $resetHash; DeployedHashMatchesTested = $true
+    AssemblyVersion = $AssemblyVersion; SHA256 = $resetHash; DeployedHashMatchesTested = $true
     ResetPreview = 'Passed'; ActiveEmployeeCount = $resetPreview.employeeCount; Year = $resetPreview.year
     PeriodStart = $resetPreview.periodStart; Targets = @{ VL = 10; SL = 5 }
     IsInTransaction = $true; ActiveSynchronousWriteGuards = 20; CreditCountUnchanged = $true
     ResetExecuted = $false; BusinessDataWrites = 'None'; Emails = 'None'; Roles = 'Unchanged'; Schema = 'Unchanged'
     OrdinaryAccountSecurity = 'Not exercised'; ActualResetRollbackConcurrency = 'Synthetic checks only'
 }
-[IO.File]::WriteAllText((Join-Path $resetRoot 'docs/leave-reset-deployment.json'), ($resetEvidence | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
-Write-Host "Verified Leave 1.0.3.5 hash, reset preview, transaction context and 20 guards. Active employee count: $($resetPreview.employeeCount). No balances reset."
+[IO.File]::WriteAllText((Join-Path $resetRoot $EvidenceFile), ($resetEvidence | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
+Write-Host "Verified Leave $AssemblyVersion hash, reset preview, transaction context and 20 guards. Active employee count: $($resetPreview.employeeCount). No balances reset."

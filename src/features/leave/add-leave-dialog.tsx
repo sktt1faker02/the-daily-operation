@@ -44,7 +44,12 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
   const canSubmit = Object.keys(errors).length === 0 && preview.isSuccess && !preview.isFetching && preview.data.days !== null && preview.data.paidDays != null && preview.data.unpaidDays != null && !issue.isPending
 
   function update<K extends keyof LeaveEntryValues>(key: K, value: LeaveEntryValues[K]) {
-    setValues(previous => ({ ...previous, [key]: value }))
+    setValues(previous => {
+      const next = { ...previous, [key]: value }
+      if (key === "leaveType" && value !== "749910000") next.halfDay = false
+      if (next.halfDay && (key === "halfDay" || key === "startDate")) next.endDate = next.startDate
+      return next
+    })
     setSubmitError("")
   }
 
@@ -88,6 +93,7 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
     <div className="grid gap-4 sm:grid-cols-2">
       <EntryChoice id="add-leave-type" label="Leave Type" value={values.leaveType} labels={leaveTypeLabels} onChange={value => update("leaveType", value)} />
       <EntryChoice id="add-leave-benefit" label="Benefit" value={values.benefit} labels={requestedBenefitLabels} onChange={value => update("benefit", value)} />
+      {values.leaveType === "749910000" && <EntryChoice id="add-leave-duration" label="Leave duration" value={values.halfDay ? "1" : "0"} labels={{ 0: "Full day", 1: "Half day (0.5 VL credit)" }} onChange={value => update("halfDay", value === "1")} />}
       <div className="space-y-2">
         <Label htmlFor="add-leave-start">Start Date</Label>
         <Input id="add-leave-start" type="date" required value={values.startDate} onChange={event => update("startDate", event.target.value)} aria-invalid={Boolean(values.startDate && errors.startDate)} aria-describedby={values.startDate && errors.startDate ? "add-leave-start-error" : undefined} />
@@ -95,7 +101,7 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
       </div>
       <div className="space-y-2">
         <Label htmlFor="add-leave-end">End Date</Label>
-        <Input id="add-leave-end" type="date" required value={values.endDate} onChange={event => update("endDate", event.target.value)} aria-invalid={Boolean(values.endDate && errors.endDate)} aria-describedby={values.endDate && errors.endDate ? "add-leave-end-error" : undefined} />
+        <Input id="add-leave-end" type="date" required readOnly={values.halfDay} value={values.endDate} onChange={event => update("endDate", event.target.value)} aria-invalid={Boolean(values.endDate && errors.endDate)} aria-describedby={values.endDate && errors.endDate ? "add-leave-end-error" : undefined} />
         {values.endDate && errors.endDate && <p id="add-leave-end-error" role="alert" className="text-sm text-destructive">{errors.endDate}</p>}
       </div>
     </div>
@@ -113,7 +119,7 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
     </section>
 
     <div className="space-y-2"><Label htmlFor="add-leave-note">Note (optional)</Label><Textarea id="add-leave-note" maxLength={2000} value={values.note} onChange={event => update("note", event.target.value)} aria-describedby="add-leave-note-help" /><p id="add-leave-note-help" className="text-xs text-muted-foreground">Internal note, up to 2,000 characters. Excluded from the employee email.</p></div>
-    <p className="text-xs text-muted-foreground">Full Monday–Friday workdays; holidays are excluded. Paid requests use available credits on the earliest leave dates; remaining days or portions are unpaid. Credits and dates are checked again when submitted. Email follows after the Leave is recorded.</p>
+    <p className="text-xs text-muted-foreground">Monday–Friday workdays; holidays are excluded. Half-day VL uses 0.5 day on a single date. Paid requests use available credits on the earliest leave dates; remaining days or portions are unpaid. Credits and dates are checked again when submitted. Email follows after the Leave is recorded.</p>
     </fieldset>
     {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
     {uncertain && <p role="status" className="text-sm">Keep this request unchanged and retry to check the same operation. Do not create a replacement Leave.</p>}

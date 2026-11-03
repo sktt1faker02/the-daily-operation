@@ -26,13 +26,14 @@ export function leaveAllocation(record: AllocationRecord): { paidDays: number; u
   try { parsed = JSON.parse(record.a365_allocationjson ?? "") } catch { throw invalid() }
   if (!parsed || typeof parsed !== "object" || !("version" in parsed) || parsed.version !== 1 || !("days" in parsed) || !Array.isArray(parsed.days) || parsed.days.length === 0 || parsed.days.length > 366) throw invalid()
   const start = dateOnly(record.a365_startdate), end = dateOnly(record.a365_enddate)
+  const expectedDayUnits = total === 50 && start === end && parsed.days.length === 1 ? 50 : 100
   let previous = "", sumPaid = 0, sumUnpaid = 0, unpaidStarted = false
   const days: AllocatedDay[] = parsed.days.map((value: unknown) => {
     if (!value || typeof value !== "object" || !("date" in value) || typeof value.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.date) || !("paidDays" in value) || !("unpaidDays" in value)) throw invalid()
     const date = dateOnly(value.date), day = new Date(`${date}T12:00:00Z`)
     if (day.toISOString().slice(0, 10) !== date || date < start || date > end || date <= previous || [0, 6].includes(day.getUTCDay())) throw invalid()
     const dayPaid = units(value.paidDays), dayUnpaid = units(value.unpaidDays)
-    if (dayPaid + dayUnpaid !== 100 || (unpaidStarted && dayPaid > 0)) throw invalid()
+    if (dayPaid + dayUnpaid !== expectedDayUnits || (unpaidStarted && dayPaid > 0)) throw invalid()
     if (dayUnpaid > 0) unpaidStarted = true
     previous = date; sumPaid += dayPaid; sumUnpaid += dayUnpaid
     return { date, paidDays: dayPaid / 100, unpaidDays: dayUnpaid / 100 }

@@ -39,3 +39,13 @@ describe("Leave Conversion server compatibility", () => {
     expect((error as Error).message).not.toContain("private backend diagnostic")
   })
 })
+
+
+it("retains live and chosen VL values separately without changing paid snapshots", async () => {
+  const transaction = { id: "10000000-0000-0000-0000-000000000001", year: 2026, version: "1", paid: false }
+  const row = { id: "20000000-0000-0000-0000-000000000002", employeeId: "30000000-0000-0000-0000-000000000003", employeeName: "Test", employeeNumber: "1", dailyRate: 100, availableVL: 4, days: 3, amount: 300, limitAvailableVL: 10, limitDays: 3, liveVL: 4 }
+  vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue({ success: true, data: { Response: JSON.stringify({ transaction, rows: [row] }) } })
+  expect((await conversionService.rows(2026)).rows[0]).toEqual(row)
+  vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue({ success: true, data: { Response: JSON.stringify({ transaction: { ...transaction, paid: true }, rows: [{ ...row, liveVL: null }] }) } })
+  expect((await conversionService.rows(2026)).rows[0].liveVL).toBeUndefined()
+})

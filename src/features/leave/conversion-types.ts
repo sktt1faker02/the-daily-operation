@@ -8,13 +8,23 @@ export interface ConversionRow {
   availableVL: number
   days: number
   amount: number
+  /** Saved manual ceilings; unpaid display values are capped by recorded VL. */
+  limitAvailableVL?: number
+  limitDays?: number
+  liveVL?: number
 }
 export interface ConversionPage { transaction: ConversionYear; rows: ConversionRow[]; next?: string }
 export interface ConversionDraft { availableVL: string; days: string }
 export interface ConversionChange { id: string; employeeId: string; availableVL: number; days: number }
 
 export function conversionDraft(row: ConversionRow): ConversionDraft {
-  return { availableVL: row.availableVL.toFixed(2), days: row.days.toFixed(2) }
+  return { availableVL: (row.limitAvailableVL ?? row.availableVL).toFixed(2), days: (row.limitDays ?? row.days).toFixed(2) }
+}
+
+export function effectiveConversion(row: ConversionRow, draft?: ConversionDraft) {
+  const availableVL = Math.min(Number(draft?.availableVL ?? row.limitAvailableVL ?? row.availableVL), row.liveVL ?? Number.POSITIVE_INFINITY)
+  const days = Math.min(Number(draft?.days ?? row.limitDays ?? row.days), availableVL, 5)
+  return { availableVL, days, amount: conversionAmount(row.dailyRate, days) }
 }
 
 export function validateConversionDraft(draft: ConversionDraft): Partial<Record<keyof ConversionDraft, string>> {

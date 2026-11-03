@@ -14,7 +14,7 @@ function YearDetail() {
     {isDetail && <Link to="/leave-conversion" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" aria-hidden />Leave Conversion</Link>}
     {isDetail && heading}
     {!isDetail ? <YearList heading={heading} /> : !validYear(year) ? <p role="alert">Select a whole year from 1900 to 9998.</p> : <>
-      <p role="note" className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">Daily rate is monthly basic salary ÷ 22, rounded to two decimals and saved with the transaction. Saving records the conversion values; it does not deduct leave credits or make payments. New transactions start with 10.00 Available VL and 5.00 VL to convert for each Active employee.</p>
+      <p role="note" className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">Daily rate is monthly basic salary ÷ 22, rounded to two decimals and saved with the transaction. Saving records the conversion values; it does not deduct leave credits or make payments. Unpaid conversions follow recorded VL for the same year. Manual limits remain editable; payable days cannot exceed recorded VL, your chosen limits or 5 days. Paid conversions retain their saved values.</p>
       <ConversionEmployees key={year} year={year} />
     </>}
   </div>

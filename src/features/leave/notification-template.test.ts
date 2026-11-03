@@ -74,7 +74,7 @@ describe("Recorded Leave email composition", () => {
     if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
     expect(draft.to).toBe(employee.a365_workemail)
     expect(draft.subject).toBe("Your leave has been recorded")
-    expect(draft.text).toContain("Leave type: Emergency")
+    expect(draft.text).toContain("Leave type: General Leave")
     expect(draft.text).toContain("Benefit: Unpaid")
     expect(draft.text).toContain("Start date: Oct 22, 2026")
     expect(draft.text).toContain("Recorded days: 1.50")

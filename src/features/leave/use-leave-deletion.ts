@@ -25,7 +25,7 @@ export function useLeaveDeletion(record: LeaveRecord, allowed: boolean) {
       client.invalidateQueries({ queryKey: ["leave", "balances", employee] }),
       client.invalidateQueries({ queryKey: ["leave", "posting-preview", employee] }),
       client.invalidateQueries({ queryKey: ["leave", "payroll-days", employee] }),
-      client.invalidateQueries({ queryKey: ["leave", "conversion-employees"] }),
+      client.invalidateQueries({ queryKey: ["leave", "conversion", "rows"] }),
     ])
   }
   return { preview, deleteRecord }

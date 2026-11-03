@@ -6,6 +6,46 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-03 - Deploy connected VL and conversion balances to Dev
+
+Owner authorized the paired Leave server/app release. Verified the Dev connection,
+updated the existing signed Leave plugin to 1.0.3.6 and published the tested app
+through the installed pa CLI to the existing app/solution. Live requested-employee
+comparison now shows recorded VL 8 / conversion Available VL 8 / conversion days 5,
+replacing the old server's independent 10. Reset preview, deployed DLL hash, 20
+Leave guards and 14 Conversion guards pass; credit count is unchanged.
+
+Pulled native Leave DLL/metadata and 34 step/assembly references from the actual
+solution export. Generalized the read-only reset verifier for an explicit version/
+evidence path and saved docs/leave-conversion-balance-deployment.json. No reset,
+payment, employee edits, financial migration, emails, schema/role changes, commit
+or Git push. Live signed-in security/concurrency/rollback UAT remains open.
+
+
+### 2026-11-03 - Connect unpaid leave conversion to recorded VL
+
+Implemented the owner's latest rule: unpaid Available VL/payable conversion days
+are capped by recorded same-year VL and manual chosen limits, with the existing
+5-day maximum. VL 9 permits the default 5; VL 4 permits 4; a manual 3-day limit
+stays 3 unless VL is lower. Chosen limits remain editable and persist as ceilings.
+Reset restores unpaid current-year limits to 10/5 atomically. Paid/cancelled rows
+and saved rate/actor snapshots remain protected. Mark Paid rechecks balances under
+employee locks and freezes effective amounts with the year lock.
+
+Added ConversionBalances.cs to signed local plugin 1.0.3.6; extended conversion
+commands, ResetBalances and scoped write guards. Updated client contract/types,
+inline effective amounts, stale-draft protection, confirmation/banner wording and
+the correct conversion query invalidations after leave/reset/deletion. Added a
+focused browser script and app/server regressions; documented rules in
+[conversion balance connection](docs/leave-conversion-balance-sync.md).
+
+Verification: 487 app tests (48 files), lint/build (existing bundle warning), 224
+synthetic server checks and linked-balance browser scenarios at desktop/mobile
+pass. No schema/role/generated changes, migration, real financial writes or emails.
+No commit/push/deployment. Server/app release and live ordinary-account/concurrency
+verification remain pending. Existing ledger functionality was preserved.
+
+
 ### 2026-11-03 - Deploy manual leave reset server to Dev
 
 Owner explicitly confirmed the Leave plugin deployment to

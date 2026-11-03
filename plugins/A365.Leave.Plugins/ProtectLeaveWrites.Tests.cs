@@ -65,7 +65,7 @@ public static class ProtectLeaveWritesTests
         child.MessageName = "SetState"; Check(child, true, "payment supports header state transition");
         child.MessageName = "Delete"; Check(child, false, "payment cannot delete the year");
         child.MessageName = "Update"; child.PrimaryEntityName = "a365_leavecashconversion";
-        Check(child, false, "payment cannot modify employee conversion values");
+        Check(child, true, "payment can freeze effective employee conversion values");
         child.PrimaryEntityName = "a365_leave"; Check(child, false, "payment cannot modify Leave");
         api.InputParameters["Request"] = "{\"command\":\"delete\"}";
         child.PrimaryEntityName = "a365_leave"; child.MessageName = "Delete"; Check(child, true, "validated source deletion");
@@ -103,10 +103,11 @@ public static class ProtectLeaveWritesTests
         child.PrimaryEntityName = "a365_leavecoordination";
         foreach (string message in new[] { "Create", "CreateMultiple", "Update", "UpdateMultiple" }) { child.MessageName = message; Check(child, true, "reset coordinates employee writes"); }
         child.PrimaryEntityName = "a365_leave"; child.MessageName = "Create"; Check(child, false, "reset cannot create Leave records");
-        child.PrimaryEntityName = "a365_leavecashconversion"; Check(child, false, "reset cannot modify conversions");
+        child.PrimaryEntityName = "a365_leavecashconversion"; child.MessageName = "Update"; Check(child, true, "reset can restore unpaid conversion limits");
+        child.MessageName = "Delete"; Check(child, false, "reset cannot delete conversion records");
         api.InputParameters["Request"] = "{\"command\":\"resetPreview\"}";
         child.PrimaryEntityName = "a365_leavecredittransaction"; Check(child, false, "reset preview cannot append credits");
-        return 54;
+        return 55;
     }
 
     public static void VerifyLegacyMarkerDependency()

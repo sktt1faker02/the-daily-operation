@@ -89,6 +89,18 @@ describe("Transactional Leave client boundary", () => {
     expect(readRequest(0)).toMatchObject({ command: "preview", employeeId, startDate: values.startDate })
     expect(readRequest(0)).not.toHaveProperty("note")
   })
+  it("sends half-day VL to the server and blocks servers that still count a full day", async () => {
+    const halfDay = { ...values, halfDay: true, leaveType: "749910000", endDate: values.startDate }
+    const preview = { allocationVersion: 1, periodStart: "2026-04-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, days: 0.5, benefit: 749910000, pool: "VL", paidDays: 0.5, unpaidDays: 0, allocation: [{ date: values.startDate, paidDays: 0.5, unpaidDays: 0 }] }
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success(preview))
+    expect(await postingService.preview(halfDay)).toEqual(preview)
+    expect(readRequest(0)).toMatchObject({ halfDay: true, leaveType: 749910000 })
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ ...preview, days: 1 }))
+    await expect(postingService.preview(halfDay)).rejects.toMatchObject({ uncertain: false, message: expect.stringContaining("half-day VL") })
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockRejectedValue(new Error("Network timeout"))
+    await expect(postingService.submit(halfDay, operationId, { paidDays: 0.5, unpaidDays: 0 })).rejects.toMatchObject({ uncertain: true })
+    expect(readRequest(2)).toMatchObject({ halfDay: true, expectedPaidDays: 0.5, expectedUnpaidDays: 0 })
+  })
   it("blocks older servers and incomplete split previews", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ days: 5, benefit: 749910001 }))
     await expect(postingService.preview(values)).rejects.toMatchObject({ uncertain: false, message: expect.stringContaining("server update") })

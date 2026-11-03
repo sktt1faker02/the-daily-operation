@@ -7,3 +7,6 @@ $conversionAssembly = Join-Path $conversionRoot 'plugins/A365.Leave.Plugins/bin/
 Add-Type -Path (Join-Path $conversionRoot 'plugins/A365.Leave.Plugins/ConversionCommands.Tests.cs') -ReferencedAssemblies @($conversionSdk, $conversionAssembly, 'System.Runtime.Serialization', 'System.Web.Extensions')
 $conversionChecks = [ConversionCommandsTests]::Run()
 Write-Host "Passed $conversionChecks synthetic conversion server checks. No Dataverse calls or financial records."
+
+$syncChecks = [ConversionCommandsTests]::RunBalanceSync()
+Write-Host "Passed $syncChecks conversion balance-link checks. No live data writes."

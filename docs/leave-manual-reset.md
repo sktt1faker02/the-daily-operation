@@ -1,5 +1,12 @@
 # Manual leave balance reset
 
+**Latest follow-up, 2026-11-03:** reset also restores matching unpaid
+current-year conversion limits to 10 Available VL / 5 conversion days, using saved
+rates in the same transaction. Paid conversions stay unchanged. This follow-up is
+deployed in plugin 1.0.3.6 and the matching Dev client. See
+[conversion balance connection](leave-conversion-balance-sync.md). The 1.0.3.5
+deployment evidence below records the earlier live reset release.
+
 Owner confirmed 2026-11-03: add Reset leave balances to Leave Management for
 Payroll Admin. Set current-year remaining balances to 10 VL / 5 SL for employees
 whose employment status is Active, even when leave has already been used. This

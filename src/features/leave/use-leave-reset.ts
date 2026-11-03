@@ -11,7 +11,7 @@ export function useLeaveReset() {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["leave", "balances"] }),
         client.invalidateQueries({ queryKey: ["leave", "posting-preview"] }),
-        client.invalidateQueries({ queryKey: ["leave", "conversion-employees"] }),
+        client.invalidateQueries({ queryKey: ["leave", "conversion", "rows"] }),
       ])
     },
   })

@@ -1,5 +1,13 @@
 # The Daily Operation — Leave Management Data Model
 
+**Deployed 2026-11-03 integration:** [VL conversion balance connection](leave-conversion-balance-sync.md)
+reuses a365_availablevl and a365_days as chosen ceilings while unpaid, deriving
+payable values from the recorded VL ledger. Mark as Paid freezes the effective
+values in those same fields. No schema/role/generated-source changes or migrations.
+Plugin 1.0.3.6 and the client are deployed to Dev; [release evidence](leave-conversion-balance-deployment.json)
+verifies live equality of the requested VL balances. The 1.0.3.5 reset release
+below is earlier deployment history.
+
 **2026-11-03 local enhancement:** [manual balance reset](leave-manual-reset.md)
 uses the existing credit ledger, coordination table and Leave API. No schema or
 role changes. Active employees receive signed Grant/Deduction adjustments, not

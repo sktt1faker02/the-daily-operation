@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryRouter, RouterProvider } from "react-router-dom"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import LeaveConversionPage from "./leave-conversion"
 import { conversionService } from "@/features/leave/conversion-service"
@@ -22,8 +22,7 @@ beforeAll(() => {
   })
 })
 afterAll(() => vi.unstubAllGlobals())
-function renderPage(path = "/leave-conversion/2026") {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+function renderPage(path = "/leave-conversion/2026", client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })) {
   const router = createMemoryRouter([{ path: "/leave-conversion", element: <LeaveConversionPage /> }, { path: "/leave-conversion/:year", element: <LeaveConversionPage /> }], { initialEntries: [path] })
   render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>)
   return router
@@ -202,4 +201,35 @@ describe("Leave Conversion", () => {
     expect(conversionService.rows).not.toHaveBeenCalled()
     expect(conversionService.years).not.toHaveBeenCalled()
   })
+})
+
+
+it("edits saved manual limits while showing a lower live-VL payout", async () => {
+  const linked = { ...row, availableVL: 4, days: 4, amount: 9090.92, limitAvailableVL: 10, limitDays: 5, liveVL: 4 }
+  vi.mocked(conversionService.rows).mockResolvedValue({ ...page, rows: [linked] })
+  renderPage()
+  const user = await edit()
+  expect(screen.getByRole("spinbutton", { name: "Available VL for Test Employee" })).toHaveValue(10)
+  expect(screen.getByRole("spinbutton", { name: "VL to convert for Test Employee" })).toHaveValue(5)
+  expect(screen.getByText(/Payable now: 4.00 days/)).toBeVisible()
+  const days = screen.getByRole("spinbutton", { name: "VL to convert for Test Employee" })
+  await user.clear(days); await user.type(days, "3")
+  expect(screen.getByText(/Payable now: 3.00 days/)).toBeVisible()
+  await user.click(screen.getByRole("button", { name: "Done" }))
+  expect(screen.getByText("6,818.19", { exact: false })).toBeVisible()
+  await user.click(screen.getByRole("button", { name: "Save" }))
+  await waitFor(() => expect(conversionService.save).toHaveBeenCalledWith(transaction, [{ id: row.id, employeeId: row.employeeId, availableVL: 10, days: 3 }]))
+})
+it("keeps unsaved limits but blocks a stale save after reset changes the year", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  renderPage("/leave-conversion/2026", client)
+  const user = await edit()
+  const days = screen.getByRole("spinbutton", { name: "VL to convert for Test Employee" })
+  await user.clear(days); await user.type(days, "3"); await user.click(screen.getByRole("button", { name: "Done" }))
+  vi.mocked(conversionService.rows).mockResolvedValue({ ...page, transaction: { ...transaction, version: "2" } })
+  await act(async () => { await client.invalidateQueries({ queryKey: ["leave", "conversion", "rows", 2026] }) })
+  await user.click(screen.getByRole("button", { name: "Save" }))
+  expect(await screen.findByRole("alert")).toHaveTextContent("changed while you were editing")
+  expect(screen.getByText("Unsaved changes")).toBeVisible()
+  expect(conversionService.save).not.toHaveBeenCalled()
 })

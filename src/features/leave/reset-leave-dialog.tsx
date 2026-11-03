@@ -33,6 +33,7 @@ export function ResetLeaveDialog({ onClose }: { onClose: () => void }) {
         <DialogTitle>Reset active employees' leave balances?</DialogTitle>
         <DialogDescription>This sets remaining balances to 10 VL and 5 SL, even when leave has already been used. Existing leave records and credit history are retained.</DialogDescription>
       </DialogHeader>
+      <p className="text-sm">Unpaid leave conversions for this year also return to 10 Available VL and 5 conversion days. Paid conversions stay unchanged.</p>
       {!uncertain && preview.isFetching && <p role="status" className="text-sm text-muted-foreground">Checking active employees and credit history...</p>}
       {!uncertain && preview.isError && <div role="alert" className="space-y-2 text-sm"><p>{preview.error instanceof LeavePostingError ? preview.error.message : "Unable to check active employees. No balances were reset."}</p><Button variant="outline" onClick={() => void preview.refetch()}>Retry preview</Button></div>}
       {details && <div className="space-y-2 text-sm"><p><strong>{details.employeeCount} active employees</strong> in {details.year}. Employee and list filters do not restrict this reset.</p><p>VL: <strong>10 days</strong> · SL: <strong>5 days</strong></p>{details.employeeCount === 0 && <p>No active employees need resetting.</p>}<p className="text-muted-foreground">Payroll and previously recorded leave allocations will not be recalculated. The annual reset starts January 1 from 2027.</p></div>}

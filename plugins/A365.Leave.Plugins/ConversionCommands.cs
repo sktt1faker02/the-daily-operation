@@ -16,7 +16,7 @@ namespace A365.Leave.Plugins
         public decimal? availableVL { get; set; }
         public decimal? days { get; set; }
     }
-    public static class ConversionCommands
+    public static partial class ConversionCommands
     {
         private const string Header = "a365_leaveconversionyear";
         private const string Detail = "a365_leavecashconversion";
@@ -25,15 +25,15 @@ namespace A365.Leave.Plugins
         private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
         public sealed class Cursor { public int page { get; set; } public string cookie { get; set; } }
 
-        public static object Execute(Request request, IPluginExecutionContext context, IOrganizationService caller)
+        public static object Execute(Request request, IPluginExecutionContext context, IOrganizationService caller, IOrganizationService system)
         {
             // LeaveCommand checks actual direct/team Payroll Admin membership
             // before dispatch. Business reads and writes retain caller privileges.
             if (request.command == "conversionYears") return Years(caller);
             if (request.command == "conversionCreate") return Create(request, context, caller);
             if (request.command == "conversionRows") return Rows(request, caller);
-            if (request.command == "conversionSave") return Save(request, context, caller);
-            if (request.command == "conversionMarkPaid") return MarkPaid(request, caller);
+            if (request.command == "conversionSave") return Save(request, context, caller, system);
+            if (request.command == "conversionMarkPaid") return MarkPaid(request, caller, system);
             Rules.Fail("Unknown conversion command."); return null;
         }
         private static QueryExpression Query(string table, params string[] columns) { return new QueryExpression(table) { ColumnSet = new ColumnSet(columns) }; }
@@ -70,15 +70,32 @@ namespace A365.Leave.Plugins
         }
         // Annual headers use their existing inactive state as the paid lock.
         private static bool IsPaid(Entity header) { var state = header.GetAttributeValue<OptionSetValue>("statecode"); return state != null && state.Value == 1; }
-        private static object MarkPaid(Request request, IOrganizationService caller)
+        private static object MarkPaid(Request request, IOrganizationService caller, IOrganizationService system)
         {
             var header = ForYear(caller, request.year);
             if (header.Id.ToString("D") != request.operationId || String.IsNullOrEmpty(request.version)) Rules.Fail("The conversion transaction could not be verified.");
             if (IsPaid(header)) return Year(header);
+            var detailQuery = Query(Detail, DetailColumns);
+            detailQuery.Criteria.AddCondition("a365_conversionyear", ConditionOperator.Equal, header.Id);
+            var details = All(caller, detailQuery);
+            foreach (var employee in details.Select(row => row.GetAttributeValue<EntityReference>("a365_employee").Id).Distinct().OrderBy(id => id)) LeaveCommand.Lock(system, employee);
+            header = ForYear(caller, request.year);
+            if (IsPaid(header)) return Year(header);
             if (header.GetAttributeValue<long>("versionnumber").ToString(CultureInfo.InvariantCulture) != request.version) Rules.Fail("This transaction changed in another session. Reload the year before marking it as paid.");
+            // Capture all current rows after employee locks and reject a changed roster.
+            details = All(caller, detailQuery);
+            var balances = Balances(caller, request.year, details.Select(row => row.GetAttributeValue<EntityReference>("a365_employee").Id));
             var paid = new Entity(Header, header.Id) { RowVersion = request.version };
             paid["statecode"] = new OptionSetValue(1); paid["statuscode"] = new OptionSetValue(2);
             caller.Execute(new UpdateRequest { Target = paid, ConcurrencyBehavior = ConcurrencyBehavior.IfRowVersionMatches });
+            foreach (var row in details)
+            {
+                if (row.GetAttributeValue<OptionSetValue>("a365_conversionstatus").Value != 749910000) continue;
+                var values = Effective(row.GetAttributeValue<decimal>("a365_availablevl"), row.GetAttributeValue<decimal>("a365_days"), row.GetAttributeValue<Money>("a365_dailyrateused").Value, balances[row.GetAttributeValue<EntityReference>("a365_employee").Id]);
+                var frozen = new Entity(Detail, row.Id);
+                frozen["a365_availablevl"] = values.AvailableVL; frozen["a365_days"] = values.Days; frozen["a365_amount"] = new Money(values.Amount);
+                caller.Update(frozen);
+            }
             return Year(caller.Retrieve(Header, header.Id, new ColumnSet(HeaderColumns)));
         }
         private static Entity Find(IOrganizationService caller, string table, string field, object value, string[] columns)
@@ -164,21 +181,30 @@ namespace A365.Leave.Plugins
                 var names = Query("a365_employee", "a365_name", "a365_employeenumber"); names.Criteria.AddCondition("a365_employeeid", ConditionOperator.In, employeeIds.Cast<object>().ToArray());
                 employees = caller.RetrieveMultiple(names).Entities.ToDictionary(e => e.Id);
             }
+            var balances = IsPaid(header) ? null : Balances(caller, request.year, employeeIds);
             var rows = page.Entities.Select(r => {
                 var employee = r.GetAttributeValue<EntityReference>("a365_employee"); Entity name;
                 if (employee == null || !employees.TryGetValue(employee.Id, out name)) { Rules.Fail("The conversion employee could not be verified."); return null; }
-                return new { id = r.Id.ToString("D"), employeeId = employee.Id.ToString("D"), employeeName = name.GetAttributeValue<string>("a365_name"), employeeNumber = name.GetAttributeValue<string>("a365_employeenumber") ?? "", dailyRate = r.GetAttributeValue<Money>("a365_dailyrateused").Value, availableVL = r.GetAttributeValue<decimal>("a365_availablevl"), days = r.GetAttributeValue<decimal>("a365_days"), amount = r.GetAttributeValue<Money>("a365_amount").Value };
+                decimal limitVL = r.GetAttributeValue<decimal>("a365_availablevl"), limitDays = r.GetAttributeValue<decimal>("a365_days"), rate = r.GetAttributeValue<Money>("a365_dailyrateused").Value;
+                bool linked = !IsPaid(header) && r.GetAttributeValue<OptionSetValue>("a365_conversionstatus").Value == 749910000;
+                var values = linked ? Effective(limitVL, limitDays, rate, balances[employee.Id]) : new ConversionValues { AvailableVL = limitVL, Days = limitDays, Amount = r.GetAttributeValue<Money>("a365_amount").Value };
+                return new { id = r.Id.ToString("D"), employeeId = employee.Id.ToString("D"), employeeName = name.GetAttributeValue<string>("a365_name"), employeeNumber = name.GetAttributeValue<string>("a365_employeenumber") ?? "", dailyRate = rate, availableVL = values.AvailableVL, days = values.Days, amount = values.Amount, limitAvailableVL = limitVL, limitDays = limitDays, liveVL = linked ? (decimal?)Math.Max(0, balances[employee.Id]) : null };
             }).ToArray();
             var result = new Dictionary<string, object> { { "transaction", Year(header) }, { "rows", rows } };
             if (page.MoreRecords) { if (String.IsNullOrEmpty(page.PagingCookie)) Rules.Fail("The next conversion page could not be verified."); result["next"] = Json.Serialize(new Cursor { page = cursor.page + 1, cookie = page.PagingCookie }); }
             return result;
         }
-        private static object Save(Request request, IPluginExecutionContext context, IOrganizationService caller)
+        private static object Save(Request request, IPluginExecutionContext context, IOrganizationService caller, IOrganizationService system)
         {
             var header = ForYear(caller, request.year);
             if (IsPaid(header)) Rules.Fail("This leave conversion is paid and locked. Its values cannot be changed.");
             if (header.Id.ToString("D") != request.operationId || String.IsNullOrEmpty(request.version)) Rules.Fail("The conversion transaction could not be verified.");
             if (request.changes == null || request.changes.Length == 0 || request.changes.Length > 5000) Rules.Fail("Submit between 1 and 5000 changed conversion rows.");
+            var lockIds = new List<Guid>();
+            foreach (var change in request.changes) { Guid id; if (change == null || !Guid.TryParse(change.employeeId, out id)) { Rules.Fail("Select a valid conversion employee."); return null; } lockIds.Add(id); }
+            foreach (var id in lockIds.Distinct().OrderBy(id => id)) LeaveCommand.Lock(system, id);
+            header = ForYear(caller, request.year);
+            if (IsPaid(header)) Rules.Fail("This leave conversion is paid and locked. Its values cannot be changed.");
             var changes = new List<Entity>(); var employees = new HashSet<Guid>(); var ids = new HashSet<Guid>();
             foreach (var change in request.changes)
             {

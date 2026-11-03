@@ -107,12 +107,13 @@ export const postingService = {
   async preview(values: LeaveEntryValues): Promise<PostingPreview> {
     const complete = Boolean(values.startDate && values.endDate && values.leaveType && values.benefit)
     const response = await command({ command: "preview", employeeId: values.employee?.a365_employeeid,
-      ...(complete ? { startDate: values.startDate, endDate: values.endDate, leaveType: Number(values.leaveType), benefit: Number(values.benefit) } : {}),
+      ...(complete ? { startDate: values.startDate, endDate: values.endDate, halfDay: Boolean(values.halfDay), leaveType: Number(values.leaveType), benefit: Number(values.benefit) } : {}),
     })
     if (response.allocationVersion !== 1) throw new LeavePostingError("The Leave server update for paid/unpaid allocation is required. Contact your administrator.", false)
     if (["VL", "SL", "pendingVL", "pendingSL"].some(key => typeof response[key] !== "number" || !Number.isFinite(response[key])) || typeof response.periodStart !== "string" || typeof response.periodEnd !== "string" || (response.days !== null && typeof response.days !== "number")) {
       throw new LeavePostingError("Complete period credits could not be verified. Refresh the preview.", false)
     }
+    if (values.halfDay && complete && response.days !== 0.5) throw new LeavePostingError("The Leave server update for half-day VL is required. Contact your administrator.", false)
     if (response.days !== null) {
       try {
         leaveAllocation({ a365_days: Number(response.days), a365_benefit: Number(response.benefit), a365_startdate: values.startDate, a365_enddate: values.endDate,
@@ -126,7 +127,7 @@ export const postingService = {
   async submit(values: LeaveEntryValues, operationId: string, reviewed: ReviewedAllocation, onCommitted?: () => void) {
     const record = source(await command({ command: "issue", allocationVersion: 1, operationId: requireGuid(operationId), employeeId: values.employee?.a365_employeeid,
       expectedPaidDays: reviewed.paidDays, expectedUnpaidDays: reviewed.unpaidDays,
-      leaveType: Number(values.leaveType), benefit: Number(values.benefit), startDate: values.startDate, endDate: values.endDate, note: values.note,
+      halfDay: Boolean(values.halfDay), leaveType: Number(values.leaveType), benefit: Number(values.benefit), startDate: values.startDate, endDate: values.endDate, note: values.note,
     }))
     if (record.a365_leaveid.toLowerCase() !== operationId.toLowerCase()) throw new LeavePostingError("The operation identity could not be verified. Retry the same request.", true)
     onCommitted?.()

@@ -7,6 +7,12 @@ const valid = {
 }
 
 describe("Leave entry validation", () => {
+  it("limits half-day leave to VL on a single date", () => {
+    const halfDay = { ...valid, halfDay: true, leaveType: "749910000", endDate: valid.startDate }
+    expect(validateLeaveEntry(halfDay)).toEqual({})
+    expect(validateLeaveEntry({ ...halfDay, leaveType: "749910001" }).leaveType).toBeTruthy()
+    expect(validateLeaveEntry({ ...halfDay, endDate: "2026-10-23" }).endDate).toContain("same date")
+  })
   it("requires a real employee, known numeric choices and both dates", () => {
     expect(Object.keys(validateLeaveEntry(emptyLeaveEntry()))).toEqual(["employee", "leaveType", "benefit", "startDate", "endDate"])
     expect(validateLeaveEntry(valid)).toEqual({})
@@ -21,7 +27,7 @@ describe("Leave entry validation", () => {
     expect(validateLeaveEntry({ ...valid, endDate: valid.startDate })).toEqual({})
     expect(validateLeaveEntry({ ...valid, note: "x".repeat(2001) }).note).toBeTruthy()
   })
-  it("maps Emergency to VL and never deducts credits for Unpaid", () => {
+  it("maps General Leave to VL and never deducts credits for Unpaid", () => {
     expect(leaveCreditPool("749910002")).toBe("VL")
     expect(leaveCreditPool("749910001")).toBe("SL")
     expect(leaveCreditPool("")).toBeNull()

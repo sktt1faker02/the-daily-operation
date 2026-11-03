@@ -1,7 +1,9 @@
 import type { A365_leaves } from "@/generated/models/A365_leavesModel"
 import type { A365_leavecashconversions } from "@/generated/models/A365_leavecashconversionsModel"
 import type { A365_leavecredittransactions } from "@/generated/models/A365_leavecredittransactionsModel"
-import { A365_leavesa365_benefit } from "@/generated/models/A365_leavesModel"
+import { A365_leavesa365_benefit, A365_leavesa365_leavetype } from "@/generated/models/A365_leavesModel"
+
+export const leaveTypeLabels = { ...A365_leavesa365_leavetype, 749910002: "General Leave" }
 
 export const requestedBenefitLabels = { 749910000: A365_leavesa365_benefit[749910000], 749910001: A365_leavesa365_benefit[749910001] }
 export const benefitLabels: Readonly<Record<number, string>> = A365_leavesa365_benefit
@@ -13,7 +15,6 @@ export interface LeaveAllocationFields {
 
 export {
   A365_leavesa365_leavestatus as leaveStatusLabels,
-  A365_leavesa365_leavetype as leaveTypeLabels,
   A365_leavesa365_notificationstatus as notificationStatusLabels,
 } from "@/generated/models/A365_leavesModel"
 export { A365_leavecashconversionsa365_conversionstatus as conversionStatusLabels } from "@/generated/models/A365_leavecashconversionsModel"

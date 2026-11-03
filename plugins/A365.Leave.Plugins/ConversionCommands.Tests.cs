@@ -20,10 +20,12 @@ public static class ConversionCommandsTests
         public readonly List<string> Writes = new List<string>();
         public RemoteExecutionContext Context;
         public bool Admin = true, Conflict, FailDetail;
+        private readonly Dictionary<Guid, Entity> Coordination = new Dictionary<Guid, Entity>();
         private long version = 1;
         public object GetService(Type type) { return type == typeof(IPluginExecutionContext) ? (object)Context : type == typeof(IOrganizationServiceFactory) ? this : null; }
         public IOrganizationService CreateOrganizationService(Guid? id) { return this; }
         public Guid Create(Entity row) {
+            if (row.LogicalName == "a365_leavecoordination") { Coordination[row.Id] = Copy(row); return row.Id; }
             if (row.LogicalName != Header && row.LogicalName != Detail) throw new Exception("Unexpected financial write: " + row.LogicalName);
             if (FailDetail && row.LogicalName == Detail) throw new InvalidPluginExecutionException("Synthetic database failure");
             var result = Copy(row); if (result.Id == Guid.Empty) result.Id = Guid.NewGuid();
@@ -32,6 +34,7 @@ public static class ConversionCommandsTests
             result["versionnumber"] = version++; Store[result.Id] = result; Writes.Add("Create:" + row.LogicalName); return result.Id;
         }
         public void Update(Entity row) {
+            if (row.LogicalName == "a365_leavecoordination") { foreach (var a in row.Attributes) Coordination[row.Id][a.Key] = a.Value; return; }
             if (row.LogicalName != Header && row.LogicalName != Detail) throw new Exception("Unexpected write");
             var result = Store[row.Id]; foreach (var a in row.Attributes) result[a.Key] = a.Value;
             result["versionnumber"] = version++; Writes.Add("Update:" + row.LogicalName);
@@ -42,12 +45,12 @@ public static class ConversionCommandsTests
             if (Conflict || update.Target.RowVersion != Store[update.Target.Id]["versionnumber"].ToString()) throw new InvalidPluginExecutionException("Concurrent transaction changed");
             Update(update.Target); return new UpdateResponse();
         }
-        public Entity Retrieve(string table, Guid id, ColumnSet columns) { if (!Store.ContainsKey(id) || Store[id].LogicalName != table) throw new InvalidPluginExecutionException("Unavailable"); return Copy(Store[id]); }
+        public Entity Retrieve(string table, Guid id, ColumnSet columns) { if (table == "a365_leavecoordination" && Coordination.ContainsKey(id)) return Copy(Coordination[id]); if (!Store.ContainsKey(id) || Store[id].LogicalName != table) throw new InvalidPluginExecutionException("Unavailable"); return Copy(Store[id]); }
         private static object Scalar(object value) { if (value is EntityReference) return ((EntityReference)value).Id; if (value is OptionSetValue) return ((OptionSetValue)value).Value; return value; }
         public EntityCollection RetrieveMultiple(QueryBase input) {
             var query = (QueryExpression)input;
             if (query.EntityName == "role") { var roles = new EntityCollection(); if (Admin) roles.Entities.Add(new Entity("role", Guid.NewGuid())); return roles; }
-            IEnumerable<Entity> data = Store.Values.Where(r => r.LogicalName == query.EntityName);
+            IEnumerable<Entity> data = query.EntityName == "a365_leavecoordination" ? Coordination.Values : Store.Values.Where(r => r.LogicalName == query.EntityName);
             foreach (var condition in query.Criteria.Conditions) {
                 var field = condition.AttributeName;
                 data = data.Where(row => {
@@ -159,13 +162,65 @@ public static class ConversionCommandsTests
         payment.Conflict = false;
         var paidResult = Run(payment, new { command = "conversionMarkPaid", year = year, operationId = paymentId, version = paymentVersion });
         Check((bool)paidResult["paid"] && ((OptionSetValue)paymentHeader["statecode"]).Value == 1 && ((OptionSetValue)paymentHeader["statuscode"]).Value == 2, "existing inactive state records paid lock");
-        Check(payment.Writes.Count == paymentWrites + 1 && payment.Writes.Last() == "Update:" + Header, "mark paid updates only one header");
+        Check(payment.Writes.Count == paymentWrites + 4 && payment.Writes.Count(w => w == "Update:" + Detail) == 3, "mark paid freezes three effective employee snapshots and header");
         Run(payment, new { command = "conversionMarkPaid", year = year, operationId = paymentId, version = paymentVersion });
-        Check(payment.Writes.Count == paymentWrites + 1, "uncertain payment retry is a no-op");
+        Check(payment.Writes.Count == paymentWrites + 4, "uncertain payment retry is a no-op");
         Reject(payment, new { command = "conversionSave", year = year, operationId = paymentId, version = paymentHeader["versionnumber"].ToString(), changes = new[] { change } });
-        Check(payment.Writes.Count == paymentWrites + 1, "paid year rejects all saves before writes");
+        Check(payment.Writes.Count == paymentWrites + 4, "paid year rejects all saves before writes");
         var paidPage = Run(payment, new { command = "conversionRows", year = year });
         Check((bool)((Dictionary<string, object>)paidPage["transaction"])["paid"], "reopening retains paid status");
+        return checks;
+    }
+
+    private static void Credit(Fake fake, Guid employee, int year, decimal days, int pool)
+    {
+        var row = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        row["a365_employee"] = new EntityReference("a365_employee", employee);
+        row["a365_year"] = year; row["a365_creditpool"] = new OptionSetValue(pool); row["a365_days"] = days;
+        fake.Store[row.Id] = row;
+    }
+    public static int RunBalanceSync()
+    {
+        checks = 0; var fake = Seed(); int year = DateTime.UtcNow.AddHours(8).Year;
+        string operation = Guid.NewGuid().ToString("D");
+        var created = Run(fake, new { command = "conversionCreate", operationId = operation, year = year });
+        var rows = fake.Store.Values.Where(r => r.LogicalName == Detail).ToArray();
+        var row = rows[0]; Guid employee = row.GetAttributeValue<EntityReference>("a365_employee").Id;
+        Credit(fake, employee, year, 10m, 749910000);
+        Credit(fake, employee, year, -1m, 749910000);
+        Credit(fake, employee, year, -5m, 749910001);
+        Credit(fake, employee, year - 1, 100m, 749910000);
+        int writes = fake.Writes.Count;
+        var page = Run(fake, new { command = "conversionRows", year = year });
+        var values = ((System.Collections.IEnumerable)page["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == employee.ToString("D"));
+        Check(Convert.ToDecimal(values["availableVL"]) == 9m && Convert.ToDecimal(values["days"]) == 5m, "9 VL still allows up to 5 conversion days");
+        Check(fake.Writes.Count == writes, "Reading live conversion balances is read-only");
+        Credit(fake, employee, year, -5m, 749910000);
+        page = Run(fake, new { command = "conversionRows", year = year });
+        values = ((System.Collections.IEnumerable)page["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == employee.ToString("D"));
+        Check(Convert.ToDecimal(values["availableVL"]) == 4m && Convert.ToDecimal(values["days"]) == 4m, "4 VL clamps conversion to 4 and ignores SL/other years");
+        Check(Convert.ToDecimal(values["amount"]) == 9090.92m && (decimal)row["a365_days"] == 5m, "Effective amount uses saved rate without overwriting chosen ceiling");
+        var manual = new { id = row.Id.ToString("D"), employeeId = employee.ToString("D"), availableVL = 8m, days = 3m };
+        var saved = Run(fake, new { command = "conversionSave", operationId = operation, year = year, version = created["version"], changes = new[] { manual } });
+        page = Run(fake, new { command = "conversionRows", year = year });
+        values = ((System.Collections.IEnumerable)page["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == employee.ToString("D"));
+        Check(Convert.ToDecimal(values["days"]) == 3m && Convert.ToDecimal(values["limitDays"]) == 3m, "Manual 3-day ceiling stays fixed at VL 4");
+        Credit(fake, employee, year, -2m, 749910000);
+        page = Run(fake, new { command = "conversionRows", year = year });
+        values = ((System.Collections.IEnumerable)page["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == employee.ToString("D"));
+        Check(Convert.ToDecimal(values["days"]) == 2m && Convert.ToDecimal(values["limitDays"]) == 3m, "VL 2 caps payable days without losing manual ceiling");
+        Credit(fake, employee, year, 2m, 749910000);
+        page = Run(fake, new { command = "conversionRows", year = year });
+        values = ((System.Collections.IEnumerable)page["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == employee.ToString("D"));
+        Check(Convert.ToDecimal(values["days"]) == 3m, "Restoration recovers capacity up to the chosen limit");
+        var paid = Run(fake, new { command = "conversionMarkPaid", operationId = operation, year = year, version = saved["version"] });
+        Check(Convert.ToDecimal(row["a365_days"]) == 3m && Convert.ToDecimal(row["a365_availablevl"]) == 4m, "Mark paid freezes effective balances");
+        Credit(fake, employee, year, -4m, 749910000);
+        page = Run(fake, new { command = "conversionRows", year = year });
+        values = ((System.Collections.IEnumerable)page["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == employee.ToString("D"));
+        Check(Convert.ToDecimal(values["availableVL"]) == 4m && Convert.ToDecimal(values["days"]) == 3m && values["liveVL"] == null, "Paid snapshot ignores subsequent leave deductions");
+        Check((bool)paid["paid"], "Paid lock still applies");
+        Check(ConversionCommands.Effective(10m, 5m, 100m, -1m).Days == 0m, "Negative recorded VL cannot produce a negative payout");
         return checks;
     }
 }

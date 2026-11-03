@@ -1,0 +1,22 @@
+{
+    "IsInTransaction":  true,
+    "OrdinaryAccountSecurity":  "Not exercised",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "PreviewPaidDays":  0.5,
+    "PreviewDays":  0.5,
+    "AssemblyVersion":  "1.0.3.7",
+    "BusinessDataWrites":  "None",
+    "VerifiedAt":  "2026-11-03T12:15:32.0700850Z",
+    "Roles":  "Unchanged",
+    "PreviewUnpaidDays":  0.0,
+    "Emails":  "None",
+    "LiveIssuance":  "Reserved for owner testing",
+    "DeployedHashMatchesTested":  true,
+    "HalfDayPreview":  "Passed",
+    "SHA256":  "F0B5E8DF8BC2638ACB58121ECC65A8AF1BA5B8126B3D1B29CA4D38BCA0C57F35",
+    "Schema":  "Unchanged",
+    "PreviewPool":  "VL",
+    "AppPublished":  true,
+    "AppId":  "d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f",
+    "AppPlayUrl":  "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f"
+}

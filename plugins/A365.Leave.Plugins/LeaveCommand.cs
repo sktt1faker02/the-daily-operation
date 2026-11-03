@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.5")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.7")]
 
 namespace A365.Leave.Plugins
 {
@@ -16,6 +16,7 @@ namespace A365.Leave.Plugins
         public string employeeId { get; set; }
         public string operationId { get; set; }
         public int leaveType { get; set; }
+        public bool halfDay { get; set; }
         public int benefit { get; set; }
         public int allocationVersion { get; set; }
         public decimal? expectedPaidDays { get; set; }
@@ -80,8 +81,9 @@ namespace A365.Leave.Plugins
                 ? JanuaryResetEffective.AddDays(-1) : end;
         }
         public static decimal Accrual(int number) { return Math.Round(10m * number / 12m, 2, MidpointRounding.AwayFromZero) - Math.Round(10m * (number - 1) / 12m, 2, MidpointRounding.AwayFromZero); }
-        public static decimal Days(DateTime start, DateTime end, Policy policy)
+        public static decimal Days(DateTime start, DateTime end, Policy policy, bool halfDay = false)
         {
+            if (halfDay && start != end) Rules.Fail("Half-day leave must start and end on the same date.");
             if (end < start) Fail("End Date cannot precede Start Date.");
             if (Period(start) != Period(end)) Fail("Split leave at the balance-period reset boundary.");
             var holidays = policy.holidays.ToDictionary(h => h.date, h => h.name);
@@ -94,16 +96,16 @@ namespace A365.Leave.Plugins
                 if (!Weekend(day) && !holidays.ContainsKey(Iso(day))) total++;
             }
             if (total <= 0) Fail("Select at least one workday.");
-            return total;
+            return halfDay ? 0.5m : total;
         }
         private static bool Weekend(DateTime day) { return day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday; }
         public static int Benefit(int requested, decimal balance, decimal days)
         {
             return requested != 749910000 || balance <= 0 ? 749910001 : balance >= days ? 749910000 : 749910002;
         }
-        public static LeaveAllocation Allocate(int requested, decimal balance, DateTime start, DateTime end, Policy policy)
+        public static LeaveAllocation Allocate(int requested, decimal balance, DateTime start, DateTime end, Policy policy, bool halfDay = false)
         {
-            Days(start, end, policy);
+            Days(start, end, policy, halfDay);
             if (requested != 749910000 && requested != 749910001) Fail("Select Paid or Unpaid.");
             if (balance != Math.Round(balance, 2)) Fail("The credit balance precision needs review.");
             decimal remaining = requested == 749910000 ? Math.Max(0, balance) : 0;
@@ -112,8 +114,9 @@ namespace A365.Leave.Plugins
             for (var day = start; day <= end; day = day.AddDays(1))
             {
                 if (Weekend(day) || holidays.Contains(Iso(day))) continue;
-                decimal paid = Math.Min(1, remaining);
-                allocated.Add(new AllocatedDay { date = Iso(day), paidDays = paid, unpaidDays = 1 - paid });
+                decimal portion = halfDay ? 0.5m : 1m;
+                decimal paid = Math.Min(portion, remaining);
+                allocated.Add(new AllocatedDay { date = Iso(day), paidDays = paid, unpaidDays = portion - paid });
                 remaining -= paid;
             }
             return new LeaveAllocation { version = 1, days = allocated.ToArray() };
@@ -151,7 +154,7 @@ namespace A365.Leave.Plugins
             RequireAdmin(system, context.InitiatingUserId);
             if (request.command == "conversionYears" || request.command == "conversionRows" || request.command == "conversionCreate" || request.command == "conversionSave" || request.command == "conversionMarkPaid")
             {
-                context.OutputParameters["Response"] = Json.Serialize(ConversionCommands.Execute(request, context, caller));
+                context.OutputParameters["Response"] = Json.Serialize(ConversionCommands.Execute(request, context, caller, system));
                 return;
             }
             object response;
@@ -218,7 +221,8 @@ namespace A365.Leave.Plugins
             var end = Rules.Day(request.endDate);
             if (Rules.Period(start) != period || Rules.Period(end) != period) Rules.Fail("Leave must be within the current balance period shown in the credit preview.");
             if (start < hired || end > ended) Rules.Fail("Leave dates must fall within the employee's employment dates.");
-            var days = Rules.Days(start, end, policy);
+            if (request.halfDay && request.leaveType != 749910000) Rules.Fail("Half-day leave uses VL.");
+            var days = Rules.Days(start, end, policy, request.halfDay);
             if (request.leaveType < 749910000 || request.leaveType > 749910002 || (request.benefit != 749910000 && request.benefit != 749910001)) Rules.Fail("Select a valid leave type and benefit.");
             if ((request.note ?? "").Length > 2000) Rules.Fail("Note must be 2,000 characters or fewer.");
             var overlap = new QueryExpression(Source) { ColumnSet = new ColumnSet("a365_leaveid"), TopCount = 1 };
@@ -228,7 +232,7 @@ namespace A365.Leave.Plugins
             overlap.Criteria.AddCondition("a365_enddate", ConditionOperator.OnOrAfter, start);
             if (caller.RetrieveMultiple(overlap).Entities.Count != 0) Rules.Fail("These dates overlap an Issued leave record.");
             int pool = request.leaveType == 749910001 ? 749910001 : 749910000;
-            var allocation = Rules.Allocate(request.benefit, pool == 749910000 ? vl : sl, start, end, policy);
+            var allocation = Rules.Allocate(request.benefit, pool == 749910000 ? vl : sl, start, end, policy, request.halfDay);
             int benefit = allocation.Benefit;
             if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL", allocationVersion = 1, paidDays = (decimal?)allocation.PaidDays, unpaidDays = (decimal?)allocation.UnpaidDays, allocation = allocation.days };
             if (request.expectedPaidDays != allocation.PaidDays || request.expectedUnpaidDays != allocation.UnpaidDays)
@@ -360,12 +364,12 @@ namespace A365.Leave.Plugins
         }
         private static void Match(Entity source, Request request, Guid employee)
         {
-            if (source.GetAttributeValue<EntityReference>("a365_employee").Id != employee || Choice(source, "a365_leavetype") != request.leaveType ||
+            if ((source.GetAttributeValue<decimal>("a365_days") == 0.5m) != request.halfDay || source.GetAttributeValue<EntityReference>("a365_employee").Id != employee || Choice(source, "a365_leavetype") != request.leaveType ||
                 source.GetAttributeValue<int>("a365_requestedbenefit") != request.benefit || Rules.Iso(source.GetAttributeValue<DateTime>("a365_startdate")) != request.startDate ||
                 Rules.Iso(source.GetAttributeValue<DateTime>("a365_enddate")) != request.endDate || (source.GetAttributeValue<string>("a365_note") ?? "") != (request.note ?? "")) Rules.Fail("This operation identity belongs to a different request. Review the existing leave instead of retrying changed values.");
         }
         private static int Choice(Entity row, string attribute) { var value = row.GetAttributeValue<OptionSetValue>(attribute); return value == null ? -1 : value.Value; }
-        private static void Lock(IOrganizationService service, Guid employee)
+        internal static void Lock(IOrganizationService service, Guid employee)
         {
             var record = Find(service, "a365_leavecoordination", "a365_leavecoordinationid", employee);
             var lockRow = new Entity("a365_leavecoordination", employee);
@@ -436,8 +440,9 @@ namespace A365.Leave.Plugins
                         {
                             bool coordination = context.PrimaryEntityName == "a365_leavecoordination" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple" || context.MessageName == "Update" || context.MessageName == "UpdateMultiple");
                             bool credit = context.PrimaryEntityName == "a365_leavecredittransaction" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple");
-                            if (coordination || credit) return;
-                            Rules.Fail("Leave reset can only create credit adjustments and coordinate employees.");
+                            bool conversionReset = conversion && (context.MessageName == "Update" || context.MessageName == "UpdateMultiple");
+                            if (coordination || credit || conversionReset) return;
+                            Rules.Fail("Leave reset can only append credit adjustments, coordinate employees and update unpaid conversion values.");
                         }
                         if (request != null && request.command == "delete")
                         {
@@ -451,7 +456,7 @@ namespace A365.Leave.Plugins
                             if (sourceDelete || ledgerWrite || coordination) return;
                             Rules.Fail("Leave deletion cannot modify these records.");
                         }
-                        if (request != null && (conversion ? request.command == "conversionCreate" || request.command == "conversionSave" || (request.command == "conversionMarkPaid" && context.PrimaryEntityName == "a365_leaveconversionyear" && (context.MessageName == "Update" || context.MessageName == "SetState")) : request.command == "issue" || request.command == "prepareEmail" || request.command == "completeEmail")) return;
+                        if (request != null && (conversion ? request.command == "conversionCreate" || request.command == "conversionSave" || (request.command == "conversionMarkPaid" && (context.MessageName == "Update" || context.MessageName == "UpdateMultiple" || (context.PrimaryEntityName == "a365_leaveconversionyear" && context.MessageName == "SetState"))) : request.command == "issue" || request.command == "prepareEmail" || request.command == "completeEmail" || ((request.command == "conversionSave" || request.command == "conversionMarkPaid") && context.PrimaryEntityName == "a365_leavecoordination" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple" || context.MessageName == "Update" || context.MessageName == "UpdateMultiple")))) return;
                         Rules.Fail("This Leave command cannot modify these records.");
                     }
             Rules.Fail("Use the validated Leave command. Direct changes to Leave or credit history are not permitted.");

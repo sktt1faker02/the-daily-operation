@@ -20,8 +20,13 @@ function transaction(value: unknown): ConversionYear {
 function employeeRow(value: unknown): ConversionRow {
   const row = object(value)
   if (["dailyRate", "availableVL", "days", "amount"].some(key => typeof row[key] !== "number" || !Number.isFinite(row[key]) || Number(row[key]) < 0) || typeof row.employeeName !== "string" || typeof row.employeeNumber !== "string") throw new Error("Unconfirmed conversion row")
+  if (["limitAvailableVL", "limitDays", "liveVL"].some(key => row[key] !== undefined && row[key] !== null && (typeof row[key] !== "number" || !Number.isFinite(row[key]) || Number(row[key]) < 0))) throw new Error("Unconfirmed linked conversion balance")
+  if (row.limitAvailableVL === null || row.limitDays === null) throw new Error("Unconfirmed manual conversion limits")
   return { id: requireGuid(String(row.id)), employeeId: requireGuid(String(row.employeeId)), employeeName: row.employeeName, employeeNumber: row.employeeNumber,
-    dailyRate: Number(row.dailyRate), availableVL: Number(row.availableVL), days: Number(row.days), amount: Number(row.amount) }
+    dailyRate: Number(row.dailyRate), availableVL: Number(row.availableVL), days: Number(row.days), amount: Number(row.amount),
+    ...(row.limitAvailableVL === undefined ? {} : { limitAvailableVL: Number(row.limitAvailableVL) }),
+    ...(row.limitDays === undefined ? {} : { limitDays: Number(row.limitDays) }),
+    ...(row.liveVL === undefined || row.liveVL === null ? {} : { liveVL: Number(row.liveVL) }) }
 }
 async function command(request: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {

@@ -88,6 +88,7 @@ namespace A365.Leave.Plugins
                 foreach (int pool in new[] { 749910000, 749910001 })
                     if (!groups.Any(group => group.Key.Year == today.Year && group.Key.Period == Rules.Iso(period) && group.Key.Pool == pool))
                         ResetAdjustment(caller, context, operation, item.Employee.Id, period, today.Year, pool, pool == 749910000 ? 10m : 5m, today);
+                ConversionCommands.ResetForEmployee(caller, item.Employee.Id, today.Year);
             }
             var response = new { resetVersion = 1, completed = true, operationId = operation.ToString("D"), year = today.Year, periodStart = Rules.Iso(period), employeeCount = snapshot.Count, VL = 10, SL = 5 };
             var complete = Movement(snapshot[0].Employee.Id, period, today.Year, 749910000, 749910001, 0, "RESET-" + operation.ToString("D") + "-COMPLETE", null);

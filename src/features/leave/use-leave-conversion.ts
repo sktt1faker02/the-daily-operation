@@ -14,8 +14,8 @@ export function useLeaveConversion(year: number) {
   const allowed = leaveAccessState(access) === "allowed"
   const client = useQueryClient()
   const [index, setIndex] = useState(0)
-  const [drafts, setDrafts] = useState<Record<string, { row: ConversionRow; values: ConversionDraft }>>({})
-  const [editing, setEditing] = useState<{ row: ConversionRow; values: ConversionDraft } | null>(null)
+  const [drafts, setDrafts] = useState<Record<string, { row: ConversionRow; values: ConversionDraft; version?: string }>>({})
+  const [editing, setEditing] = useState<{ row: ConversionRow; values: ConversionDraft; version?: string } | null>(null)
   const query = useInfiniteQuery({ queryKey: ["leave", "conversion", "rows", year], queryFn: ({ pageParam }) => conversionService.rows(year, pageParam), initialPageParam: undefined as string | undefined, getNextPageParam: page => page.next, retry: false, enabled: allowed, refetchOnWindowFocus: false })
   const transaction = query.data?.pages[0].transaction
   const paid = transaction?.paid === true
@@ -43,6 +43,7 @@ export function useLeaveConversion(year: number) {
       if (!allowed) throw new Error("Payroll Admin access is required.")
       if (paid || markPaid.isPending) throw new Error("This leave conversion is paid or being marked as paid and cannot be edited.")
       if (!transaction || editing) throw new Error("Finish editing the row before saving.")
+      if (Object.values(drafts).some(draft => draft.version !== transaction.version)) throw new Error("This conversion changed while you were editing. Review each edited row again before saving.")
       const changes = Object.values(drafts).map(({ row, values }) => {
         if (Object.keys(validateConversionDraft(values)).length) throw new Error("Correct the conversion values before saving.")
         return { id: row.id, employeeId: row.employeeId, availableVL: Number(values.availableVL), days: Number(values.days) }
@@ -59,15 +60,15 @@ export function useLeaveConversion(year: number) {
   })
   function edit(row: ConversionRow) {
     if (!allowed || paid || editing || save.isPending || markPaid.isPending) return
-    setEditing({ row, values: drafts[row.id]?.values ?? conversionDraft(row) })
+    setEditing({ row, values: drafts[row.id]?.values ?? conversionDraft(row), version: transaction?.version })
   }
   function done() {
     if (!editing || !allowed || Object.keys(validateConversionDraft(editing.values)).length) return
-    const { row, values } = editing
+    const { row, values, version } = editing
     setDrafts(previous => {
       const next = { ...previous }
-      if (Number(values.availableVL) === row.availableVL && Number(values.days) === row.days) delete next[row.id]
-      else next[row.id] = { row, values: { availableVL: Number(values.availableVL).toFixed(2), days: Number(values.days).toFixed(2) } }
+      if (Number(values.availableVL) === (row.limitAvailableVL ?? row.availableVL) && Number(values.days) === (row.limitDays ?? row.days)) delete next[row.id]
+      else next[row.id] = { row, values: { availableVL: Number(values.availableVL).toFixed(2), days: Number(values.days).toFixed(2) }, version }
       return next
     }); setEditing(null)
   }
