@@ -62,9 +62,10 @@ Assert-LeaveRule $leaveHoliday.days.Count 2
 Assert-LeaveRule $leaveHoliday.days[1].date '2026-12-28'
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Allocate(749910002, 4d, [datetime]'2026-10-26', [datetime]'2026-10-30', $leavePolicy) }
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Allocate(749910000, 1.234d, [datetime]'2026-10-26', [datetime]'2026-10-30', $leavePolicy) }
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2027-01-04').ToString('yyyy-MM-dd')) '2026-04-01'
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2026-04-01').ToString('yyyy-MM-dd')) '2027-01-04'
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2027-01-05').ToString('yyyy-MM-dd')) '2027-01-05'
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2028-01-04').ToString('yyyy-MM-dd')) '2027-01-05'
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2028-01-05').ToString('yyyy-MM-dd')) '2028-01-05'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2026-12-31').ToString('yyyy-MM-dd')) '2026-04-01'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2026-04-01').ToString('yyyy-MM-dd')) '2026-12-31'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2027-01-01').ToString('yyyy-MM-dd')) '2027-01-01'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2027-01-04').ToString('yyyy-MM-dd')) '2027-01-01'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2027-01-01').ToString('yyyy-MM-dd')) '2027-12-31'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2028-01-01').ToString('yyyy-MM-dd')) '2028-01-01'
 Write-Host "Passed $leaveTests server policy checks. No Dataverse calls or financial test records."

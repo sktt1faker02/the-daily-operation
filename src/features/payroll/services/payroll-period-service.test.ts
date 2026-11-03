@@ -20,6 +20,8 @@ import { employeeService } from "@/features/employees/employee-service"
 import { payrollPeriodService } from "./payroll-period-service"
 import { PayrollStatus } from "../period-status"
 import type { PayrollEntry, PayrollPeriod } from "../types"
+import { ledgerService } from "@/features/accounting/ledger/ledger-service"
+vi.mock("@/features/accounting/ledger/ledger-service", () => ({ ledgerService: { pay: vi.fn() } }))
 
 const period = (status: PayrollPeriod["a365_payrollstatus"]): PayrollPeriod => ({
   a365_payrollperiodid: "period-1",
@@ -111,24 +113,17 @@ describe("payrollPeriodService.createPeriod", () => {
 })
 
 describe("payrollPeriodService.transitionStatus", () => {
-  it("sets Paid and Locked stamps with Locked status in one Dataverse update", async () => {
+  it("delegates payment and ledger posting to one server transaction", async () => {
     vi.mocked(dataClient.retrieveRecordAsync).mockResolvedValue({
       success: true,
-      data: period(PayrollStatus.Ready),
+      data: { ...period(PayrollStatus.Ready), modifiedon: "2026-11-03T00:00:00Z" },
     } as never)
     vi.mocked(dataClient.updateRecordAsync).mockResolvedValue({ success: true } as never)
 
     await payrollPeriodService.transitionStatus("period-1", PayrollStatus.Locked, "user-1")
 
-    expect(dataClient.updateRecordAsync).toHaveBeenCalledTimes(1)
-    const payload = vi.mocked(dataClient.updateRecordAsync).mock.calls[0][2] as Record<string, unknown>
-    expect(payload).toMatchObject({
-      a365_payrollstatus: PayrollStatus.Locked,
-      "a365_PaidBy@odata.bind": "/systemusers(user-1)",
-      "a365_LockedBy@odata.bind": "/systemusers(user-1)",
-    })
-    expect(payload.a365_paidon).toBe(payload.a365_lockedon)
-    expect(typeof payload.a365_paidon).toBe("string")
+    expect(ledgerService.pay).toHaveBeenCalledWith("period-1", expect.any(String), "2026-11-03T00:00:00Z")
+    expect(dataClient.updateRecordAsync).not.toHaveBeenCalled()
   })
 
   it("does not update status when an included entry has not been calculated", async () => {
@@ -249,19 +244,19 @@ describe("payrollPeriodService.transitionStatus", () => {
     expect(dataClient.updateRecordAsync).not.toHaveBeenCalled()
   })
 
-  it("leaves the period unchanged when the single status update fails", async () => {
+  it("retains the same payment operation for retry after a server failure", async () => {
     vi.mocked(dataClient.retrieveRecordAsync).mockResolvedValue({
       success: true,
-      data: period(PayrollStatus.Ready),
+      data: { ...period(PayrollStatus.Ready), modifiedon: "2026-11-03T01:00:00Z" },
     } as never)
-    vi.mocked(dataClient.updateRecordAsync).mockResolvedValue({
-      success: false,
-      error: new Error("Dataverse update failed"),
-    } as never)
+    vi.mocked(ledgerService.pay).mockRejectedValueOnce(new Error("Dataverse update failed")).mockResolvedValueOnce({ periodId: "period-1" })
 
     await expect(
       payrollPeriodService.transitionStatus("period-1", PayrollStatus.Locked, "user-1"),
     ).rejects.toThrow("Dataverse update failed")
-    expect(dataClient.updateRecordAsync).toHaveBeenCalledTimes(1)
+    const attempted = vi.mocked(ledgerService.pay).mock.calls.at(-1)
+    await payrollPeriodService.transitionStatus("period-1", PayrollStatus.Locked, "user-1")
+    expect(vi.mocked(ledgerService.pay).mock.calls.at(-1)).toEqual(attempted)
+    expect(dataClient.updateRecordAsync).not.toHaveBeenCalled()
   })
 })

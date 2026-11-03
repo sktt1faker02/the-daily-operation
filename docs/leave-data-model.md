@@ -1,5 +1,15 @@
 # The Daily Operation — Leave Management Data Model
 
+**2026-11-03 local enhancement:** [manual balance reset](leave-manual-reset.md)
+uses the existing credit ledger, coordination table and Leave API. No schema or
+role changes. Active employees receive signed Grant/Deduction adjustments, not
+history deletion; zero-day completion receipts make retries idempotent. Current
+calendar-year remaining balances and current-period preview both reach 10 VL /
+5 SL. The [annual cycle](leave-january-reset.md) starts January 1 from 2027.
+Signed plugin 1.0.3.5 is deployed to owner-confirmed Dev; read-only preview/hash
+checks pass. [Deployment evidence](leave-reset-deployment.json). No live reset was
+executed; ordinary-account and real concurrency verification remain pending.
+
 Schema specification for the Leave Management module, following the structure
 of [data-model.md](data-model.md). The owner requirements are in
 [PLANS.md](../PLANS.md); naming follows

@@ -10,6 +10,7 @@ import { LeaveBalances } from "@/features/leave/leave-balances"
 import { LeaveRecords } from "@/features/leave/leave-records"
 import { LeaveDetail } from "@/features/leave/leave-detail"
 import { AddLeaveDialog } from "@/features/leave/add-leave-dialog"
+import { ResetLeaveDialog } from "@/features/leave/reset-leave-dialog"
 import { validYear } from "@/features/leave/rules"
 import { benefitLabels, leaveStatusLabels, leaveTypeLabels } from "@/features/leave/types"
 import type { LeaveEmployee, LeaveFilters, SourceReference } from "@/features/leave/types"
@@ -23,8 +24,9 @@ function LeaveWorkspace() {
   const [validation, setValidation] = useState("")
   const [source, setSource] = useState<SourceReference | null>(null)
   const [addLeaveOpen, setAddLeaveOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
   return <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-    <header className="flex flex-wrap items-start justify-between gap-4"><div className="space-y-2"><h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight"><CalendarDays className="size-6 text-primary" aria-hidden />Leave Management</h1><p className="text-sm text-muted-foreground">Employee leave records.</p></div><Button onClick={() => setAddLeaveOpen(true)}><Plus className="size-4" aria-hidden />Add Leave</Button></header>
+    <header className="flex flex-wrap items-start justify-between gap-4"><div className="space-y-2"><h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight"><CalendarDays className="size-6 text-primary" aria-hidden />Leave Management</h1><p className="text-sm text-muted-foreground">Employee leave records.</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setResetOpen(true)}>Reset leave balances</Button><Button onClick={() => setAddLeaveOpen(true)}><Plus className="size-4" aria-hidden />Add Leave</Button></div></header>
     <div className="rounded-md border bg-muted/30 p-4 text-sm" role="note"><p className="font-medium">Admins record leave directly.</p><p className="mt-1 text-muted-foreground">Use Add Leave to review current credits and workdays. View annual conversions in Leave Conversion.</p></div>
     <form className="flex flex-wrap items-end gap-4" onSubmit={event => {
       event.preventDefault()
@@ -45,6 +47,7 @@ function LeaveWorkspace() {
     </div>
     <LeaveRecords key={JSON.stringify(filters)} filters={filters} onOpen={setSource} />
     <LeaveDetail source={source} onClose={() => setSource(null)} />
+    {resetOpen && <ResetLeaveDialog onClose={() => setResetOpen(false)} />}
     <AddLeaveDialog open={addLeaveOpen} onOpenChange={setAddLeaveOpen} />
   </div>
 }

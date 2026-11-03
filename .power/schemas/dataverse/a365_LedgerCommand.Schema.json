@@ -1,0 +1,43 @@
+{
+  "name": "a365_LedgerCommand",
+  "title": "a365_LedgerCommand",
+  "type": "Microsoft.PowerApps/dataverseOperation",
+  "properties": {
+    "displayName": "a365_LedgerCommand",
+    "swagger": {
+      "swagger": "2.0",
+      "info": {
+        "title": "a365_LedgerCommand",
+        "version": "1.0"
+      },
+      "basePath": "/api/data/v9.2",
+      "paths": {
+        "/a365_LedgerCommand": {
+          "post": {
+            "operationId": "a365_LedgerCommand",
+            "parameters": [
+              {
+                "name": "Request",
+                "in": "body",
+                "required": true,
+                "type": "string",
+                "x-ms-dataverse-type": "StringType",
+                "x-ms-csdl-type": "Edm.String"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Success",
+                "schema": {
+                  "type": "object",
+                  "x-ms-dataverse-type": "LookupType",
+                  "x-ms-csdl-type": "mscrm.a365_LedgerCommandResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

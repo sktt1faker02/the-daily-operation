@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.4")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.5")]
 
 namespace A365.Leave.Plugins
 {
@@ -65,12 +65,12 @@ namespace A365.Leave.Plugins
             return date;
         }
         public static string Iso(DateTime value) { return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
-        public static readonly DateTime JanuaryResetEffective = new DateTime(2027, 1, 5);
+        public static readonly DateTime JanuaryResetEffective = new DateTime(2027, 1, 1);
         public static DateTime Period(DateTime day)
         {
             // Preserve the existing credit cycle until the owner's effective date.
             if (day < JanuaryResetEffective) return new DateTime(day.Month < 4 ? day.Year - 1 : day.Year, 4, 1);
-            var reset = new DateTime(day.Year, 1, 5);
+            var reset = new DateTime(day.Year, 1, 1);
             return day < reset ? reset.AddYears(-1) : reset;
         }
         public static DateTime PeriodEnd(DateTime period)
@@ -158,6 +158,7 @@ namespace A365.Leave.Plugins
             if (request.command == "diagnostics") response = new { policyVersion = "2026-10-22.1", isInTransaction = context.IsInTransaction, serverValidation = true };
             else if (request.command == "prepareEmail" || request.command == "completeEmail") response = Email(request, system, caller);
             else if (request.command == "deletePreview" || request.command == "delete") response = DeleteLeave(request, context, system, caller);
+            else if (request.command == "resetPreview" || request.command == "resetBalances") response = ResetBalances(request, context, system, caller);
             else if (request.command == "preview" || request.command == "issue") response = Post(request, context, system, caller);
             else { Rules.Fail("Unknown Leave command."); return; }
             context.OutputParameters["Response"] = Json.Serialize(response);
@@ -289,7 +290,7 @@ namespace A365.Leave.Plugins
             }
             var row = Movement(employee, period, year, pool, type, days, key, key);
             row["a365_note"] = period >= Rules.JanuaryResetEffective
-                ? "Annual January 5 reset effective 2027: 10 VL and 5 SL; no carryover or monthly accrual."
+                ? "Annual January 1 reset effective 2027: 10 VL and 5 SL; no carryover or monthly accrual."
                 : "Automatic credit under policy 2026-10-22.1. Monthly VL is earned in arrears; SL is granted for the April period.";
             if (persist) row.Id = service.Create(row);
             rows.Add(row);
@@ -431,6 +432,13 @@ namespace A365.Leave.Plugins
                         Request request = null;
                         try { if (parent.InputParameters.Contains("Request")) request = new JavaScriptSerializer().Deserialize<Request>((string)parent.InputParameters["Request"]); } catch { }
                         bool conversion = context.PrimaryEntityName == "a365_leavecashconversion" || context.PrimaryEntityName == "a365_leaveconversionyear";
+                        if (request != null && request.command == "resetBalances")
+                        {
+                            bool coordination = context.PrimaryEntityName == "a365_leavecoordination" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple" || context.MessageName == "Update" || context.MessageName == "UpdateMultiple");
+                            bool credit = context.PrimaryEntityName == "a365_leavecredittransaction" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple");
+                            if (coordination || credit) return;
+                            Rules.Fail("Leave reset can only create credit adjustments and coordinate employees.");
+                        }
                         if (request != null && request.command == "delete")
                         {
                             bool sourceDelete = context.PrimaryEntityName == "a365_leave" && context.MessageName == "Delete";

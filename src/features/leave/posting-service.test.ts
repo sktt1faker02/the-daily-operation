@@ -170,3 +170,24 @@ describe("Transactional Leave client boundary", () => {
     expect(A365_LeaveCommandService.a365_LeaveCommand).toHaveBeenCalledOnce()
   })
 })
+
+
+describe("Leave reset server contract", () => {
+  const reviewed = { resetVersion: 1 as const, year: 2026, periodStart: "2026-04-01", employeeCount: 2, VL: 10 as const, SL: 5 as const, version: "a".repeat(64) }
+  it("uses the existing generated command and the exact reviewed reset identity", async () => {
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(reviewed))
+    expect(await postingService.resetPreview()).toEqual(reviewed)
+    expect(readRequest(0)).toEqual({ command: "resetPreview" })
+    const result = { ...reviewed, completed: true, operationId }
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(result))
+    expect(await postingService.resetBalances(reviewed, operationId)).toEqual(result)
+    expect(readRequest(1)).toEqual({ command: "resetBalances", operationId, year: 2026, version: reviewed.version })
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
+  })
+  it("rejects malformed previews and treats incomplete completion as uncertain", async () => {
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success({ ...reviewed, employeeCount: -1 }))
+    await expect(postingService.resetPreview()).rejects.toMatchObject({ uncertain: false })
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success({ ...reviewed, completed: true, operationId: "wrong" }))
+    await expect(postingService.resetBalances(reviewed, operationId)).rejects.toMatchObject({ uncertain: true })
+  })
+})

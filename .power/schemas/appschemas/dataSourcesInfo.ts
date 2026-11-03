@@ -154,6 +154,31 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "a365_ledgercommand": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "",
+    "dataSourceType": "Dataverse",
+    "apis": {
+      "a365_LedgerCommand": {
+        "path": "/api/data/v9.2/a365_LedgerCommand",
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "Request",
+            "in": "body",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responseInfo": {
+          "200": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
   "a365_payrollentries": {
     "tableId": "",
     "version": "",

@@ -13,6 +13,8 @@ import LeavePage from "@/pages/leave"
 import LeaveHistoryPage from "@/pages/leave-history"
 import LeaveConversionPage from "@/pages/leave-conversion"
 import { AdminOnly } from "@/features/payroll/role-gate"
+import LedgerPage from "@/pages/ledger"
+import { LedgerOnly } from "@/features/accounting/ledger/ledger-access"
 
 // IMPORTANT: Do not remove or modify the code below!
 // Normalize basename when hosted in Power Apps
@@ -30,6 +32,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "overview", element: <AdminOnly><OverviewPage /></AdminOnly> },
       { path: "employees", element: <AdminOnly><EmployeesPage /></AdminOnly> },
+      { path: "ledger", element: <LedgerOnly><LedgerPage /></LedgerOnly> },
       { path: "leave", element: <LeavePage /> },
       { path: "leave-conversion", element: <LeaveConversionPage /> },
       { path: "leave-conversion/:year", element: <LeaveConversionPage /> },

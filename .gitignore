@@ -41,5 +41,6 @@ plugins/**/bin/
 plugins/**/obj/
 scripts/leave-schema/.work/
 scripts/payroll-deletion/.work/
+scripts/ledger/.work/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/

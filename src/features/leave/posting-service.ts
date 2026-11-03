@@ -27,6 +27,8 @@ export interface PostingPreview {
 export type NotificationOutcome = "accepted" | "failed" | "unknown"
 export interface ReviewedAllocation { paidDays: number; unpaidDays: number }
 export interface LeaveDeletionPreview { restoredDays: number; pool: "VL" | "SL"; creditPeriod: string; year: number }
+export interface LeaveResetPreview { resetVersion: 1; year: number; periodStart: string; employeeCount: number; VL: 10; SL: 5; version: string }
+export interface LeaveResetResult { resetVersion: 1; completed: true; operationId: string; year: number; periodStart: string; employeeCount: number; VL: 10; SL: 5 }
 
 export class LeavePostingError extends Error {
   readonly uncertain: boolean
@@ -70,6 +72,22 @@ function source(value: unknown): LeaveRecord {
 }
 
 export const postingService = {
+  async resetPreview(): Promise<LeaveResetPreview> {
+    const result = await command({ command: "resetPreview" })
+    if (result.resetVersion !== 1 || !Number.isInteger(result.year) || Number(result.year) < 1900 || Number(result.year) > 9998 || !Number.isInteger(result.employeeCount) || Number(result.employeeCount) < 0 || result.VL !== 10 || result.SL !== 5 || typeof result.version !== "string" || !/^[a-f0-9]{64}$/.test(result.version) || typeof result.periodStart !== "string") {
+      throw new LeavePostingError("The leave reset preview could not be verified. The Leave server update may be required.", false)
+    }
+    dateOnly(result.periodStart)
+    return result as unknown as LeaveResetPreview
+  },
+  async resetBalances(preview: LeaveResetPreview, operationId: string): Promise<LeaveResetResult> {
+    const id = requireGuid(operationId)
+    const result = await command({ command: "resetBalances", operationId: id, year: preview.year, version: preview.version })
+    if (result.resetVersion !== 1 || result.completed !== true || result.operationId !== id || result.year !== preview.year || result.periodStart !== preview.periodStart || result.employeeCount !== preview.employeeCount || result.VL !== 10 || result.SL !== 5) {
+      throw new LeavePostingError("The reset outcome could not be confirmed. Retry this reset; do not start another one.", true)
+    }
+    return result as unknown as LeaveResetResult
+  },
   async deletionPreview(record: LeaveRecord): Promise<LeaveDeletionPreview> {
     const id = requireGuid(record.a365_leaveid), employeeId = requireGuid(record._a365_employee_value ?? "")
     const result = await command({ command: "deletePreview", operationId: id, employeeId })

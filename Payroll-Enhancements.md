@@ -6,6 +6,101 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-03 - Deploy manual leave reset server to Dev
+
+Owner explicitly confirmed the Leave plugin deployment to
+https://org9a7651f0.crm5.dynamics.com. Verified the PAC connection, then updated
+only the existing signed Leave assembly to 1.0.3.5. Live resetPreview now returns
+7 Active employees with targets 10 VL / 5 SL. Downloaded DLL hash matches the
+tested build; transactional diagnostics and 20 synchronous guards pass. Credit
+count is unchanged. No actual reset, financial writes, email, role/schema changes
+or Code App publication. The existing UI can retry its preview.
+
+Exported/unpacked the Dev solution and synchronized only the native Leave DLL,
+assembly metadata, 34 step references and assembly manifest reference. Added
+scripts/leave-schema/verify-reset.ps1 and docs/leave-reset-deployment.json.
+Existing Ledger work was preserved; no commit or push. Live ordinary-account,
+reset rollback/concurrency and January 1 UAT remain unperformed.
+
+
+### 2026-11-03 - Manual Active-employee leave reset and January 1 annual cycle
+
+Added Reset leave balances beside Add Leave in Leave Management. Payroll Admin
+reviews the current year/Active employee count and confirms remaining 10 VL / 5 SL,
+even after used leave. Preview/cancel writes nothing; pending and uncertain-result
+states prevent duplicate requests and retain the same operation identity for retry.
+
+Extended the existing Leave API with read-only resetPreview and atomic
+resetBalances. Signed plugin 1.0.3.5 reuses coordination locks and appends auditable
+Grant/Deduction adjustments plus a completion receipt; it preserves leave records,
+original credit history, payroll and conversions. Calendar-year cards and current
+period previews both reach the targets. Due credits are materialized before the
+adjustments. Changed the annual reset to January 1, 2027 and later, superseding
+January 5; prior accrual and existing historical tags remain unchanged.
+
+Changed the Leave page, posting service, reset hook/dialog, server partial/dispatcher/
+guard, build/test scripts and related tests. Added docs/leave-manual-reset.md and
+updated the annual-reset, submission and data-model guidance. Local checks: 483 app
+tests (48 files), 277 synthetic server checks and seven Edge reset scenarios pass.
+Lint and production build pass with the existing large-chunk warning. No live reset, deployment, schema/role/
+generated-source change, emails, commit or push. Existing Ledger work was preserved.
+
+Release/limits: plugin 1.0.3.5 must be deployed before the hosted button can reset.
+Ordinary-account security, real concurrency/rollback and hosted boundary checks
+remain unverified. Reset is synchronous; platform-limit failures must roll back,
+not leave partial employee updates. See [reset details](docs/leave-manual-reset.md).
+
+
+### 2026-11-03 — Activate Ledger Management in Dev
+
+Owner authorized all previously pending activation steps. Enabled native
+organization auditing without changing retention, registered signed Ledger server
+1.0.0.2 and 36 steps, applied the 10 planned additive Payroll Admin grants,
+generated the Ledger API binding through the CLI and deployed the existing app.
+Fixed operation and pagination fingerprints to use a deterministic field order
+after a live retry check found a JSON fingerprint mismatch.
+
+Verification: 474 release tests / 47 files, lint/build, desktop/mobile Playwright
+and 65 server contract assertions passed. Live controlled CRUD completed 45 checks;
+38 final read-only runtime/security-metadata checks passed. Test rows were removed,
+original balance/count restored and native deletion audit retained. The exported
+deployed app bundle matches the tested build SHA-256 and contains the API binding.
+
+No real payroll or historical posting executed. Employee-role privilege metadata
+passes, but impersonated identities could not be verified; signed-in employee A/B
+tests remain unavailable. Actual payroll rollback/concurrency and history-worker
+execution are not proven by the contract/registration checks. Concurrent Leave-reset
+work appearing after the verified Ledger build was preserved and excluded from this
+release. No commit or Git push. See [activation evidence](docs/ledger-activation.md).
+
+### 2026-11-03 — Prepare atomic paid-payroll Ledger integration
+
+Added the Accounting Ledger service/server boundary and changed Mark as Paid to
+call one transactional command rather than directly updating payment/lock fields.
+The server posts every existing employee entry's saved signed net pay, retains
+operation receipts, and synchronizes edited/deleted/removed source rows on re-payment.
+Unlock retains ledger amounts. Confirmation wording explains resynchronization and
+balance effects. Existing calculations and Ready notifications are unchanged.
+
+Changed `src/features/payroll/services/payroll-period-service.ts`, its tests,
+`hooks/use-payroll-status.ts`, `src/pages/payroll-period.tsx`, and the new Accounting
+Ledger module / `plugins/A365.Ledger.Plugins` server package. Source guards inspect
+and lock original/new payroll parents to protect finalized snapshots and prevent
+concurrent entry edits from racing payment.
+
+Verification: full suite 474 tests / 47 files passed; targeted Ledger/payment tests
+49 passed; lint/build passed with large-bundle warnings; Ledger Playwright checks
+passed at 1280px/390px; signed server compiles and 62 contract assertions pass.
+Real transaction rollback is not proven by the simulated SDK tests.
+
+The four Ledger tables/choices/source key are created in Dev, with zero financial
+rows. No plugins/app deployed, role grants applied, history posted, commit or push.
+Organization auditing is disabled: financial commands fail closed until enabled.
+API registration/generated binding and live security/concurrency/async testing are
+release prerequisites; the changed client must not be deployed before its server.
+See [Ledger verification](docs/ledger-implementation.md) and
+[release runbook](docs/ledger-release.md).
+
 ### 2026-11-03 — Align payroll period row actions
 
 Updated `src/pages/payroll.tsx` so active and archived period tables reserve

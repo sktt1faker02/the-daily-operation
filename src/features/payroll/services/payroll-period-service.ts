@@ -8,6 +8,7 @@ import { payrollUnpaidLeaveService } from "@/features/leave/payroll-unpaid-leave
 import { employeeService } from "@/features/employees/employee-service"
 import { referenceService } from "@/features/employees/reference-service"
 import { userService } from "@/features/employees/user-service"
+import { ledgerService } from "@/features/accounting/ledger/ledger-service"
 import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { calculateStoredEntryTotals, planLoadEntries, planApplyInputs, selectPreviousCutoff, type NewEntryPlan, type CopiedInputs } from "../period-utils"
 import { round2 } from "./payroll-calculation"
@@ -64,6 +65,10 @@ const ENTRY_SELECT = [
   "_a365_employee_value",
   "_a365_payrollperiod_value",
 ]
+
+// Keep an uncertain payment's identity until its committed receipt is resolved.
+// A new source version after unlock intentionally creates a new payment operation.
+const pendingPayments = new Map<string, { id: string; version: string }>()
 
 async function retrieveAllPages<T>(table: string, options: Parameters<typeof dataClient.retrieveMultipleRecordsAsync<T>>[1]): Promise<T[]> {
   const records: T[] = []
@@ -138,6 +143,21 @@ export const payrollPeriodService = {
   ): Promise<void> {
     const period = await payrollPeriodService.getPeriod(periodId)
     const from = period.a365_payrollstatus
+    if (to === PayrollStatus.Locked) {
+      const pending = pendingPayments.get(periodId)
+      if (pending && from === PayrollStatus.Locked) {
+        await ledgerService.pay(periodId, pending.id, pending.version)
+        pendingPayments.delete(periodId)
+        return
+      }
+      if (!canTransition(from, to)) throw new Error(`Cannot change payroll from ${payrollStatusLabel(from)} to ${payrollStatusLabel(to)}.`)
+      if (!period.modifiedon) throw new Error("Refresh the payroll before confirming payment; its current version could not be verified.")
+      const operation = pending?.version === period.modifiedon ? pending : { id: crypto.randomUUID(), version: period.modifiedon }
+      pendingPayments.set(periodId, operation)
+      await ledgerService.pay(periodId, operation.id, operation.version)
+      pendingPayments.delete(periodId)
+      return
+    }
     if (!canTransition(from, to)) {
       throw new Error(
         `Cannot change payroll from ${payrollStatusLabel(from)} to ${payrollStatusLabel(to)}.`,
@@ -184,11 +204,6 @@ export const payrollPeriodService = {
     if (to === PayrollStatus.Ready) {
       payload.a365_readyon = now
       payload["a365_ReadyBy@odata.bind"] = `/systemusers(${actingUserId})`
-    } else if (to === PayrollStatus.Locked) {
-      payload.a365_paidon = now
-      payload["a365_PaidBy@odata.bind"] = `/systemusers(${actingUserId})`
-      payload.a365_lockedon = now
-      payload["a365_LockedBy@odata.bind"] = `/systemusers(${actingUserId})`
     } else if (to === PayrollStatus.Processing) {
       payload.a365_lockedon = null // Unlock: no longer locked; status is the source of truth
     }

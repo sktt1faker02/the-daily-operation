@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { LayoutGrid, Wallet, Users, FileText, LayoutTemplate, CalendarDays, Coins, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Wallet, Users, FileText, LayoutTemplate, CalendarDays, Coins, BookOpen, type LucideIcon } from "lucide-react";
+import { ledgerAccess } from "@/features/accounting/ledger/rules";
 import { usePowerContext } from "@/hooks/use-power-context";
 import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile";
 import { leaveAccessState } from "@/features/leave/rules";
@@ -53,7 +54,8 @@ function useNav() {
     const leaveGroups: NavGroup[] = leaveAccessState(access) === "allowed"
       ? [{ label: "Leave", items: [{ to: "/leave", label: "Leave Management", icon: CalendarDays }, { to: "/leave-conversion", label: "Leave Conversion", icon: Coins }] }]
       : [];
-    const groups = [...ADMIN_GROUPS, ...leaveGroups, ...(showMyPayroll ? [MY_PORTAL_GROUP] : [])];
+    const ledgerGroups: NavGroup[] = ledgerAccess(access) === "allowed" ? [{ label: "Ledger", items: [{ to: "/ledger", label: "Ledger Management", icon: BookOpen }] }] : [];
+    const groups = [...ADMIN_GROUPS, ...leaveGroups, ...ledgerGroups, ...(showMyPayroll ? [MY_PORTAL_GROUP] : [])];
     return { groups, brandTo };
   }
   return { groups: showMyPayroll ? EMPLOYEE_GROUPS : [], brandTo };

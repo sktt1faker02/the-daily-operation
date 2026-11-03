@@ -96,7 +96,17 @@ public static class ProtectLeaveWritesTests
         foreach (string entity in new[] { "a365_leavecredittransaction", "a365_leavecoordination" }) {
             child.PrimaryEntityName = entity; Check(child, false, "preview cannot authorize bulk writes");
         }
-        return 42;
+        api.InputParameters["Request"] = "{\"command\":\"resetBalances\"}";
+        child.PrimaryEntityName = "a365_leavecredittransaction";
+        foreach (string message in new[] { "Create", "CreateMultiple" }) { child.MessageName = message; Check(child, true, "reset can append credit adjustments"); }
+        foreach (string message in new[] { "Update", "UpdateMultiple", "Delete" }) { child.MessageName = message; Check(child, false, "reset cannot rewrite credit history"); }
+        child.PrimaryEntityName = "a365_leavecoordination";
+        foreach (string message in new[] { "Create", "CreateMultiple", "Update", "UpdateMultiple" }) { child.MessageName = message; Check(child, true, "reset coordinates employee writes"); }
+        child.PrimaryEntityName = "a365_leave"; child.MessageName = "Create"; Check(child, false, "reset cannot create Leave records");
+        child.PrimaryEntityName = "a365_leavecashconversion"; Check(child, false, "reset cannot modify conversions");
+        api.InputParameters["Request"] = "{\"command\":\"resetPreview\"}";
+        child.PrimaryEntityName = "a365_leavecredittransaction"; Check(child, false, "reset preview cannot append credits");
+        return 54;
     }
 
     public static void VerifyLegacyMarkerDependency()

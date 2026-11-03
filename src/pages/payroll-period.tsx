@@ -126,12 +126,12 @@ export default function PayrollPeriodPage() {
     markPaid: {
       label: "Mark as Paid",
       title: "Mark this payroll Paid?",
-      description: "Records that this cutoff has been paid out. Entries remain locked.",
+      description: "Pays and locks this cutoff and synchronizes one Payroll ledger Debit per employee using saved net pay, including zero and negative amounts. Re-payment replaces edited rows, recreates deleted rows and removes linked rows whose payroll entries were deleted. This changes the recorded company balance. All payment and ledger changes commit together.",
     },
     unlock: {
       label: "Unlock",
       title: "Unlock this payroll?",
-      description: "Reopens the cutoff for corrections (returns it to Processing). This is an audited action.",
+      description: "Reopens the cutoff for corrections (returns it to Processing). Existing ledger amounts remain until the next Mark as Paid resynchronization. This is an audited action.",
       variant: "destructive",
     },
   }

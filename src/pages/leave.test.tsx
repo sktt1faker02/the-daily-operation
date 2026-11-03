@@ -83,6 +83,7 @@ describe("Leave access boundary", () => {
     expect(leaveService.balances).not.toHaveBeenCalled()
     expect(leaveService.searchEmployees).not.toHaveBeenCalled()
     expect(screen.queryByRole("button", { name: "Add Leave" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Reset leave balances" })).not.toBeInTheDocument()
   })
 })
 

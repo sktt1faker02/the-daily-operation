@@ -1,9 +1,12 @@
 # Leave submission implementation — 2026-10-22
 
-**Subsequent owner correction:** from January 5, 2027, use January 5–January 4
-cycles and full annual grants of 10 VL and 5 SL. This supersedes the original
-April/monthly policy described below from that effective date. The current
-cycle ends January 4, 2027. See [reset implementation](leave-january-reset.md).
+**Latest owner correction, 2026-11-03:** from January 1, 2027, use January
+1-December 31 cycles and full annual grants of 10 VL / 5 SL. The transitional
+April 2026 cycle ends December 31, 2026. This supersedes January 5 and the
+original April/monthly policy below from the effective date. Local plugin 1.0.3.5
+also adds a confirmed [manual reset](leave-manual-reset.md), deployed to Dev on
+2026-11-03 with read-only [deployment verification](leave-reset-deployment.json).
+See [annual reset details](leave-january-reset.md).
 
 The owner authorized executing the recommended resolutions to the listed blockers
 and supplied an Inquirer 2027 holiday link, requesting its 2026 counterpart.
