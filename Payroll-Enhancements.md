@@ -6,6 +6,25 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-03 — Align payroll period row actions
+
+Updated `src/pages/payroll.tsx` so active and archived period tables reserve
+three equal icon-button slots for Export, Archive/Unarchive and Delete. When
+Delete is unavailable its column stays empty without adding a focusable control.
+Existing visibility rules, labels, handlers and confirmation dialogs are preserved.
+
+Verification checklist completed: Export and Archive/Unarchive align across
+Processing, Ready and Paid rows; spacing is consistent in both tables; Delete
+remains present only for eligible Processing periods; unavailable Delete adds
+no keyboard stop. Added `scripts/payroll-actions-ui-check.mjs` to verify actual
+rendered coordinates and controls with synthetic data at 1280px and 390px.
+All 395 tests (40 files), lint, build and browser checks passed; build retains
+the existing large-chunk warning. `git diff --check` passed.
+
+Remaining limits: hosted Power Apps rendering was not checked. No deployment,
+live records, schema, security or calculation changes. The owner's existing
+`package.json` modification was left untouched.
+
 ### 2026-10-28 - Fix Leave deletion guard for merged single/bulk pipelines
 
 Reproduced the owner's `Leave deletion cannot modify these records` error in

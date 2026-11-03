@@ -407,20 +407,22 @@ export default function PayrollDashboardPage() {
                         <PayrollStatusBadge status={p.a365_payrollstatus} />
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={(event) => { event.stopPropagation(); void exportPayroll([p]) }}><FileDown className="size-4" aria-hidden /></Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Archive"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setPendingArchive(p)
-                          }}
-                          aria-label={`Archive ${p.a365_name}`}
-                        >
-                          <Archive className="size-4" aria-hidden />
-                        </Button>
-                        {isAdmin && isPeriodEditable(p.a365_payrollstatus) && <Button variant="ghost" size="icon" title="Delete" aria-label={`Delete ${p.a365_name}`} className="text-destructive" onClick={(event) => { event.stopPropagation(); setPendingDelete(p) }}><Trash2 className="size-4" aria-hidden /></Button>}
+                        <div className="mx-auto grid w-max grid-cols-[repeat(3,2.25rem)] items-center gap-1">
+                          <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={(event) => { event.stopPropagation(); void exportPayroll([p]) }}><FileDown className="size-4" aria-hidden /></Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Archive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setPendingArchive(p)
+                            }}
+                            aria-label={`Archive ${p.a365_name}`}
+                          >
+                            <Archive className="size-4" aria-hidden />
+                          </Button>
+                          {isAdmin && isPeriodEditable(p.a365_payrollstatus) && <Button variant="ghost" size="icon" title="Delete" aria-label={`Delete ${p.a365_name}`} className="text-destructive" onClick={(event) => { event.stopPropagation(); setPendingDelete(p) }}><Trash2 className="size-4" aria-hidden /></Button>}
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -512,17 +514,19 @@ export default function PayrollDashboardPage() {
                         <PayrollStatusBadge status={p.a365_payrollstatus} />
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={() => void exportPayroll([p])}><FileDown className="size-4" aria-hidden /></Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Unarchive"
-                          onClick={() => setPendingUnarchive(p)}
-                          aria-label={`Unarchive ${p.a365_name}`}
-                        >
-                          <ArchiveRestore className="size-4" aria-hidden />
-                        </Button>
-                        {isAdmin && isPeriodEditable(p.a365_payrollstatus) && <Button variant="ghost" size="icon" title="Delete" aria-label={`Delete ${p.a365_name}`} className="text-destructive" onClick={(event) => { event.stopPropagation(); setPendingDelete(p) }}><Trash2 className="size-4" aria-hidden /></Button>}
+                        <div className="mx-auto grid w-max grid-cols-[repeat(3,2.25rem)] items-center gap-1">
+                          <Button variant="ghost" size="icon" aria-label={`Export ${p.a365_name} to Excel`} title="Export to Excel" disabled={!isAdmin || exportBusy} onClick={() => void exportPayroll([p])}><FileDown className="size-4" aria-hidden /></Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Unarchive"
+                            onClick={() => setPendingUnarchive(p)}
+                            aria-label={`Unarchive ${p.a365_name}`}
+                          >
+                            <ArchiveRestore className="size-4" aria-hidden />
+                          </Button>
+                          {isAdmin && isPeriodEditable(p.a365_payrollstatus) && <Button variant="ghost" size="icon" title="Delete" aria-label={`Delete ${p.a365_name}`} className="text-destructive" onClick={(event) => { event.stopPropagation(); setPendingDelete(p) }}><Trash2 className="size-4" aria-hidden /></Button>}
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
