@@ -113,7 +113,7 @@ export const postingService = {
     if (["VL", "SL", "pendingVL", "pendingSL"].some(key => typeof response[key] !== "number" || !Number.isFinite(response[key])) || typeof response.periodStart !== "string" || typeof response.periodEnd !== "string" || (response.days !== null && typeof response.days !== "number")) {
       throw new LeavePostingError("Complete period credits could not be verified. Refresh the preview.", false)
     }
-    if (values.halfDay && complete && response.days !== 0.5) throw new LeavePostingError("The Leave server update for half-day VL is required. Contact your administrator.", false)
+    if (values.halfDay && complete && response.days !== 0.5) throw new LeavePostingError("The Leave server update for half-day leave is required. Contact your administrator.", false)
     if (response.days !== null) {
       try {
         leaveAllocation({ a365_days: Number(response.days), a365_benefit: Number(response.benefit), a365_startdate: values.startDate, a365_enddate: values.endDate,

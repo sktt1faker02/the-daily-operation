@@ -28,7 +28,6 @@ export function validateLeaveEntry(values: LeaveEntryValues): Partial<Record<key
     } catch { errors[field] = `Enter a valid ${field === "startDate" ? "start" : "end"} date.` }
   }
   if (!errors.startDate && !errors.endDate && values.endDate < values.startDate) errors.endDate = "End Date cannot precede Start Date."
-  if (values.halfDay && values.leaveType !== "749910000") errors.leaveType = "Half-day leave uses VL."
   if (values.halfDay && !errors.endDate && values.startDate !== values.endDate) errors.endDate = "Half-day leave must start and end on the same date."
   if (values.note.length > 2000) errors.note = "Note must be 2,000 characters or fewer."
   return errors

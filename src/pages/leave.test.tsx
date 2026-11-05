@@ -107,16 +107,20 @@ describe("Add Leave modal", () => {
     await waitFor(() => expect(within(dialog).getByRole("button", { name: "Submit" })).toBeEnabled())
   }
 
-  it("previews and submits half-day VL without AM/PM and resets duration for General Leave", async () => {
+  it.each([
+    { type: "749910000", label: "VL", pool: "VL" },
+    { type: "749910001", label: "SL", pool: "SL" },
+    { type: "749910002", label: "General Leave", pool: "VL" },
+  ])("previews and submits half-day $label without AM/PM", async ({ type, label, pool }) => {
     const { user, dialog } = await openModal()
     await completeForm(user, dialog)
     await user.click(within(dialog).getByRole("combobox", { name: "Leave Type" }))
-    await user.click(screen.getByRole("option", { name: "VL" }))
+    await user.click(screen.getByRole("option", { name: label }))
     vi.mocked(postingService.preview).mockImplementation(async values => ({ policyVersion: "2026-10-22.1", periodStart: "2026-04-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, allocationVersion: 1,
-      days: values.halfDay ? 0.5 : 1, benefit: 749910000, pool: "VL", paidDays: values.halfDay ? 0.5 : 1, unpaidDays: 0, allocation: null }))
+      days: values.halfDay ? 0.5 : 1, benefit: 749910000, pool: values.leaveType === "749910001" ? "SL" : "VL", paidDays: values.halfDay ? 0.5 : 1, unpaidDays: 0, allocation: null }))
     await user.click(within(dialog).getByRole("combobox", { name: "Leave duration" }))
-    await user.click(screen.getByRole("option", { name: "Half day (0.5 VL credit)" }))
-    expect(await within(dialog).findByText("0.50 days will be deducted from VL.")).toBeVisible()
+    await user.click(screen.getByRole("option", { name: `Half day (0.5 ${pool} credit)` }))
+    expect(await within(dialog).findByText(`0.50 days will be deducted from ${pool}.`)).toBeVisible()
     expect(within(dialog).getByLabelText("End Date")).toHaveAttribute("readonly")
     await user.clear(within(dialog).getByLabelText("Start Date"))
     await user.type(within(dialog).getByLabelText("Start Date"), "2026-10-26")
@@ -124,13 +128,13 @@ describe("Add Leave modal", () => {
     expect(within(dialog).queryByRole("combobox", { name: /AM|PM/ })).not.toBeInTheDocument()
     await waitFor(() => expect(within(dialog).getByRole("button", { name: "Submit" })).toBeEnabled())
     await user.click(within(dialog).getByRole("button", { name: "Submit" }))
-    await waitFor(() => expect(postingService.submit).toHaveBeenCalledWith(expect.objectContaining({ halfDay: true, leaveType: "749910000", startDate: "2026-10-26", endDate: "2026-10-26" }), expect.any(String), { paidDays: 0.5, unpaidDays: 0 }, expect.any(Function)))
+    await waitFor(() => expect(postingService.submit).toHaveBeenCalledWith(expect.objectContaining({ halfDay: true, leaveType: type, startDate: "2026-10-26", endDate: "2026-10-26" }), expect.any(String), { paidDays: 0.5, unpaidDays: 0 }, expect.any(Function)))
     await user.click(screen.getByRole("button", { name: "Add Leave" }))
     const reopened = screen.getByRole("dialog", { name: "Add Leave" })
     await user.click(within(reopened).getByRole("combobox", { name: "Leave Type" }))
     expect(screen.queryByRole("option", { name: "Emergency" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("option", { name: "General Leave" }))
-    expect(within(reopened).queryByRole("combobox", { name: "Leave duration" })).not.toBeInTheDocument()
+    expect(within(reopened).getByRole("combobox", { name: "Leave duration" })).toHaveTextContent("Full day")
   })
 
   it("reviews a four-paid/one-unpaid split while keeping only Paid and Unpaid as inputs", async () => {

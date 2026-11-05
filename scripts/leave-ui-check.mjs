@@ -36,7 +36,7 @@ async function scenario(name, role = "admin", width = 1280) {
       export const postingService = {
         async preview(values){
           const complete=Boolean(values.startDate&&values.endDate&&values.leaveType&&values.benefit); const days=values.halfDay?0.5:1;
-          return {policyVersion:'2026-10-22.1',periodStart:'2026-04-01',periodEnd:'2027-03-31',VL:7.5,SL:5,pendingVL:0,pendingSL:0,allocationVersion:1,paidDays:complete?(values.benefit==='749910000'?days:0):null,unpaidDays:complete?(values.benefit==='749910001'?days:0):null,allocation:null,days:complete?days:null,benefit:complete?Number(values.benefit):null,pool:complete?'VL':null};
+          return {policyVersion:'2026-10-22.1',periodStart:'2026-04-01',periodEnd:'2027-03-31',VL:7.5,SL:5,pendingVL:0,pendingSL:0,allocationVersion:1,paidDays:complete?(values.benefit==='749910000'?days:0):null,unpaidDays:complete?(values.benefit==='749910001'?days:0):null,allocation:null,days:complete?days:null,benefit:complete?Number(values.benefit):null,pool:complete?(values.leaveType==='749910001'?'SL':'VL'):null};
         },
         async submit(values,id,reviewed,onCommitted){window.leaveSubmitted={values,reviewed};onCommitted?.();return {record:{...${JSON.stringify(leave)},a365_leaveid:id,a365_leavestatus:749910000},notification:'failed'};},
         async notify(){return 'accepted';}
@@ -122,7 +122,7 @@ try {
   checks += 7
   await run.context.close()
 
-  for (const width of [1280, 390]) {
+  for (const width of [1280, 390]) for (const [type, label, pool] of [["749910000", "VL", "VL"], ["749910001", "SL", "SL"], ["749910002", "General Leave", "VL"]]) {
     const halfRun = await scenario("half-day", "admin", width)
     const halfPage = halfRun.page
     await halfPage.getByRole("button", { name: "Add Leave", exact: true }).click()
@@ -132,20 +132,20 @@ try {
     await halfModal.getByLabel("Start Date", { exact: true }).fill("2026-10-23")
     await halfModal.getByRole("combobox", { name: "Leave Type", exact: true }).click()
     assert.equal(await halfPage.getByRole("option", { name: "Emergency", exact: true }).count(), 0)
-    await halfPage.getByRole("option", { name: "VL", exact: true }).click()
+    await halfPage.getByRole("option", { name: label, exact: true }).click()
     await halfModal.getByRole("combobox", { name: "Leave duration", exact: true }).click()
-    await halfPage.getByRole("option", { name: "Half day (0.5 VL credit)", exact: true }).click()
+    await halfPage.getByRole("option", { name: `Half day (0.5 ${pool} credit)`, exact: true }).click()
     assert.equal(await halfModal.getByLabel("End Date", { exact: true }).inputValue(), "2026-10-23")
     assert.equal(await halfModal.getByLabel("End Date", { exact: true }).getAttribute("readonly"), "")
     await halfModal.getByRole("combobox", { name: "Benefit", exact: true }).click()
     await halfPage.getByRole("option", { name: "Paid", exact: true }).click()
-    await halfModal.getByText("0.50 days will be deducted from VL.", { exact: true }).waitFor()
+    await halfModal.getByText(`0.50 days will be deducted from ${pool}.`, { exact: true }).waitFor()
     assert.equal(await halfModal.getByRole("combobox", { name: /AM|PM/ }).count(), 0)
     await halfModal.getByRole("button", { name: "Submit", exact: true }).click()
     await halfModal.waitFor({ state: "hidden" })
     const saved = await halfPage.evaluate(() => window.leaveSubmitted)
     assert.equal(saved.values.halfDay, true)
-    assert.equal(saved.values.leaveType, "749910000")
+    assert.equal(saved.values.leaveType, type)
     assert.deepEqual(saved.reviewed, { paidDays: 0.5, unpaidDays: 0 })
     assert.deepEqual(halfRun.errors, [])
     checks += 8

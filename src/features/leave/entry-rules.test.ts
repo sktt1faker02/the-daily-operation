@@ -7,10 +7,10 @@ const valid = {
 }
 
 describe("Leave entry validation", () => {
-  it("limits half-day leave to VL on a single date", () => {
-    const halfDay = { ...valid, halfDay: true, leaveType: "749910000", endDate: valid.startDate }
+  it.each(["749910000", "749910001", "749910002"])("allows half-day leave type %s on a single date", leaveType => {
+    const halfDay = { ...valid, halfDay: true, leaveType, endDate: valid.startDate }
     expect(validateLeaveEntry(halfDay)).toEqual({})
-    expect(validateLeaveEntry({ ...halfDay, leaveType: "749910001" }).leaveType).toBeTruthy()
+    expect(validateLeaveEntry({ ...halfDay, leaveType: "unknown" }).leaveType).toBeTruthy()
     expect(validateLeaveEntry({ ...halfDay, endDate: "2026-10-23" }).endDate).toContain("same date")
   })
   it("requires a real employee, known numeric choices and both dates", () => {

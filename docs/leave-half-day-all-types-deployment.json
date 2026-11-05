@@ -1,0 +1,41 @@
+{
+    "BusinessDataWrites":  "None",
+    "Previews":  [
+                     {
+                         "UnpaidDays":  0.0,
+                         "Days":  0.5,
+                         "Pool":  "VL",
+                         "LeaveType":  749910000,
+                         "PaidDays":  0.5
+                     },
+                     {
+                         "UnpaidDays":  0.0,
+                         "Days":  0.5,
+                         "Pool":  "SL",
+                         "LeaveType":  749910001,
+                         "PaidDays":  0.5
+                     },
+                     {
+                         "UnpaidDays":  0.0,
+                         "Days":  0.5,
+                         "Pool":  "VL",
+                         "LeaveType":  749910002,
+                         "PaidDays":  0.5
+                     }
+                 ],
+    "AssemblyVersion":  "1.0.3.8",
+    "Emails":  "None",
+    "HalfDayPreview":  "Passed",
+    "Schema":  "Unchanged",
+    "Roles":  "Unchanged",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "IsInTransaction":  true,
+    "LiveIssuance":  "Reserved for owner testing",
+    "DeployedHashMatchesTested":  true,
+    "VerifiedAt":  "2026-11-05T11:56:34.3918180Z",
+    "OrdinaryAccountSecurity":  "Not exercised",
+    "SHA256":  "C5A84EB91AAF62743009E5A194BA474C163D379EC52C41726A7A43671ABA86E6",
+    "AppPublished":  true,
+    "AppId":  "d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f",
+    "AppPlayUrl":  "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f"
+}

@@ -114,32 +114,33 @@ public static class PartialPaidLeaveTests
     }
     public static int Run()
     {
+        foreach (int halfType in new[] { 749910000, 749910001, 749910002 })
+        foreach (int halfBenefit in new[] { 749910000, 749910001 })
         foreach (decimal balance in new[] { 4m, 0.25m, 0m })
         {
-            var halfFake = new Fake(); var halfRequest = Prepare(halfFake, 749910000, 749910000);
+            int halfPool = halfType == 749910001 ? 749910001 : 749910000;
+            var halfFake = new Fake(); var halfRequest = Prepare(halfFake, halfType, halfBenefit);
             var adjustment = new Entity("a365_leavecredittransaction", Guid.NewGuid());
             adjustment["a365_employee"] = new EntityReference("a365_employee", halfFake.Employee);
             adjustment["a365_creditperiod"] = Rules.Iso(Rules.Period(DateTime.UtcNow.AddHours(8).Date));
-            adjustment["a365_creditpool"] = new OptionSetValue(749910000); adjustment["a365_days"] = balance - 4m;
+            adjustment["a365_creditpool"] = new OptionSetValue(halfPool); adjustment["a365_days"] = balance - 4m;
             halfFake.Rows.Add(adjustment);
             halfRequest.command = "preview"; halfRequest.halfDay = true; halfRequest.endDate = halfRequest.startDate;
             var halfPreview = halfFake.Send(halfRequest);
-            decimal paid = Math.Min(balance, 0.5m);
+            decimal paid = halfBenefit == 749910000 ? Math.Min(balance, 0.5m) : 0m;
             Check(Convert.ToDecimal(halfPreview["days"]) == 0.5m && Convert.ToDecimal(halfPreview["paidDays"]) == paid, "half-day preview");
             halfRequest.command = "issue"; halfRequest.expectedPaidDays = paid; halfRequest.expectedUnpaidDays = 0.5m - paid;
             halfFake.Send(halfRequest);
             var halfSource = halfFake.Rows.Single(row => row.LogicalName == "a365_leave");
             Check(halfSource.GetAttributeValue<decimal>("a365_days") == 0.5m && halfSource.GetAttributeValue<decimal>("a365_unpaiddays") == 0.5m - paid, "half-day stored snapshot");
             var debits = halfFake.Rows.Where(row => row.LogicalName == "a365_leavecredittransaction" && row.Contains("a365_leave")).ToList();
-            Check(paid == 0 ? debits.Count == 0 : debits.Count == 1 && debits[0].GetAttributeValue<decimal>("a365_days") == -paid && debits[0].GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000, "half-day exact VL deduction");
+            Check(paid == 0 ? debits.Count == 0 : debits.Count == 1 && debits[0].GetAttributeValue<decimal>("a365_days") == -paid && debits[0].GetAttributeValue<OptionSetValue>("a365_creditpool").Value == halfPool, "half-day exact deduction from correct pool");
             int count = halfFake.Rows.Count; halfFake.Send(halfRequest); Check(halfFake.Rows.Count == count, "half-day retry is idempotent");
             halfRequest.halfDay = false;
             bool mismatch = false; try { halfFake.Send(halfRequest); } catch (InvalidPluginExecutionException) { mismatch = true; }
             Check(mismatch, "retry cannot change half-day duration");
-            halfRequest.halfDay = true; halfRequest.command = "preview"; halfRequest.leaveType = 749910001;
-            bool wrongPool = false; try { halfFake.Send(halfRequest); } catch (InvalidPluginExecutionException) { wrongPool = true; }
-            Check(wrongPool, "half-day cannot use SL");
-            halfRequest.leaveType = 749910000; halfRequest.endDate = Rules.Iso(Rules.Day(halfRequest.startDate).AddDays(1));
+            halfRequest.halfDay = true; halfRequest.command = "preview";
+            halfRequest.endDate = Rules.Iso(Rules.Day(halfRequest.startDate).AddDays(1));
             bool multiple = false; try { halfFake.Send(halfRequest); } catch (InvalidPluginExecutionException) { multiple = true; }
             Check(multiple, "half-day cannot span dates");
         }

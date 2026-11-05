@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.7")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.8")]
 
 namespace A365.Leave.Plugins
 {
@@ -221,7 +221,6 @@ namespace A365.Leave.Plugins
             var end = Rules.Day(request.endDate);
             if (Rules.Period(start) != period || Rules.Period(end) != period) Rules.Fail("Leave must be within the current balance period shown in the credit preview.");
             if (start < hired || end > ended) Rules.Fail("Leave dates must fall within the employee's employment dates.");
-            if (request.halfDay && request.leaveType != 749910000) Rules.Fail("Half-day leave uses VL.");
             var days = Rules.Days(start, end, policy, request.halfDay);
             if (request.leaveType < 749910000 || request.leaveType > 749910002 || (request.benefit != 749910000 && request.benefit != 749910001)) Rules.Fail("Select a valid leave type and benefit.");
             if ((request.note ?? "").Length > 2000) Rules.Fail("Note must be 2,000 characters or fewer.");

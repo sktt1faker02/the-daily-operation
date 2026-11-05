@@ -1,4 +1,38 @@
-# Half-day VL and General Leave
+# Half-day leave and General Leave
+
+## Extension requested 2026-11-05
+
+The owner extended half-day leave to Sick Leave and General Leave. This
+supersedes the VL-only restriction in the original release below.
+
+Verification checklist for the extension:
+
+- [x] VL, SL and General Leave offer Full day and Half day without AM/PM.
+- [x] Half-day SL uses 0.5 SL credit; half-day VL and General Leave use 0.5 VL
+  credit when sufficient paid credits exist. Existing unpaid/partial-paid rules apply.
+- [x] A half-day stays on one working date; weekend, holiday, employment, overlap,
+  balance-period and authorization checks remain enforced.
+- [x] Paid, unpaid, insufficient-credit and retry checks cover all three types.
+- [x] Full-suite run: 506/508 passed; two unchanged Leave History tests timed out
+  waiting for records during the slow parallel run. All eight Leave History tests
+  passed on an isolated rerun. All 24 Leave page tests, lint, build, 161 synthetic
+  server checks and 74 desktop/mobile browser checks passed. Initial browser
+  localhost loads timed out in the sandbox; the authorized outside-sandbox run
+  passed. Build retains its existing large-chunk notice.
+- [x] Deploy plugin 1.0.3.8 and client to Dev, verify the DLL hash and read-only
+  previews for all three types. Live issuance and ordinary-user security remain UAT.
+
+The app is published to the existing Dev app. Live read-only previews returned
+0.5 paid days from VL, SL and VL respectively, and the deployed DLL matches the
+tested artifact. No live leave or credit movements were saved and no emails were
+sent. [Extension deployment evidence](leave-half-day-all-types-deployment.json).
+
+Changed files: the Add Leave form, entry validation and posting preview message;
+Leave plugin type restriction; corresponding rule/service/UI/server/browser tests;
+and the read-only release verification script. Existing schema, generated sources,
+roles, saved history and monetary payroll calculations require no changes.
+
+## Original release, 2026-11-03
 
 Owner request: 2026-11-03. Owner authorized deployment; app and Leave plugin
 1.0.3.7 are published to The Daily Operation - Dev.

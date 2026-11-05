@@ -1,3 +1,4 @@
+param([string]$AssemblyVersion = '1.0.3.8', [string]$EvidenceFile = 'docs/leave-half-day-all-types-deployment.json')
 # Read-only release verification; never issues Leave or sends employee emails.
 $ErrorActionPreference = 'Stop'
 $halfRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -20,7 +21,7 @@ function Half-Read([string]$Path, [hashtable]$Request = $null) {
     return $halfData
 }
 $halfAssembly = Half-Read '/api/data/v9.2/pluginassemblies?$select=name,version,content&$filter=name eq ''A365.Leave.Plugins'''
-if (@($halfAssembly.value).Count -ne 1 -or $halfAssembly.value[0].version -cne '1.0.3.7') { throw 'Expected Leave plugin 1.0.3.7.' }
+if (@($halfAssembly.value).Count -ne 1 -or $halfAssembly.value[0].version -cne $AssemblyVersion) { throw "Expected Leave plugin $AssemblyVersion." }
 $halfDownloaded = Join-Path $halfWork 'deployed-Leave.dll'
 [IO.File]::WriteAllBytes($halfDownloaded, [Convert]::FromBase64String($halfAssembly.value[0].content))
 $halfHash = (Get-FileHash -LiteralPath $halfDownloaded -Algorithm SHA256).Hash
@@ -35,15 +36,18 @@ $halfEmployeePath = '/api/data/v9.2/a365_employees?$select=a365_employeeid&$filt
 $halfEmployees = Half-Read $halfEmployeePath
 if (@($halfEmployees.value).Count -ne 1) { throw 'No eligible active employee available for preview.' }
 $halfEmployee = $halfEmployees.value[0].a365_employeeid
-$halfPreview = Half-Read '/api/data/v9.2/a365_LeaveCommand' @{ command = 'preview'; employeeId = $halfEmployee; startDate = $halfDate; endDate = $halfDate; leaveType = 749910000; benefit = 749910000; halfDay = $true }
-if ($halfPreview.days -ne 0.5 -or $halfPreview.pool -cne 'VL' -or ($halfPreview.paidDays + $halfPreview.unpaidDays) -ne 0.5 -or ($halfPreview.VL -ge 0.5 -and $halfPreview.paidDays -ne 0.5)) { throw 'Half-day VL preview contract failed.' }
+$halfPreviews = @(foreach ($halfType in @(749910000, 749910001, 749910002)) {
+    $halfPool = if ($halfType -eq 749910001) { 'SL' } else { 'VL' }
+    $halfPreview = Half-Read '/api/data/v9.2/a365_LeaveCommand' @{ command = 'preview'; employeeId = $halfEmployee; startDate = $halfDate; endDate = $halfDate; leaveType = $halfType; benefit = 749910000; halfDay = $true }
+    if ($halfPreview.days -ne 0.5 -or $halfPreview.pool -cne $halfPool -or ($halfPreview.paidDays + $halfPreview.unpaidDays) -ne 0.5 -or ($halfPreview.$halfPool -ge 0.5 -and $halfPreview.paidDays -ne 0.5)) { throw "Half-day preview contract failed for type $halfType." }
+    @{ LeaveType = $halfType; Days = $halfPreview.days; PaidDays = $halfPreview.paidDays; UnpaidDays = $halfPreview.unpaidDays; Pool = $halfPreview.pool }
+})
 $halfEvidence = @{
     VerifiedAt = [DateTime]::UtcNow.ToString('o'); Environment = $halfEnvironment
-    AssemblyVersion = '1.0.3.7'; SHA256 = $halfHash; DeployedHashMatchesTested = $true
-    IsInTransaction = $true; HalfDayPreview = 'Passed'; PreviewDays = $halfPreview.days
-    PreviewPaidDays = $halfPreview.paidDays; PreviewUnpaidDays = $halfPreview.unpaidDays; PreviewPool = $halfPreview.pool
+    AssemblyVersion = $AssemblyVersion; SHA256 = $halfHash; DeployedHashMatchesTested = $true
+    IsInTransaction = $true; HalfDayPreview = 'Passed'; Previews = $halfPreviews
     Schema = 'Unchanged'; Roles = 'Unchanged'; BusinessDataWrites = 'None'; Emails = 'None'
     LiveIssuance = 'Reserved for owner testing'; OrdinaryAccountSecurity = 'Not exercised'
 }
-[IO.File]::WriteAllText((Join-Path $halfRoot 'docs/leave-half-day-deployment.json'), ($halfEvidence | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding($false)))
-Write-Host 'Verified deployed Leave 1.0.3.7 hash and live 0.5-day VL preview. No Leave issued and no email sent.'
+[IO.File]::WriteAllText((Join-Path $halfRoot $EvidenceFile), ($halfEvidence | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding($false)))
+Write-Host "Verified deployed Leave $AssemblyVersion hash and live 0.5-day VL, SL and General Leave previews. No Leave issued and no email sent."
