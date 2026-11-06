@@ -9,6 +9,36 @@ using A365.Leave.Plugins;
 public static class PartialPaidLeaveTests
 {
     private static int checks;
+    public static int RunAnnualAllocation()
+    {
+        checks = 0;
+        var ensure = typeof(LeaveCommand).GetMethod("EnsureCredits", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        foreach (var year in new[] { 2027, 2028 })
+        {
+            var rows = new List<Entity>();
+            var employee = Guid.NewGuid();
+            var period = new DateTime(year, 1, 1);
+            var dates = new[] { period, period.AddMonths(1).AddDays(-1), period.AddMonths(1), period.AddMonths(2), period.AddMonths(6), period.AddMonths(12).AddDays(-1), period.AddMonths(12) };
+            var expectedVL = new[] { 0m, 0m, 0.83m, 1.67m, 5m, 9.17m, 10m };
+            for (int index = 0; index < dates.Length; index++)
+            {
+                ensure.Invoke(null, new object[] { null, rows, employee, new DateTime(2020, 1, 1), period, dates[index], false });
+                Check(rows.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == expectedVL[index], "VL accrues only after completed months with exact annual rounding");
+                Check(rows.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910001).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 5m, "Annual SL remains five days");
+                Check(rows.All(row => row.GetAttributeValue<string>("a365_creditperiod") == year + "-01-01"), "Credits stay in their earned cycle without carryover");
+                int count = rows.Count;
+                ensure.Invoke(null, new object[] { null, rows, employee, new DateTime(2020, 1, 1), period, dates[index], false });
+                Check(rows.Count == count, "Repeated previews cannot duplicate credits");
+            }
+            var newHire = new List<Entity>();
+            ensure.Invoke(null, new object[] { null, newHire, employee, period.AddDays(14), period, period.AddMonths(2), false });
+            Check(newHire.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 0.83m, "Mid-January hire earns February credit on March 1 only");
+        }
+        var legacy = new List<Entity>();
+        ensure.Invoke(null, new object[] { null, legacy, Guid.NewGuid(), new DateTime(2020, 1, 1), new DateTime(2026, 4, 1), new DateTime(2026, 12, 31), false });
+        Check(legacy.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 6.67m, "2026 monthly VL accrual is preserved");
+        return checks;
+    }
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
     private static void Check(bool condition, string message) { if (!condition) throw new Exception(message); checks++; }
     private sealed class Fake : IOrganizationService, IOrganizationServiceFactory, IServiceProvider

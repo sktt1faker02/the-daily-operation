@@ -6,6 +6,27 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-06 - Leave balance period uses the 2026 calendar year
+
+Changed `Rules.Period` and `PeriodEnd` in
+`plugins/A365.Leave.Plugins/LeaveCommand.cs` to use January 1-December 31 from
+2026, separately from the annual allocation effective date. Preserved the owner's
+concurrent 0 VL / 5 SL allocation changes and the monthly accrual formula; the
+2026 accrual window now starts in January. Updated balance-period regression
+checks in `scripts/leave-schema/test-posting-rules.ps1` and release/checklist notes
+in `docs/leave-january-reset.md`. Signed server compilation and synthetic period,
+issuance, allocation, reset and conversion checks pass (333 assertions). App lint
+and build pass, with existing large-chunk build warnings. The full Vitest run
+passed 505/508 tests; three Leave dialog cases timed out under concurrent load.
+All 24 tests in that file passed on an isolated rerun, including those three.
+No Playwright run: no browser UI changed and no repository Playwright suite is
+configured; live hosted-app verification remains pending.
+
+No live data, schema, role, historical snapshot or deployment changes. Existing
+April-tagged rows require an approved reconciliation before live operations;
+the new period excludes those rows and uses new automatic grant keys. Production
+preview/issuance and real-user security remain unverified. No browser UI changed.
+
 ### 2026-11-03 - App link in payslip-ready notifications
 
 Added an Open The Daily Operation button to new payslip-ready HTML emails and

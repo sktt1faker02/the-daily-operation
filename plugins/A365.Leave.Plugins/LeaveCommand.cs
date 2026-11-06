@@ -67,18 +67,18 @@ namespace A365.Leave.Plugins
         }
         public static string Iso(DateTime value) { return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); }
         public static readonly DateTime JanuaryResetEffective = new DateTime(2027, 1, 1);
+        public static readonly DateTime CalendarPeriodEffective = new DateTime(2026, 1, 1);
         public static DateTime Period(DateTime day)
         {
-            // Preserve the existing credit cycle until the owner's effective date.
-            if (day < JanuaryResetEffective) return new DateTime(day.Month < 4 ? day.Year - 1 : day.Year, 4, 1);
-            var reset = new DateTime(day.Year, 1, 1);
-            return day < reset ? reset.AddYears(-1) : reset;
+            // Calendar-year boundaries are independent of the annual allocation policy.
+            if (day < CalendarPeriodEffective) return new DateTime(day.Month < 4 ? day.Year - 1 : day.Year, 4, 1);
+            return new DateTime(day.Year, 1, 1);
         }
         public static DateTime PeriodEnd(DateTime period)
         {
             var end = period.AddYears(1).AddDays(-1);
-            return period < JanuaryResetEffective && end >= JanuaryResetEffective
-                ? JanuaryResetEffective.AddDays(-1) : end;
+            return period < CalendarPeriodEffective && end >= CalendarPeriodEffective
+                ? CalendarPeriodEffective.AddDays(-1) : end;
         }
         public static decimal Accrual(int number) { return Math.Round(10m * number / 12m, 2, MidpointRounding.AwayFromZero) - Math.Round(10m * (number - 1) / 12m, 2, MidpointRounding.AwayFromZero); }
         public static decimal Days(DateTime start, DateTime end, Policy policy, bool halfDay = false)
@@ -265,13 +265,7 @@ namespace A365.Leave.Plugins
 
         private static void EnsureCredits(IOrganizationService caller, List<Entity> rows, Guid employee, DateTime hired, DateTime period, DateTime today, bool persist)
         {
-            if (period >= Rules.JanuaryResetEffective)
-            {
-                // Full annual allocation; no monthly accrual or previous-period carryover.
-                Grant(caller, rows, employee, period, period.Year, 749910000, 749910001, 10m, "VL-" + Rules.Iso(period), persist);
-                Grant(caller, rows, employee, period, period.Year, 749910001, 749910001, 5m, "SL-" + Rules.Iso(period), persist);
-                return;
-            }
+            // Start each period with 0 VL / 5 SL, then earn VL monthly in arrears.
             Grant(caller, rows, employee, period, period.Year, 749910001, 749910001, 5m, "SL-" + Rules.Iso(period), persist);
             int earned = 0;
             for (int month = 0; month < 12; month++)
@@ -293,8 +287,8 @@ namespace A365.Leave.Plugins
             }
             var row = Movement(employee, period, year, pool, type, days, key, key);
             row["a365_note"] = period >= Rules.JanuaryResetEffective
-                ? "Annual January 1 reset effective 2027: 10 VL and 5 SL; no carryover or monthly accrual."
-                : "Automatic credit under policy 2026-10-22.1. Monthly VL is earned in arrears; SL is granted for the April period.";
+                ? "January cycle effective 2027: starts at 0 VL and 5 SL; monthly VL earned in arrears toward 10 days; no carryover."
+                : "Automatic credit under policy 2026-10-22.1. Monthly VL is earned in arrears; SL is granted for the balance period.";
             if (persist) row.Id = service.Create(row);
             rows.Add(row);
         }

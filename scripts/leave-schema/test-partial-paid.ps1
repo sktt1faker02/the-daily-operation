@@ -7,3 +7,5 @@ $splitAssembly = Join-Path $splitRoot 'plugins/A365.Leave.Plugins/bin/A365.Leave
 Add-Type -Path (Join-Path $splitRoot 'plugins/A365.Leave.Plugins/PartialPaidLeave.Tests.cs') -ReferencedAssemblies @($splitSdk, $splitAssembly, 'System.Runtime.Serialization', 'System.Web.Extensions')
 $splitChecks = [PartialPaidLeaveTests]::Run()
 Write-Host "Passed $splitChecks partial-paid issuance checks using synthetic services. No live records, Dataverse calls or email."
+$annualChecks = [PartialPaidLeaveTests]::RunAnnualAllocation()
+Write-Host "Passed $annualChecks annual allocation checks: 0 VL / 5 SL opening, monthly VL accrual from 2027, and unchanged 2026 accrual."

@@ -23,7 +23,9 @@ Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2026-03-20', 
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2026-05-27', [datetime]'2026-05-27', $leavePolicy) }
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2026-10-24', [datetime]'2026-10-26', $leavePolicy) }
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2026-10-23', [datetime]'2026-10-22', $leavePolicy) }
-Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2026-03-31', [datetime]'2026-04-01', $leavePolicy) }
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Days([datetime]'2026-03-31', [datetime]'2026-04-01', $leavePolicy)) 2d
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Days([datetime]'2026-01-06', [datetime]'2026-01-06', $leavePolicy, $true)) 0.5d
+Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2026-12-31', [datetime]'2027-01-01', $leavePolicy) }
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Days([datetime]'2027-02-01', [datetime]'2027-02-01', $leavePolicy) }
 $leaveAccrued = 0d
 1..12 | ForEach-Object { $leaveAccrued += [A365.Leave.Plugins.Rules]::Accrual($_) }
@@ -62,8 +64,12 @@ Assert-LeaveRule $leaveHoliday.days.Count 2
 Assert-LeaveRule $leaveHoliday.days[1].date '2026-12-28'
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Allocate(749910002, 4d, [datetime]'2026-10-26', [datetime]'2026-10-30', $leavePolicy) }
 Assert-LeaveRejected { [A365.Leave.Plugins.Rules]::Allocate(749910000, 1.234d, [datetime]'2026-10-26', [datetime]'2026-10-30', $leavePolicy) }
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2026-12-31').ToString('yyyy-MM-dd')) '2026-04-01'
-Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2026-04-01').ToString('yyyy-MM-dd')) '2026-12-31'
+foreach ($leaveDate in @('2026-01-01', '2026-01-06', '2026-03-31', '2026-04-01', '2026-12-31')) {
+    Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]$leaveDate).ToString('yyyy-MM-dd')) '2026-01-01'
+}
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2026-01-01').ToString('yyyy-MM-dd')) '2026-12-31'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2025-12-31').ToString('yyyy-MM-dd')) '2025-04-01'
+Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2025-04-01').ToString('yyyy-MM-dd')) '2025-12-31'
 Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2027-01-01').ToString('yyyy-MM-dd')) '2027-01-01'
 Assert-LeaveRule ([A365.Leave.Plugins.Rules]::Period([datetime]'2027-01-04').ToString('yyyy-MM-dd')) '2027-01-01'
 Assert-LeaveRule ([A365.Leave.Plugins.Rules]::PeriodEnd([datetime]'2027-01-01').ToString('yyyy-MM-dd')) '2027-12-31'

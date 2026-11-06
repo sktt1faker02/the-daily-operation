@@ -1,15 +1,57 @@
 # January leave-credit reset
 
-Latest owner correction, 2026-11-03: annual reset on **January 1**, starting
-**January 1, 2027**, to **10 VL and 5 SL**. This supersedes the October 22
+## 2026 calendar-period correction - 2026-11-06
+
+Owner requested changing the current balance period to **January 1-December 31,
+2026**, independently of the annual allocation change below. Calendar-year
+boundaries now apply from January 1, 2026; earlier dates retain their April
+start, with the last legacy period ending December 31, 2025. The allocation
+effective date remains January 1, 2027. The monthly accrual formula and the
+separate 0 VL / 5 SL annual allocation edits are preserved. In 2026, monthly
+accrual is evaluated from the new January period start.
+
+Verification checklist:
+
+- [x] January, March, April and December 2026 resolve to January 1, 2026.
+- [x] The 2026 period ends December 31; March-April leave no longer crosses periods.
+- [x] January 6 half-day calculation succeeds; cross-year leave remains blocked.
+- [x] Earlier April-start periods and future calendar-year boundaries are tested.
+- [x] Server issuance, allocation, reset and conversion regression checks pass.
+- [x] Lint and app build pass. Full Vitest run: 505 passed, three Leave dialog
+  timeouts; isolated rerun of all 24 Leave page tests passes. No UI change or
+  configured Playwright suite; live browser verification remains pending.
+- [ ] Deploy the updated server plugin through the authorized release process.
+- [ ] Reconcile existing April-tagged credits/deductions before live use; no
+  migration, balance reset, retagging or historical snapshot changes were run.
+- [ ] Production preview, issuance and ordinary-account security UAT.
+
+Release gate: `a365_creditperiod` is used for exact balance selection and automatic
+grant keys. Existing `2026-04-01` rows will not count in the new `2026-01-01`
+balance, and new grants use different keys. An authorized administrator must
+inventory affected grants, deductions, restorations, conversions and reset
+adjustments, agree the reconciled opening balances and an auditable correction
+process, and verify those balances before enabling new operations. Do not blindly
+retag rows or use Reset leave balances as a migration: that action sets balances
+to its own targets. Updating only the browser app does not deploy this server rule.
+
+The release history below describes the earlier period implementation; the
+2026 calendar-period correction above supersedes its April 2026 boundary.
+
+## Annual allocation and previous release history
+
+Latest owner correction, 2026-11-06: annual reset on **January 1**, starting
+**January 1, 2027**, to **0 VL and 5 SL**. This supersedes the November 3
+10 VL annual allocation and the October 22
 January 5 decision, including the old January 5-January 4 cycle boundaries.
 
 Local implementation:
 
-- Effective date January 1, 2027; new cycles run January 1-December 31.
-- The transitional April 2026 cycle ends December 31, 2026.
-- Full annual 10 VL / 5 SL allocation replaces monthly VL accrual from that date;
-  no previous-period carryover. Before 2027, existing accrual rules remain.
+- Annual allocation effective date January 1, 2027; calendar-year boundaries
+  now start in 2026 as documented above.
+- Each year opens at 0 VL / 5 SL. Monthly VL accrual continues from January
+  2027 onward: completed eligible months earn rounded increments toward 10 days
+  per 12 months, in arrears (January becomes due February 1). A partial hire
+  month is excluded. There is no previous-period carryover.
 - January 1-4, 2027 now belong to the 2027 cycle for new operations. Existing
   historical transactions/period tags are not rewritten.
 - Eligibility, holiday coverage and insufficient-credit handling remain unchanged.
@@ -21,12 +63,27 @@ Annual allocation retains the existing lazy posting pattern: preview projects du
 credits without writing; Leave submission materializes them. There is no new
 unattended scheduler. Manual reset first materializes already-due credits, then
 adds signed adjustments to the targets so those due grants are not duplicated by
-subsequent submission. Later normal accrual is unchanged before 2027.
+subsequent submission. Later monthly accrual continues, including from 2027.
 
 The existing 2027 holiday-coverage restriction remains. This date change does not
 claim a complete 2027 holiday calendar or update finalized payroll/leave snapshots.
 
-Release: signed Leave plugin **1.0.3.5** was deployed to owner-confirmed Dev on
+The November 6 allocation change is local and requires a server plugin deployment
+to take effect in Dataverse. No existing credits are rewritten; the annual path
+creates the 5 SL opening grant and due monthly VL credits. Manual reset remains
+a separate 10 VL / 5 SL operation.
+
+Verification checklist for the monthly-accrual follow-up:
+
+- [x] January opens at 0 VL / 5 SL in 2027 and 2028.
+- [x] January earns 0.83 VL on February 1; two months total 1.67 and six total 5.
+- [x] Twelve eligible months total exactly 10; December is due the following January
+  and remains tagged to its earned year, with no carryover into the new cycle.
+- [x] Mid-month hires exclude the partial month; repeated previews add no duplicates.
+- [x] The existing 2026 accrual formula remains intact.
+- [ ] Deploy the server plugin and verify live balances through the release process.
+
+Previous release: signed Leave plugin **1.0.3.5** was deployed to owner-confirmed Dev on
 2026-11-03. Its hash, live read-only reset preview and unchanged credit count
 are verified in [deployment evidence](leave-reset-deployment.json). Native Leave
 assembly/step references were synchronized from the actual solution export.
