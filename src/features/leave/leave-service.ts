@@ -16,6 +16,8 @@ const leaveSelect = ["a365_leaveid", "a365_name", "_a365_employee_value", "a365_
 const conversionSelect = ["a365_leavecashconversionid", "a365_name", "_a365_employee_value", "a365_year", "a365_days", "a365_dailyrateused", "a365_amount", "a365_conversionstatus", "_a365_convertedby_value", "a365_convertedon", "_a365_cancelledby_value", "a365_cancelledon", "a365_cancellationreason"] satisfies (keyof ConversionRecord)[]
 const creditSelect = ["a365_leavecredittransactionid", "a365_name", "_a365_employee_value", "a365_year", "a365_creditpool", "a365_days", "a365_transactiontype", "a365_transactionkey", "a365_periodkey", "a365_note", "createdon", "_a365_leave_value", "_a365_cashconversion_value"] satisfies (keyof CreditRecord)[]
 const employeeSelect = ["a365_employeeid", "a365_name", "a365_employeenumber"]
+// Navigation property verified against all three live employee relationships.
+const visibleEmployeeFilter = "a365_Employee/a365_employmentstatus ne 749910001"
 const textLiteral = (value: string) => `'${value.replace(/'/g, "''")}'`
 
 function checked<T>(result: IOperationResult<T>): T {
@@ -37,6 +39,7 @@ export function buildLeaveFilter(filters: LeaveFilters): string {
   const clauses = filters.section === "leave"
     ? [`a365_startdate lt ${filters.year + 1}-01-01`, `a365_enddate ge ${filters.year}-01-01`]
     : [`a365_year eq ${filters.year}`]
+  clauses.push(visibleEmployeeFilter)
   if (filters.employeeId) clauses.push(`_a365_employee_value eq ${requireGuid(filters.employeeId)}`)
   if (filters.search.trim()) clauses.push(`contains(a365_name,${textLiteral(filters.search.trim())})`)
   if (filters.section === "leave") {
@@ -71,6 +74,14 @@ async function employeeNames(ids: (string | undefined)[]): Promise<LeaveEmployee
   }))
 }
 
+async function isInactive(employeeId: string) {
+  const rows = checked(await dataClient.retrieveMultipleRecordsAsync<{ a365_employeeid: string; a365_employmentstatus?: number }>("a365_employees", {
+    select: ["a365_employeeid", "a365_employmentstatus"], filter: `a365_employeeid eq ${requireGuid(employeeId)}`, maxPageSize: 1,
+  }))
+  if (rows.length !== 1 || typeof rows[0].a365_employmentstatus !== "number") throw new Error("Unable to verify employee status. Refresh and try again.")
+  return rows[0].a365_employmentstatus === 749910001
+}
+
 /** Read-only until policy and transactional server commands are authorized and verified. */
 export const leaveService = {
   async conversionEmployees(year: number, skipToken?: string) {
@@ -78,6 +89,7 @@ export const leaveService = {
     type ConversionEmployee = LeaveEmployee & { a365_basicmonthlysalary?: number }
     const result = await dataClient.retrieveMultipleRecordsAsync<ConversionEmployee>("a365_employees", {
       select: [...employeeSelect, "a365_basicmonthlysalary"], maxPageSize: 20, skipToken,
+      filter: "a365_employmentstatus ne 749910001",
       orderBy: ["a365_name asc", "a365_employeeid asc"],
     })
     const employees = checked(result)
@@ -117,7 +129,7 @@ export const leaveService = {
   async searchEmployees(search: string, skipToken?: string) {
     const result = await dataClient.retrieveMultipleRecordsAsync<LeaveEmployee>("a365_employees", {
       select: employeeSelect, maxPageSize: 20, skipToken,
-      filter: search.trim() ? `(contains(a365_name,${textLiteral(search.trim())}) or contains(a365_employeenumber,${textLiteral(search.trim())}))` : undefined,
+      filter: `a365_employmentstatus ne 749910001${search.trim() ? ` and (contains(a365_name,${textLiteral(search.trim())}) or contains(a365_employeenumber,${textLiteral(search.trim())}))` : ""}`,
       orderBy: ["a365_name asc", "a365_employeeid asc"],
     })
     return { rows: checked(result), next: result.skipToken }
@@ -140,9 +152,10 @@ export const leaveService = {
     return page
   },
 
-  async balances(employeeId: string, year: number) {
+  async balances(employeeId: string, year: number): Promise<{ VL: number; SL: number; movements: number; inactive?: boolean }> {
     const id = requireGuid(employeeId)
     if (!validYear(year)) throw new Error("Select a valid year.")
+    if (await isInactive(id)) return { VL: 0, SL: 0, movements: 0, inactive: true }
     const rows = await allPages<CreditRecord>(options => A365_leavecredittransactionsService.getAll(options), {
       filter: `_a365_employee_value eq ${id} and a365_year eq ${year}`, select: creditSelect,
       orderBy: ["a365_leavecredittransactionid asc"],
@@ -155,6 +168,7 @@ export const leaveService = {
     const record: LeaveRecord | ConversionRecord = source.kind === "leave"
       ? checked(await A365_leavesService.get(id, { select: leaveSelect }))
       : checked(await A365_leavecashconversionsService.get(id, { select: conversionSelect }))
+    if (await isInactive(requireGuid(record._a365_employee_value ?? ""))) throw new Error("This employee is inactive and is not shown in Leave Management.")
     const actorIds = [record._a365_cancelledby_value, "a365_issuedon" in record ? record._a365_issuedby_value : record._a365_convertedby_value]
     const [employees, actors] = await Promise.all([
       employeeNames([record._a365_employee_value]), userService.getNamesByIds(actorIds),

@@ -85,13 +85,15 @@ namespace A365.Leave.Plugins
             // Capture all current rows after employee locks and reject a changed roster.
             details = All(caller, detailQuery);
             var balances = Balances(caller, request.year, details.Select(row => row.GetAttributeValue<EntityReference>("a365_employee").Id));
+            var inactive = InactiveEmployees(caller, details.Select(row => row.GetAttributeValue<EntityReference>("a365_employee").Id));
             var paid = new Entity(Header, header.Id) { RowVersion = request.version };
             paid["statecode"] = new OptionSetValue(1); paid["statuscode"] = new OptionSetValue(2);
             caller.Execute(new UpdateRequest { Target = paid, ConcurrencyBehavior = ConcurrencyBehavior.IfRowVersionMatches });
             foreach (var row in details)
             {
                 if (row.GetAttributeValue<OptionSetValue>("a365_conversionstatus").Value != 749910000) continue;
-                var values = Effective(row.GetAttributeValue<decimal>("a365_availablevl"), row.GetAttributeValue<decimal>("a365_days"), row.GetAttributeValue<Money>("a365_dailyrateused").Value, balances[row.GetAttributeValue<EntityReference>("a365_employee").Id]);
+                Guid employeeId = row.GetAttributeValue<EntityReference>("a365_employee").Id;
+                var values = Effective(row.GetAttributeValue<decimal>("a365_availablevl"), row.GetAttributeValue<decimal>("a365_days"), row.GetAttributeValue<Money>("a365_dailyrateused").Value, inactive.Contains(employeeId) ? 0m : balances[employeeId]);
                 var frozen = new Entity(Detail, row.Id);
                 frozen["a365_availablevl"] = values.AvailableVL; frozen["a365_days"] = values.Days; frozen["a365_amount"] = new Money(values.Amount);
                 caller.Update(frozen);
@@ -104,6 +106,21 @@ namespace A365.Leave.Plugins
             var rows = caller.RetrieveMultiple(query).Entities;
             if (rows.Count > 1) Rules.Fail("Duplicate conversion data needs administrator review.");
             return rows.FirstOrDefault();
+        }
+        private static HashSet<Guid> InactiveEmployees(IOrganizationService caller, IEnumerable<Guid> employeeIds)
+        {
+            var ids = employeeIds.Distinct().ToArray();
+            var inactive = new HashSet<Guid>();
+            for (int offset = 0; offset < ids.Length; offset += 100)
+            {
+                var batch = ids.Skip(offset).Take(100).ToArray();
+                var query = Query("a365_employee", "a365_employmentstatus");
+                query.Criteria.AddCondition("a365_employeeid", ConditionOperator.In, batch.Cast<object>().ToArray());
+                var employees = All(caller, query);
+                if (employees.Count != batch.Length || employees.Any(row => !row.Contains("a365_employmentstatus"))) Rules.Fail("Employee status could not be verified before payment.");
+                foreach (var employee in employees) if (employee.GetAttributeValue<OptionSetValue>("a365_employmentstatus").Value == 749910001) inactive.Add(employee.Id);
+            }
+            return inactive;
         }
         private static Entity ForYear(IOrganizationService caller, int year)
         {
@@ -165,6 +182,9 @@ namespace A365.Leave.Plugins
             var header = ForYear(caller, request.year);
             var query = Query(Detail, DetailColumns);
             query.Criteria.AddCondition("a365_conversionyear", ConditionOperator.Equal, header.Id);
+            // Filter before paging so inactive rows cannot create empty pages.
+            var employeeLink = query.AddLink("a365_employee", "a365_employee", "a365_employeeid", JoinOperator.Inner);
+            employeeLink.LinkCriteria.AddCondition("a365_employmentstatus", ConditionOperator.NotEqual, 749910001);
             query.AddOrder("a365_name", OrderType.Ascending); query.AddOrder(Detail + "id", OrderType.Ascending);
             var cursor = new Cursor { page = 1 };
             if (!String.IsNullOrEmpty(request.cursor))
@@ -212,6 +232,8 @@ namespace A365.Leave.Plugins
                 Guid id, employee;
                 if (!Guid.TryParse(change.id, out id) || !Guid.TryParse(change.employeeId, out employee)) { Rules.Fail("Select a valid conversion employee."); return null; }
                 if (!employees.Add(employee) || !ids.Add(id)) Rules.Fail("Duplicate conversion employees are not permitted.");
+                var currentEmployee = caller.Retrieve("a365_employee", employee, new ColumnSet("a365_employmentstatus"));
+                if (!currentEmployee.Contains("a365_employmentstatus") || currentEmployee.GetAttributeValue<OptionSetValue>("a365_employmentstatus").Value == 749910001) Rules.Fail("Inactive employees cannot be included in leave conversion. Reload the year.");
                 Validate(change.availableVL.Value, change.days.Value);
                 var query = Query(Detail, DetailColumns); query.TopCount = 2;
                 query.Criteria.AddCondition("a365_conversionyear", ConditionOperator.Equal, header.Id); query.Criteria.AddCondition("a365_employee", ConditionOperator.Equal, employee);

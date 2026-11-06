@@ -51,6 +51,15 @@ public static class ConversionCommandsTests
             var query = (QueryExpression)input;
             if (query.EntityName == "role") { var roles = new EntityCollection(); if (Admin) roles.Entities.Add(new Entity("role", Guid.NewGuid())); return roles; }
             IEnumerable<Entity> data = query.EntityName == "a365_leavecoordination" ? Coordination.Values : Store.Values.Where(r => r.LogicalName == query.EntityName);
+            foreach (var link in query.LinkEntities) {
+                if (link.LinkToEntityName != "a365_employee" || link.JoinOperator != JoinOperator.Inner) throw new Exception("Unexpected link");
+                data = data.Where(row => {
+                    var reference = row.GetAttributeValue<EntityReference>("a365_employee");
+                    if (reference == null || !Store.ContainsKey(reference.Id)) return false;
+                    var employee = Store[reference.Id];
+                    return link.LinkCriteria.Conditions.All(condition => condition.AttributeName == "a365_employmentstatus" && condition.Operator == ConditionOperator.NotEqual && employee.Contains("a365_employmentstatus") && !Object.Equals(Scalar(employee["a365_employmentstatus"]), condition.Values[0]));
+                });
+            }
             foreach (var condition in query.Criteria.Conditions) {
                 var field = condition.AttributeName;
                 data = data.Where(row => {
@@ -152,6 +161,7 @@ public static class ConversionCommandsTests
         Check(fault.Context.OutputParameters.Count == 0, "database failure never returns success; platform rollback requires live test");
         var payment = Seed(); string paymentId = Guid.NewGuid().ToString("D");
         Run(payment, new { command = "conversionCreate", year = year, operationId = paymentId });
+        Credit(payment, payment.Store.Values.First(r => r.LogicalName == Detail).GetAttributeValue<EntityReference>("a365_employee").Id, year, 10m, 749910000);
         var paymentHeader = payment.Store[Guid.Parse(paymentId)]; string paymentVersion = paymentHeader["versionnumber"].ToString();
         int paymentWrites = payment.Writes.Count;
         Reject(payment, new { command = "conversionMarkPaid", year = year, operationId = paymentId, version = "stale" });
@@ -169,6 +179,42 @@ public static class ConversionCommandsTests
         Check(payment.Writes.Count == paymentWrites + 4, "paid year rejects all saves before writes");
         var paidPage = Run(payment, new { command = "conversionRows", year = year });
         Check((bool)((Dictionary<string, object>)paidPage["transaction"])["paid"], "reopening retains paid status");
+        var inactiveCase = Seed(); string inactiveYear = Guid.NewGuid().ToString("D");
+        Run(inactiveCase, new { command = "conversionCreate", year = year, operationId = inactiveYear });
+        var inactiveRow = inactiveCase.Store.Values.First(r => r.LogicalName == Detail);
+        Guid inactiveId = inactiveRow.GetAttributeValue<EntityReference>("a365_employee").Id;
+        Credit(inactiveCase, inactiveId, year, 10m, 749910000);
+        inactiveCase.Store[inactiveId]["a365_employmentstatus"] = new OptionSetValue(749910001);
+        int beforeHidden = inactiveCase.Writes.Count;
+        var inactivePage = Run(inactiveCase, new { command = "conversionRows", year = year });
+        Check(((System.Collections.IEnumerable)inactivePage["rows"]).Cast<Dictionary<string, object>>().All(r => (string)r["employeeId"] != inactiveId.ToString("D")), "Inactive employees hidden from unpaid conversion");
+        Check(inactiveCase.Writes.Count == beforeHidden && (decimal)inactiveRow["a365_days"] == 5m, "Visibility does not rewrite saved history");
+        var inactiveHeader = inactiveCase.Store[Guid.Parse(inactiveYear)];
+        Reject(inactiveCase, new { command = "conversionSave", year = year, operationId = inactiveYear, version = inactiveHeader["versionnumber"].ToString(), changes = new[] { new { id = inactiveRow.Id.ToString("D"), employeeId = inactiveId.ToString("D"), availableVL = 10m, days = 5m } } });
+        Check(inactiveCase.Writes.Count == beforeHidden, "Stale edits cannot include an inactive employee");
+        Run(inactiveCase, new { command = "conversionMarkPaid", year = year, operationId = inactiveYear, version = inactiveHeader["versionnumber"].ToString() });
+        Check((decimal)inactiveRow["a365_days"] == 0m && inactiveRow.GetAttributeValue<Money>("a365_amount").Value == 0m, "New payment excludes inactive employee despite existing credits");
+        inactivePage = Run(inactiveCase, new { command = "conversionRows", year = year });
+        Check(((System.Collections.IEnumerable)inactivePage["rows"]).Cast<Dictionary<string, object>>().All(r => (string)r["employeeId"] != inactiveId.ToString("D")), "Inactive employees hidden from paid conversion");
+        inactiveCase.Store[inactiveId]["a365_employmentstatus"] = new OptionSetValue(749910000);
+        inactivePage = Run(inactiveCase, new { command = "conversionRows", year = year });
+        var reactivated = ((System.Collections.IEnumerable)inactivePage["rows"]).Cast<Dictionary<string, object>>().Single(r => (string)r["employeeId"] == inactiveId.ToString("D"));
+        Check(Convert.ToDecimal(reactivated["amount"]) == 0m, "Reactivation cannot invent a historical payment");
+        var existingPaidEmployee = payment.Store.Values.First(r => r.LogicalName == Detail);
+        Guid existingPaidId = existingPaidEmployee.GetAttributeValue<EntityReference>("a365_employee").Id;
+        decimal paidAmount = existingPaidEmployee.GetAttributeValue<Money>("a365_amount").Value;
+        payment.Store[existingPaidId]["a365_employmentstatus"] = new OptionSetValue(749910001);
+        Run(payment, new { command = "conversionRows", year = year });
+        Check(existingPaidEmployee.GetAttributeValue<Money>("a365_amount").Value == paidAmount, "Previously paid snapshots remain unchanged after deactivation");
+        Check(paidAmount > 0m, "Paid history preservation exercises an actual positive payout snapshot");
+        var paging = Seed();
+        for (int i = 0; i < 24; i++) {
+            var person = new Entity("a365_employee", Guid.NewGuid()); person["a365_name"] = "Paged " + i; person["a365_employmentstatus"] = new OptionSetValue(749910000); person["a365_basicmonthlysalary"] = new Money(22000m); paging.Store[person.Id] = person;
+        }
+        Run(paging, new { command = "conversionCreate", year = year, operationId = Guid.NewGuid().ToString("D") });
+        foreach (var person in paging.Store.Values.Where(r => r.LogicalName == "a365_employee" && r.GetAttributeValue<OptionSetValue>("a365_employmentstatus").Value == 749910000).Take(23)) person["a365_employmentstatus"] = new OptionSetValue(749910001);
+        var paged = Run(paging, new { command = "conversionRows", year = year });
+        Check(((System.Collections.IEnumerable)paged["rows"]).Cast<object>().Count() == 4 && !paged.ContainsKey("next"), "Inactive filtering precedes paging without empty pages or skipped eligible employees");
         return checks;
     }
 

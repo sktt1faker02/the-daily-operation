@@ -5,10 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { employeeService } from "./employee-service"
 import { employeeLeaveService } from "@/features/leave/employee-leave-service"
-import { useCreateEmployee } from "./use-employees"
+import { useCreateEmployee, useUpdateEmployee } from "./use-employees"
 import type { Employee, EmployeeFormValues } from "./types"
 
-vi.mock("./employee-service", () => ({ employeeService: { create: vi.fn() } }))
+vi.mock("./employee-service", () => ({ employeeService: { create: vi.fn(), update: vi.fn() } }))
 vi.mock("@/features/leave/employee-leave-service", () => ({ employeeLeaveService: { sync: vi.fn() } }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const employee = { a365_employeeid: "10000000-0000-0000-0000-000000000001" } as Employee
@@ -41,4 +41,15 @@ it("never posts credits if employee creation fails", async () => {
   const { result } = setup()
   await act(async () => { await expect(result.current.mutateAsync({} as EmployeeFormValues)).rejects.toThrow("Create failed") })
   expect(employeeLeaveService.sync).not.toHaveBeenCalled()
+})
+it("refreshes leave visibility after changing employee status", async () => {
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const invalidate = vi.spyOn(client, "invalidateQueries")
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  const { result } = renderHook(() => useUpdateEmployee(), { wrapper })
+  await act(async () => { await result.current.mutateAsync({ id: employee.a365_employeeid, values: { a365_employmentstatus: 749910001 } as EmployeeFormValues }) })
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "employee-picker"] })
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "balances", employee.a365_employeeid] })
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "list"] })
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "conversion", "rows"] })
 })

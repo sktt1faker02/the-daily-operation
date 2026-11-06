@@ -17,7 +17,10 @@ const id = "10000000-0000-0000-0000-000000000001"
 const filters: LeaveFilters = { section: "leave", year: 2026, employeeId: id, search: "", status: "all", type: "all", benefit: "all" }
 const movement = (key: string, days: number) => ({ a365_leavecredittransactionid: key, _a365_employee_value: id, a365_year: 2026, a365_creditpool: 749910000, a365_days: days }) as A365_leavecredittransactions
 
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  vi.mocked(dataClient.retrieveMultipleRecordsAsync).mockResolvedValue({ success: true, data: [{ a365_employeeid: id, a365_employmentstatus: 749910000 }] })
+})
 
 describe("Leave read service", () => {
   it("reads every scoped ledger page before calculating balances", async () => {
@@ -64,7 +67,7 @@ describe("Leave read service", () => {
     expect((await leaveService.searchEmployees("O'Brien", "second")).next).toBe("next")
     expect(dataClient.retrieveMultipleRecordsAsync).toHaveBeenCalledWith("a365_employees", expect.objectContaining({
       select: ["a365_employeeid", "a365_name", "a365_employeenumber"], skipToken: "second", maxPageSize: 20,
-      filter: "(contains(a365_name,'O''Brien') or contains(a365_employeenumber,'O''Brien'))",
+      filter: "a365_employmentstatus ne 749910001 and (contains(a365_name,'O''Brien') or contains(a365_employeenumber,'O''Brien'))",
     }))
   })
 })
@@ -72,11 +75,25 @@ describe("Leave read service", () => {
 describe("Leave server filters", () => {
   it("includes leave crossing a year boundary and filters numeric choices", () => {
     expect(buildLeaveFilter({ ...filters, search: "O'Brien", status: "749910000", type: "749910002", benefit: "749910001" }))
-      .toBe(`a365_startdate lt 2027-01-01 and a365_enddate ge 2026-01-01 and _a365_employee_value eq ${id} and contains(a365_name,'O''Brien') and a365_leavestatus eq 749910000 and a365_leavetype eq 749910002 and a365_benefit eq 749910001`)
+      .toBe(`a365_startdate lt 2027-01-01 and a365_enddate ge 2026-01-01 and a365_Employee/a365_employmentstatus ne 749910001 and _a365_employee_value eq ${id} and contains(a365_name,'O''Brien') and a365_leavestatus eq 749910000 and a365_leavetype eq 749910002 and a365_benefit eq 749910001`)
   })
   it("rejects unknown choices, invalid years and injected ids before any request", () => {
     expect(() => buildLeaveFilter({ ...filters, status: "Pending" })).toThrow()
     expect(() => buildLeaveFilter({ ...filters, year: 2026.5 })).toThrow()
     expect(() => buildLeaveFilter({ ...filters, employeeId: "anything or true" })).toThrow()
   })
+})
+
+it("hides inactive balances without reading their saved credits", async () => {
+  vi.mocked(dataClient.retrieveMultipleRecordsAsync).mockResolvedValue({ success: true, data: [{ a365_employeeid: id, a365_employmentstatus: 749910001 }] })
+  expect(await leaveService.balances(id, 2026)).toEqual({ VL: 0, SL: 0, movements: 0, inactive: true })
+  expect(A365_leavecredittransactionsService.getAll).not.toHaveBeenCalled()
+})
+it("does not turn an unverified employee status into a zero balance", async () => {
+  vi.mocked(dataClient.retrieveMultipleRecordsAsync).mockResolvedValue({ success: false, error: new Error("private details"), data: [] })
+  await expect(leaveService.balances(id, 2026)).rejects.toThrow("Unable to read Leave data")
+  expect(A365_leavecredittransactionsService.getAll).not.toHaveBeenCalled()
+})
+it.each(["leave", "credits", "conversions"] as const)("excludes inactive %s records before paging", section => {
+  expect(buildLeaveFilter({ ...filters, section })).toContain("a365_Employee/a365_employmentstatus ne 749910001")
 })

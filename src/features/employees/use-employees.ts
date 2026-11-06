@@ -66,6 +66,12 @@ export function useUpdateEmployee() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
       queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: ["leave", "employee-picker"] })
+      queryClient.invalidateQueries({ queryKey: ["leave", "balances", variables.id] })
+      queryClient.invalidateQueries({ queryKey: ["leave", "posting-preview", variables.id] })
+      queryClient.invalidateQueries({ queryKey: ["leave", "list"] })
+      queryClient.invalidateQueries({ queryKey: ["leave", "detail"] })
+      queryClient.invalidateQueries({ queryKey: ["leave", "conversion", "rows"] })
     },
   })
 }

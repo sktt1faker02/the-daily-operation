@@ -5,10 +5,12 @@ import { LeavePostingError, postingService } from "./posting-service"
 import { A365_leavecredittransactionsService } from "@/generated/services/A365_leavecredittransactionsService"
 import type { A365_leavecredittransactions } from "@/generated/models/A365_leavecredittransactionsModel"
 import type { LeaveRecord } from "./types"
+import { dataClient } from "@/lib/power/data-client"
 
 vi.mock("@/generated/services/A365_LeaveCommandService", () => ({ A365_LeaveCommandService: { a365_LeaveCommand: vi.fn() } }))
 vi.mock("@/generated/services/Office365OutlookService", () => ({ Office365OutlookService: { SharedMailboxSendEmailV2: vi.fn() } }))
 vi.mock("@/generated/services/A365_leavecredittransactionsService", () => ({ A365_leavecredittransactionsService: { getAll: vi.fn() } }))
+vi.mock("@/lib/power/data-client", () => ({ dataClient: { retrieveMultipleRecordsAsync: vi.fn() } }))
 const employeeId = "10000000-0000-0000-0000-000000000001"
 const operationId = "20000000-0000-0000-0000-000000000002"
 const values = { employee: { a365_employeeid: employeeId, a365_name: "Test Employee" }, leaveType: "749910002", benefit: "749910000", startDate: "2026-10-22", endDate: "2026-10-22", note: "Internal note" }
@@ -19,6 +21,7 @@ const readRequest = (index: number) => JSON.parse(vi.mocked(A365_LeaveCommandSer
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(A365_leavecredittransactionsService.getAll).mockResolvedValue({ success: true, data: [] })
+  vi.mocked(dataClient.retrieveMultipleRecordsAsync).mockResolvedValue({ success: true, data: [{ a365_employeeid: employeeId, a365_employmentstatus: 749910000 }] })
 })
 
 describe("Transactional Leave client boundary", () => {

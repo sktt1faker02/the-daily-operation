@@ -6,6 +6,26 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-06 - Hide inactive employees from Leave modules
+
+Leave Management now filters inactive employees from pickers and paged lists,
+hides stale balances/actions and rejects stale details. Conversion rows are
+filtered on the server before paging, including paid years. Inactive employees
+cannot save stale conversion edits; confirmed new payments freeze their payable
+days/amounts at zero. Previously paid snapshots and stored leave history remain
+intact. Employee status updates refresh the affected queries.
+
+Changed Leave services/balance/page UI, employee query invalidation, conversion
+server queries/payment validation, tests, browser verification and release tooling.
+Verified 535 Vitest tests, lint/build, signed plugin compilation, 80 conversion
+server checks, other Leave server regressions and six browser scenarios.
+Deployed the tested assembly to authorized Dev; native DLL and solution package
+match. Live Support User exclusion is verified without changing employee status,
+credits, conversion history, payments or emails. The local app uses the new source;
+no hosted-app publish. Ordinary-account security UAT remains unverified. See
+[checklist](docs/inactive-leave-visibility.md) and
+[release evidence](docs/inactive-leave-deployment.json).
+
 ### 2026-11-06 - Correct all existing 2026 Leave period classifications
 
 Owner clarified that April was an error and authorized correcting the full
