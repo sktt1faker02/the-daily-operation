@@ -1,0 +1,18 @@
+<customapi uniquename="a365_DeletePayrollEntry">
+  <allowedcustomprocessingsteptype>0</allowedcustomprocessingsteptype>
+  <bindingtype>0</bindingtype>
+  <description default="Admin-only transactional deletion with dependency, current-status and concurrency checks plus a durable receipt.">
+    <label description="Admin-only transactional deletion with dependency, current-status and concurrency checks plus a durable receipt." languagecode="1033" />
+  </description>
+  <displayname default="a365_DeletePayrollEntry">
+    <label description="a365_DeletePayrollEntry" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isfunction>0</isfunction>
+  <isprivate>0</isprivate>
+  <name>a365_DeletePayrollEntry</name>
+  <plugintypeid>
+    <plugintypeexportkey>c315c61c-0dce-f111-a05a-000d3a8014e4</plugintypeexportkey>
+  </plugintypeid>
+  <workflowsdkstepenabled>0</workflowsdkstepenabled>
+</customapi>

@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EmployeeTable } from "@/features/employees/employee-table"
 import { EmployeeFormDialog } from "@/features/employees/employee-form-dialog"
+import { DeleteEmployeeDialog } from "@/features/employees/delete-employee-dialog"
+import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile"
 import {
   useEmployees,
   type EmployeeStatusFilter,
@@ -24,6 +26,8 @@ export default function EmployeesPage() {
   const [filter, setFilter] = useState<EmployeeStatusFilter>("active")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Employee | null>(null)
+  const [deleting, setDeleting] = useState<Employee | null>(null)
+  const { isAdmin } = useAccessProfile({ loadEmployee: false })
 
   const { data: employees, isPending, isError, error, refetch, isFetching } =
     useEmployees(filter)
@@ -121,11 +125,13 @@ export default function EmployeesPage() {
         <EmployeeTable
           employees={employees}
           onEdit={openEdit}
+          onDelete={isAdmin ? setDeleting : undefined}
           departmentNames={departmentNames}
           positionNames={positionNames}
         />
       )}
 
+      {deleting && <DeleteEmployeeDialog key={deleting.a365_employeeid} employee={deleting} isAdmin={isAdmin} onClose={() => setDeleting(null)} onDeleted={() => setDeleting(null)} />}
       <EmployeeFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}

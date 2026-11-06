@@ -41,3 +41,44 @@ export function deriveAccess(i: AccessInputs): AccessProfile {
     ready: i.roleResolved || i.employeeResolved,
   }
 }
+
+export const ALLOWED_ROLES = [
+  "A365 - Payroll Admin",
+  "A365 - Payroll Employee",
+] as const
+
+export const NO_ACCESS = {
+  title: "No access",
+  message:
+    "Your account doesn't have a role for this app. Contact your payroll administrator.",
+} as const
+
+export type GateState = "loading" | "allowed" | "denied"
+
+export interface GateInputs {
+  /** The role-membership query has settled (success or error). */
+  roleSettled: boolean
+  /** The role-membership query failed. */
+  roleError: boolean
+  /** Names of every role the user holds (direct + team-inherited). */
+  roleNames: string[]
+  /** The role lookup failed specifically because Dataverse denied privilege. */
+  roleLookupBlocked: boolean
+  /** The payroll-data permission probe has settled or was not needed. */
+  probeSettled: boolean
+  /** The payroll-data permission probe succeeded. */
+  probeAllowed: boolean
+}
+
+export function deriveGate(i: GateInputs): GateState {
+  if (!i.roleSettled) return "loading"
+  if (!i.roleError) {
+    const allowed = new Set(ALLOWED_ROLES.map((name) => name.trim().toLocaleLowerCase()))
+    return i.roleNames.some((name) => allowed.has(name.trim().toLocaleLowerCase()))
+      ? "allowed"
+      : "denied"
+  }
+  if (!i.roleLookupBlocked) return "denied"
+  if (!i.probeSettled) return "loading"
+  return i.probeAllowed ? "allowed" : "denied"
+}

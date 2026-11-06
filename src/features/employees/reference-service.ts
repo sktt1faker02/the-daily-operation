@@ -26,6 +26,19 @@ export const referenceService = {
     return result.data ?? []
   },
 
+  async getDepartmentNamesByIds(ids: string[]): Promise<Map<string, string>> {
+    const uniqueIds = [...new Set(ids.filter(Boolean))]
+    if (uniqueIds.length === 0) return new Map()
+
+    const filter = uniqueIds.map((id) => `a365_departmentid eq ${id}`).join(" or ")
+    const result = await dataClient.retrieveMultipleRecordsAsync<Department>("a365_departments", {
+      select: ["a365_departmentid", "a365_name"],
+      filter,
+    })
+    if (!result.success) throw result.error ?? new Error("Unable to load employee departments.")
+    return new Map((result.data ?? []).map((department) => [department.a365_departmentid, department.a365_name]))
+  },
+
   async positions(): Promise<Position[]> {
     const result = await dataClient.retrieveMultipleRecordsAsync<Position>("a365_positions", {
       select: ["a365_positionid", "a365_name"],

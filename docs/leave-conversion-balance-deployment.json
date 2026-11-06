@@ -1,0 +1,41 @@
+{
+  "AssemblyVersion": "1.0.3.6",
+  "SHA256": "4C9EFF6590C56ED8BDFEBAD2A2DBE7BADDA9542652EEF30B01BF4BFF39F57487",
+  "ActualResetRollbackConcurrency": "Synthetic checks only",
+  "Targets": {
+    "VL": 10,
+    "SL": 5
+  },
+  "ResetPreview": "Passed",
+  "ResetExecuted": false,
+  "OrdinaryAccountSecurity": "Not exercised",
+  "Schema": "Unchanged",
+  "Environment": "https://org9a7651f0.crm5.dynamics.com",
+  "DeployedHashMatchesTested": true,
+  "PeriodStart": "2026-04-01",
+  "Emails": "None",
+  "ActiveSynchronousWriteGuards": 20,
+  "Solution": "A365_DailyOperations",
+  "IsInTransaction": true,
+  "VerifiedAt": "2026-11-03T11:22:34.1790468Z",
+  "Roles": "Unchanged",
+  "BusinessDataWrites": "None",
+  "ActiveEmployeeCount": 7,
+  "CreditCountUnchanged": true,
+  "Year": 2026,
+  "ActiveConversionWriteGuards": 14,
+  "AppPublished": true,
+  "AppId": "d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f",
+  "AppPlayUrl": "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f",
+  "RequestedEmployeeReadOnlyComparison": {
+    "Year": 2026,
+    "RecordedVL": 8,
+    "ConversionAvailableVL": 8,
+    "ConversionDays": 5,
+    "ConversionPaid": false,
+    "LinkedBalanceFieldsPresent": true,
+    "BusinessWrites": "None"
+  },
+  "NativeSourceHashMatchesDeployed": true,
+  "NativeSourcePack": "Passed"
+}

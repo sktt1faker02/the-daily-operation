@@ -103,6 +103,26 @@ export function hdmfEmployeeMonthly(monthlySalary: number, cfg: HdmfConfig): num
 
 // --- The engine --------------------------------------------------------------
 
+export interface PayrollTotalsInput {
+  basicPay: number
+  allowances: number
+  otherEarnings: number
+  unpaidLeave: number
+  sss: number
+  philhealth: number
+  hdmf: number
+  withholdingTax: number
+  otherDeductions: number
+}
+
+/** One totals formula, also used to validate stored snapshots before Mark Ready.
+ * Accept resolved deductions so correcting totals never changes their basis. */
+export function calculatePayrollTotals(input: PayrollTotalsInput): Pick<PayrollResult, "grossPay" | "totalDeductions" | "netPay"> {
+  const grossPay = round2(input.basicPay + input.allowances + input.otherEarnings)
+  const totalDeductions = round2(input.unpaidLeave + input.sss + input.philhealth + input.hdmf + input.withholdingTax + input.otherDeductions)
+  return { grossPay, totalDeductions, netPay: round2(grossPay - totalDeductions) }
+}
+
 export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): PayrollResult {
   const dailyRate = round2(input.monthlyBasicSalary / 22)
   const unpaidLeave = round2(input.unpaidLeaveDays * dailyRate)
@@ -111,12 +131,8 @@ export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): 
   const philhealth = round2(philhealthEmployeeMonthly(input.monthlyBasicSalary, config.philhealth) / 2)
   const hdmf = round2(hdmfEmployeeMonthly(input.monthlyBasicSalary, config.hdmf) / 2)
 
-  const grossPay = round2(input.basicPay + input.allowances + input.otherEarnings - unpaidLeave)
-
   const withholdingTax = round2(input.withholdingTax) // manual admin input, used as-is
-
-  const totalDeductions = round2(sss + philhealth + hdmf + withholdingTax + input.otherDeductions)
-  const netPay = round2(grossPay - totalDeductions)
+  const totals = calculatePayrollTotals({ ...input, unpaidLeave, sss, philhealth, hdmf, withholdingTax })
 
   return {
     dailyRate,
@@ -124,9 +140,7 @@ export function calculatePayroll(input: PayrollInput, config: StatutoryConfig): 
     sss,
     philhealth,
     hdmf,
-    grossPay,
     withholdingTax,
-    totalDeductions,
-    netPay,
+    ...totals,
   }
 }

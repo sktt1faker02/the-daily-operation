@@ -28,7 +28,7 @@ Each case says **how** it is verified:
 | PhilHealth scenarios | `payroll-calculation.test.ts` — 537.50 |
 | HDMF scenarios | `payroll-calculation.test.ts` — 100.00 (cap) |
 | Withholding tax scenarios | `payroll-calculation.test.ts` — manual WHT passthrough, zero honored |
-| Unpaid leave scenarios | `payroll-calculation.test.ts` — daily rate = monthly/22 reduces gross |
+| Unpaid leave scenarios | `payroll-calculation.test.ts` — daily rate = monthly/22; leave amount belongs in deductions |
 | Allowances | `period-utils.test.ts` (load/copy) + gross in calc |
 | Payroll copying | `period-utils.test.ts` — `planCopyEntries` (recurring copied, one-time reset) |
 | Payroll locking / transitions | `payroll-status-machine.test.ts` — forward flow, unlock, **illegal jumps rejected** |

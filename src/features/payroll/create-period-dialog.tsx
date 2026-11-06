@@ -4,6 +4,7 @@
  * not cleared until the mutation succeeds (CLAUDE.md "Forms").
  */
 import { useEffect, useMemo, useState } from "react"
+import { format } from "date-fns"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,8 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { DatePicker, DateRangePicker } from "@/components/ui/date-picker"
-import { suggestSemiMonthlyPeriod, formatPeriodName } from "./period-utils"
+import { DatePicker } from "@/components/ui/date-picker"
+import {
+  applyEndChange,
+  applyPayDateChange,
+  applyStartChange,
+  formatPeriodName,
+  isEndDateDisabled,
+  isValidPeriodDates,
+  suggestSemiMonthlyPeriod,
+} from "./period-utils"
 import { useCreatePayrollPeriod } from "./hooks/use-payroll-periods"
 
 function todayISO(): string {
@@ -40,6 +49,8 @@ export function CreatePeriodDialog({
   const [start, setStart] = useState(suggestion.start)
   const [end, setEnd] = useState(suggestion.end)
   const [payDate, setPayDate] = useState(suggestion.payDate)
+  const [endManuallyPicked, setEndManuallyPicked] = useState(false)
+  const [payDateManuallyEdited, setPayDateManuallyEdited] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const createPeriod = useCreatePayrollPeriod()
@@ -51,13 +62,47 @@ export function CreatePeriodDialog({
       const fresh = suggestSemiMonthlyPeriod(todayISO())
       setStart(fresh.start)
       setEnd(fresh.end)
-      setPayDate(fresh.payDate)
+      setPayDate(fresh.end)
+      setEndManuallyPicked(false)
+      setPayDateManuallyEdited(false)
       setError(null)
     }
   }, [open])
 
   // Derive the display name during render (no useEffect for derivable state).
   const name = start && end ? formatPeriodName(start, end) : ""
+  const validDates = isValidPeriodDates(start, end)
+
+  const handleStartChange = (nextStart: string) => {
+    const next = applyStartChange(
+      { start, end, payDate, endManuallyPicked, payDateManuallyEdited },
+      nextStart,
+    )
+    setStart(next.start)
+    setEnd(next.end)
+    setPayDate(next.payDate)
+    setError(null)
+  }
+
+  const handleEndChange = (nextEnd: string) => {
+    const next = applyEndChange(
+      { start, end, payDate, endManuallyPicked, payDateManuallyEdited },
+      nextEnd,
+    )
+    setEnd(next.end)
+    setPayDate(next.payDate)
+    setEndManuallyPicked(next.endManuallyPicked)
+    setError(null)
+  }
+
+  const handlePayDateChange = (nextPayDate: string) => {
+    const next = applyPayDateChange(
+      { start, end, payDate, endManuallyPicked, payDateManuallyEdited },
+      nextPayDate,
+    )
+    setPayDate(next.payDate)
+    setPayDateManuallyEdited(next.payDateManuallyEdited)
+  }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -65,7 +110,7 @@ export function CreatePeriodDialog({
       setError("Start and end dates are required.")
       return
     }
-    if (start > end) {
+    if (!validDates) {
       setError("Start date must be on or before the end date.")
       return
     }
@@ -86,7 +131,7 @@ export function CreatePeriodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New payroll period</DialogTitle>
           <DialogDescription>
@@ -95,23 +140,44 @@ export function CreatePeriodDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="period-range">
-              Period (start – end)<span className="ml-0.5 text-destructive">*</span>
-            </Label>
-            <DateRangePicker
-              id="period-range"
-              start={start}
-              end={end}
-              onChange={(r) => {
-                setStart(r.start)
-                setEnd(r.end)
-              }}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="period-start">
+                Start date<span className="ml-0.5 text-destructive">*</span>
+              </Label>
+              <DatePicker
+                id="period-start"
+                value={start}
+                onChange={handleStartChange}
+                required
+                invalid={Boolean(error && !start)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="period-end">
+                End date<span className="ml-0.5 text-destructive">*</span>
+              </Label>
+              <DatePicker
+                id="period-end"
+                value={end}
+                onChange={handleEndChange}
+                required
+                invalid={Boolean(error && !validDates)}
+                defaultMonth={start}
+                disabledDates={(date) => isEndDateDisabled(format(date, "yyyy-MM-dd"), start)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Dates before the start date are unavailable.
+              </p>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pay-date">Pay date</Label>
-            <DatePicker id="pay-date" value={payDate} onChange={setPayDate} />
+            <DatePicker
+              id="pay-date"
+              value={payDate}
+              onChange={handlePayDateChange}
+            />
           </div>
           {name && (
             <p className="text-sm text-muted-foreground">
@@ -129,7 +195,7 @@ export function CreatePeriodDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createPeriod.isPending}>
+            <Button type="submit" disabled={createPeriod.isPending || !validDates}>
               {createPeriod.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
               Create period
             </Button>

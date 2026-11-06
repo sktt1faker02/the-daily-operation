@@ -35,7 +35,7 @@ pays **semi-monthly** (two cutoffs a month). So the engine:
    **monthly basic salary**, then
 2. Deducts **half (÷ 2)** on each cutoff.
 
-Unpaid leave / absence reduces **gross earnings** only — it does **not** change the
+Unpaid leave / absence is included in **total deductions** — it does **not** change the
 statutory contributions, which stay tied to the monthly salary. Every amount is
 rounded half-up to 2 decimals via `round2()`.
 

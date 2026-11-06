@@ -1,0 +1,27 @@
+# Project reasoning/app defaults. User config holds exact-path skill overrides.
+# Select Low for routine edits; increase effort deliberately for difficult work.
+model_reasoning_effort = "medium"
+
+# Keep Dataverse and plugin management. Disable unrelated project integrations.
+# Remote/workspace plugin policy can override plugin enabled state.
+[plugins."sites@openai-curated-remote"]
+enabled = false
+
+[plugins."work-pets@openai-curated-remote"]
+enabled = false
+
+[plugins."openai-templates@openai-curated-remote"]
+enabled = false
+
+# Also suppress these connected apps' tools where the client supports app config.
+[apps."plugin_connector_1p_689987207de08191979cf68eca2941c6"]
+enabled = false
+
+[apps."plugin_connector_1p_bccf6c8660c08191ae4470d9ae4877fa"]
+enabled = false
+
+[apps."plugin_connector_1p_2330815c823c8191941e5dc465bb899f"]
+enabled = false
+
+# Path-specific skill overrides live in the user config (required by this client).
+# Original user config backup: config.before-economy-20261022.toml

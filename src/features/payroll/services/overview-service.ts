@@ -8,10 +8,8 @@ import { payrollPeriodService } from "./payroll-period-service"
 import { employeeService } from "@/features/employees/employee-service"
 import { EmploymentStatus } from "@/features/employees/types"
 import { sumEntryTotals } from "../period-utils"
-import { PayrollStatus, type PayrollEntry, type PayrollPeriod } from "../types"
-
-/** Statuses that count as a finalized cutoff for the headline cards. */
-const FINALIZED = new Set<PayrollStatus>([PayrollStatus.Paid, PayrollStatus.Locked])
+import { isFinalized } from "../period-status"
+import type { PayrollEntry, PayrollPeriod } from "../types"
 
 export interface RecentPeriodRow {
   period: PayrollPeriod
@@ -45,10 +43,10 @@ export function buildOverview(
     byPeriod.set(periodId, list)
   }
 
-  // Headline cards summarize the latest FINALIZED cutoff (Paid/Locked). `periods`
+  // Headline cards summarize the latest Locked cutoff. `periods`
   // arrives newest-first (listPeriods orders by period start desc), so the first
   // finalized one is the most recent. In-progress cutoffs don't drive the cards.
-  const cutoffPeriod = periods.find((p) => FINALIZED.has(p.a365_payrollstatus)) ?? null
+  const cutoffPeriod = periods.find((p) => isFinalized(p.a365_payrollstatus)) ?? null
   const cutoffEntries = cutoffPeriod ? byPeriod.get(cutoffPeriod.a365_payrollperiodid) ?? [] : []
   const cutoff = sumEntryTotals(cutoffEntries)
 

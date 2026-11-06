@@ -41,6 +41,14 @@ export interface EmployeeListOptions {
   filter?: string
 }
 
+function queryDiagnostics(success: boolean, error: unknown) {
+  const details = error && typeof error === "object" ? error as { status?: unknown; requestId?: unknown } : undefined
+  return {
+    status: typeof details?.status === "number" ? details.status : success ? "success" : "error",
+    requestId: typeof details?.requestId === "string" ? details.requestId : null,
+  }
+}
+
 function trimmedOrNull(value: string): string | null {
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
@@ -122,6 +130,10 @@ export const employeeService = {
     const result = await dataClient.retrieveMultipleRecordsAsync<Employee>(EMPLOYEE_TABLE, {
       select: SELECT_COLUMNS as string[],
       filter: `_a365_systemuser_value eq ${systemUserId}`,
+    })
+    console.info("Dataverse current-employee query", {
+      ...queryDiagnostics(result.success, result.error),
+      rowCount: result.success ? (result.data?.length ?? 0) : null,
     })
     if (!result.success) throw result.error ?? new Error("Unable to resolve your employee record.")
     return result.data?.[0] ?? null

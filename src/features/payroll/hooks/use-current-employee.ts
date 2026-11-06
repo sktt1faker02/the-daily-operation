@@ -16,11 +16,12 @@ async function resolveCurrentEmployee() {
   return employeeService.getBySystemUserId(userId)
 }
 
-export function useCurrentEmployee() {
+export function useCurrentEmployee(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ["payroll", "current-employee"] as const,
     queryFn: resolveCurrentEmployee,
     staleTime: Infinity,
     gcTime: Infinity,
+    enabled: options.enabled !== false,
   })
 }

@@ -174,6 +174,8 @@ function CalendarDayButton({
   className,
   day,
   modifiers,
+  disabled,
+  "aria-disabled": ariaDisabled,
   ...props
 }: React.ComponentProps<typeof DayButton>) {
   const defaultClassNames = getDefaultClassNames()
@@ -203,6 +205,8 @@ function CalendarDayButton({
         defaultClassNames.day,
         className
       )}
+      disabled={disabled}
+      aria-disabled={disabled || ariaDisabled ? true : undefined}
       {...props}
     />
   )

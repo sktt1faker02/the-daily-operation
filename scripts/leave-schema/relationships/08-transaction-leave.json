@@ -1,0 +1,11 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+  "SchemaName": "a365_leave_leavecredittransaction",
+  "ReferencedEntity": "a365_leave", "ReferencedAttribute": "a365_leaveid", "ReferencingEntity": "a365_leavecredittransaction",
+  "CascadeConfiguration": { "Assign": "NoCascade", "Delete": "Restrict", "Merge": "NoCascade", "Reparent": "NoCascade", "Share": "NoCascade", "Unshare": "NoCascade" },
+  "Lookup": {
+    "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "SchemaName": "a365_Leave",
+    "DisplayName": { "LocalizedLabels": [{ "Label": "Leave", "LanguageCode": 1033 }] },
+    "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }
+  }
+}

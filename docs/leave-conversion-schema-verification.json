@@ -1,0 +1,81 @@
+{
+    "VerifiedAt":  "2026-10-23T10:00:36.4691160Z",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "Tables":  [
+                   {
+                       "LogicalName":  "a365_leaveconversionyear",
+                       "BusinessLookups":  [
+
+                                           ],
+                       "EntitySetName":  "a365_leaveconversionyears",
+                       "Records":  0,
+                       "Keys":  [
+                                    {
+                                        "MetadataId":  "7f31f28c-c5ce-f111-a05a-000d3a8014e4",
+                                        "LogicalName":  "a365_conversionyearunique",
+                                        "KeyAttributes":  [
+                                                              "a365_year"
+                                                          ],
+                                        "EntityKeyIndexStatus":  "Active"
+                                    }
+                                ],
+                       "OptimisticConcurrency":  true,
+                       "SchemaName":  "a365_LeaveConversionYear"
+                   },
+                   {
+                       "LogicalName":  "a365_leavecashconversion",
+                       "BusinessLookups":  [
+                                               {
+                                                   "MetadataId":  "3f2e8440-45cd-f111-a05a-000d3a8014e4",
+                                                   "ReferencedEntity":  "a365_employee",
+                                                   "ReferencingAttribute":  "a365_employee",
+                                                   "ReferencingEntityNavigationPropertyName":  "a365_Employee"
+                                               },
+                                               {
+                                                   "MetadataId":  "c213c14c-45cd-f111-a05a-000d3a8014e4",
+                                                   "ReferencedEntity":  "systemuser",
+                                                   "ReferencingAttribute":  "a365_convertedby",
+                                                   "ReferencingEntityNavigationPropertyName":  "a365_ConvertedBy"
+                                               },
+                                               {
+                                                   "MetadataId":  "623d2e5d-c5ce-f111-a05a-000d3a8014e4",
+                                                   "ReferencedEntity":  "a365_leaveconversionyear",
+                                                   "ReferencingAttribute":  "a365_conversionyear",
+                                                   "ReferencingEntityNavigationPropertyName":  "a365_ConversionYear"
+                                               }
+                                           ],
+                       "EntitySetName":  "a365_leavecashconversions",
+                       "Records":  0,
+                       "Keys":  [
+                                    {
+                                        "MetadataId":  "1aa5a88f-c5ce-f111-a05c-70a8a5036aa3",
+                                        "LogicalName":  "a365_conversionyearemployeeunique",
+                                        "KeyAttributes":  [
+                                                              "a365_conversionyear",
+                                                              "a365_employee"
+                                                          ],
+                                        "EntityKeyIndexStatus":  "Active"
+                                    }
+                                ],
+                       "OptimisticConcurrency":  true,
+                       "SchemaName":  "a365_LeaveCashConversion"
+                   }
+               ],
+    "RoleChanges":  "Only four approved parent Payroll Admin privileges",
+    "LiveOrdinaryAccountChecks":  "Not performed",
+    "ServerAndAppDeployment":  "Pending explicit request",
+    "DaysLimits":  {
+                       "Min":  0,
+                       "Precision":  2,
+                       "Max":  5
+                   },
+    "AvailableVL":  {
+                        "@odata.context":  "https://org9a7651f0.crm5.dynamics.com/api/data/v9.2/$metadata#EntityDefinitions(\u0027a365_leavecashconversion\u0027)/Attributes/Microsoft.Dynamics.CRM.DecimalAttributeMetadata(LogicalName,SchemaName,MinValue,MaxValue,Precision)/$entity",
+                        "MetadataId":  "acd3ca55-c5ce-f111-a05a-00224819cffa",
+                        "LogicalName":  "a365_availablevl",
+                        "SchemaName":  "a365_AvailableVL",
+                        "MaxValue":  1000000000,
+                        "MinValue":  0,
+                        "Precision":  2
+                    }
+}

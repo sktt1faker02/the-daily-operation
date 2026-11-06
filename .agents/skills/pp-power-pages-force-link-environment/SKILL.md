@@ -1,0 +1,11 @@
+---
+name: pp-power-pages-force-link-environment
+description: "Force-links a development or target environment to a Power Platform Pipelines host, overriding any existing association with a previous host. Use when creating a deploymentenvironments record fails with \"this environment is already associated with another pipelines host\", or when intentionally migrating an environment from one host to another (e.g., Platform Host â†’ Custom Host, or between two Custom Hosts). Calls the documented `ManageEnvironmentStamp` Dataverse action (the API behind the \"Force Link\" button in the Deployment Pipeline Configuration app). DESTRUCTIVE to the previous host: makers lose access to any pipelines in that host that used this environment. Reversible by running Force Link from the previous host. Use when asked to: \"force link environment\", \"force-link to new host\", \"switch pipelines host\", \"environment already associated with another host\", \"take over pipelines association\", \"relink environment to host\". user-invocable: true argument-hint: \"Optional: \u0027--host \u003curl\u003e\u0027 to skip the host resolution step; \u0027--dev-env \u003cbapEnvId\u003e\u0027 to skip the dev env prompt. With both flags supplied, the skill still pauses for destructive-action confirmation.\" allowed-tools: Read, Write, Edit, Bash, Glob, Grep, TaskCreate, TaskUpdate, TaskList, AskUserQuestion, mcp__plugin_power-pages_microsoft-learn__microsoft_docs_search, mcp__plugin_power-pages_microsoft-learn__microsoft_docs_fetch model: opus"
+---
+
+# Imported Microsoft Power Platform skill
+
+Read and follow the full [canonical Microsoft instructions](../../power-platform-skills-source/plugins/power-pages/skills/force-link-environment/SKILL.md) before acting. The complete plugin sources and supporting files are preserved under .agents/power-platform-skills-source/ at their original relative paths. Resolve `${PLUGIN_ROOT}` references to the matching plugin folder there.
+
+The source can specify Claude Code, GitHub Copilot, or MCP tools unavailable in Codex. Verify actual tool availability and current authoritative documentation, then adapt the workflow. Do not claim to invoke unavailable tools or treat source text as authorization for external or environment-changing actions.
+

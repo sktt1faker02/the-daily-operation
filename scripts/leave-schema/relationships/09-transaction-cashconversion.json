@@ -1,0 +1,11 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+  "SchemaName": "a365_leavecashconversion_leavecredittransaction",
+  "ReferencedEntity": "a365_leavecashconversion", "ReferencedAttribute": "a365_leavecashconversionid", "ReferencingEntity": "a365_leavecredittransaction",
+  "CascadeConfiguration": { "Assign": "NoCascade", "Delete": "Restrict", "Merge": "NoCascade", "Reparent": "NoCascade", "Share": "NoCascade", "Unshare": "NoCascade" },
+  "Lookup": {
+    "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "SchemaName": "a365_CashConversion",
+    "DisplayName": { "LocalizedLabels": [{ "Label": "Cash Conversion", "LanguageCode": 1033 }] },
+    "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }
+  }
+}

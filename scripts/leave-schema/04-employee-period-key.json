@@ -1,0 +1,6 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.EntityKeyMetadata",
+  "SchemaName": "a365_EmployeePeriodKey",
+  "DisplayName": { "LocalizedLabels": [{ "Label": "Employee + Period Key", "LanguageCode": 1033 }] },
+  "KeyAttributes": ["a365_employee", "a365_periodkey"]
+}

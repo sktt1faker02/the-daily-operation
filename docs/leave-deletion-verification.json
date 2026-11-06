@@ -1,0 +1,16 @@
+{
+    "AssemblyVersion":  "1.0.3.4",
+    "TransactionContext":  "Verified synchronous",
+    "RestorationAndRollback":  "Synthetic tests only",
+    "Emails":  "None",
+    "CountsUnchanged":  true,
+    "Schema":  "Unchanged",
+    "Roles":  "Unchanged",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "Solution":  "A365_DailyOperations",
+    "ActualDeletion":  "Owner manual UAT pending",
+    "BusinessDataWrites":  "None",
+    "VerifiedAt":  "2026-10-28T05:36:41.1291029Z",
+    "Preview":  "Passed against an existing unpaid record; zero credits restored, no writes",
+    "SHA256":  "63ACB13FE0DA7BBFD67F0434F29F74871AAE314A0E75EE4D740A5EC42D77B605"
+}

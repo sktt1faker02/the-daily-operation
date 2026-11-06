@@ -10,6 +10,7 @@ export function SonnerProvider({ children }: SonnerProviderProps) {
     <>
       {children}
       <Toaster
+        containerAriaLabel="Payroll and application notifications"
         position="top-center"
         theme="light"
         richColors

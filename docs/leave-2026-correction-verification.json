@@ -1,0 +1,23 @@
+{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "Year":  2026,
+    "PeriodStart":  "2026-01-01",
+    "PeriodEnd":  "2026-12-31",
+    "Applied":  true,
+    "EmployeeCount":  7,
+    "CorrectedRows":  82,
+    "OriginalRows":  156,
+    "FinalRows":  238,
+    "AuditReceipts":  82,
+    "OriginalAmountsAndLinks":  "Verified unchanged",
+    "PerEmployeeSignedTotals":  "Verified unchanged",
+    "Retry":  "Verified no additional rows",
+    "VerifiedAt":  "2026-11-06T10:40:27.7328856Z",
+    "Production":  "Unchanged",
+    "LiveEmployeePreviews":  6,
+    "LivePreviewDates":  "All eligible employees return January 1-December 31, 2026",
+    "AssemblyVersion":  "1.0.3.9",
+    "SHA256":  "68169CAFCDA9DD8FC03320F35D54E649751FB2FF603350A8BD6494E79D2978CA",
+    "DevClientPublished":  true,
+    "NativeSolutionRepacked":  true
+}

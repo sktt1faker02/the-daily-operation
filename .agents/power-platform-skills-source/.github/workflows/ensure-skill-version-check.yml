@@ -1,0 +1,30 @@
+name: validate-skill-version-check
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - "plugins/power-pages/skills/**"
+
+permissions:
+    contents: read
+
+jobs:
+    validate-skill-version-check:
+        name: validate-skill-version-check
+        runs-on: ubuntu-latest
+        steps:
+            - name: checkout pull request
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.event.pull_request.head.sha }}
+                  persist-credentials: false
+
+            - name: setup-node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 20
+
+            - name: check version checks
+              run: node scripts/ensure-skill-version-check.js --check
