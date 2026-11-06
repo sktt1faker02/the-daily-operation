@@ -9,6 +9,64 @@ using A365.Leave.Plugins;
 public static class PartialPaidLeaveTests
 {
     private static int checks;
+    public static int RunCalendarCorrection()
+    {
+        checks = 0;
+        var fake = new Fake();
+        var old = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        old["a365_employee"] = new EntityReference("a365_employee", fake.Employee);
+        old["a365_creditperiod"] = "2026-04-01"; old["a365_year"] = 2026;
+        old["a365_days"] = 5m; old["a365_creditpool"] = new OptionSetValue(749910001); old["a365_transactiontype"] = new OptionSetValue(749910001);
+        old["a365_transactionkey"] = "AUTO-2026-04-01-SL-2026-04-01"; old["a365_periodkey"] = old["a365_transactionkey"]; fake.Rows.Add(old);
+        var request = new Request { command = "correct2026Preview", employeeId = fake.Employee.ToString("D"), year = 2026 };
+        var preview = fake.Send(request); int before = fake.Rows.Count;
+        Check(Convert.ToInt32(preview["affected"]) == 1 && old.GetAttributeValue<string>("a365_creditperiod") == "2026-04-01", "Correction preview never writes");
+        request.command = "correct2026"; request.version = "stale";
+        bool rejected = false; try { fake.Send(request); } catch { rejected = true; }
+        Check(rejected && fake.Rows.Count == before, "Stale correction rolls back lock and all writes");
+        request.version = (string)preview["version"]; fake.FailResetEmployee = fake.Employee;
+        rejected = false; try { fake.Send(request); } catch { rejected = true; }
+        Check(rejected && fake.Rows.Single(row => row.Id == old.Id).GetAttributeValue<string>("a365_creditperiod") == "2026-04-01", "Receipt failure rolls back period and key updates");
+        fake.FailResetEmployee = Guid.Empty;
+        fake.Send(request); old = fake.Rows.Single(row => row.Id == old.Id);
+        Check(old.GetAttributeValue<string>("a365_creditperiod") == "2026-01-01" && old.GetAttributeValue<decimal>("a365_days") == 5m, "Correction preserves amount and source identity");
+        Check(old.GetAttributeValue<string>("a365_transactionkey") == "AUTO-2026-01-01-SL-2026-01-01" && old.GetAttributeValue<string>("a365_periodkey") == old.GetAttributeValue<string>("a365_transactionkey"), "Missing canonical automatic grant is renamed for idempotency");
+        var receipt = fake.Rows.Single(row => row.GetAttributeValue<string>("a365_transactionkey") == "CALENDAR2026-" + old.Id.ToString("D"));
+        Check(receipt.GetAttributeValue<decimal>("a365_days") == 0m && receipt.GetAttributeValue<string>("a365_note").Contains("AUTO-2026-04-01-SL-2026-04-01"), "Zero-value receipt retains before identity and audit trail");
+        int completed = fake.Rows.Count;
+        Check(Convert.ToInt32(fake.Send(request)["affected"]) == 0 && fake.Rows.Count == completed, "Retry does not add credits or receipts");
+        var duplicate = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        foreach (var field in old.Attributes) duplicate[field.Key] = field.Value;
+        duplicate["a365_creditperiod"] = "2026-04-01"; duplicate["a365_transactionkey"] = "AUTO-2026-04-01-SL-2026-04-01"; duplicate["a365_periodkey"] = duplicate["a365_transactionkey"]; fake.Rows.Add(duplicate);
+        request.command = "correct2026Preview"; preview = fake.Send(request); request.version = (string)preview["version"]; request.command = "correct2026"; fake.Send(request);
+        Check(duplicate.GetAttributeValue<string>("a365_transactionkey") == "AUTO-2026-04-01-SL-2026-04-01" && duplicate.GetAttributeValue<string>("a365_creditperiod") == "2026-01-01", "Existing canonical grant is reused without key collision or deleting historical grants");
+        Check(fake.Rows.Where(row => row.LogicalName == "a365_leavecredittransaction").Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 10m, "Signed calendar-year totals remain unchanged");
+        request.year = 2025; rejected = false; try { fake.Send(request); } catch { rejected = true; }
+        Check(rejected, "Correction cannot target another year");
+        var linked = new Fake();
+        var source = new Entity("a365_leave", Guid.NewGuid()); source["a365_employee"] = new EntityReference("a365_employee", linked.Employee);
+        source["a365_startdate"] = new DateTime(2026, 10, 15); source["a365_enddate"] = new DateTime(2026, 10, 15); source["a365_paiddays"] = 0.5m; linked.Rows.Add(source);
+        var debit = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        foreach (var field in old.Attributes) debit[field.Key] = field.Value;
+        debit["a365_employee"] = new EntityReference("a365_employee", linked.Employee); debit["a365_leave"] = source.ToEntityReference();
+        debit["a365_creditperiod"] = "2026-04-01"; debit["a365_days"] = -0.5m; debit["a365_transactiontype"] = new OptionSetValue(749910002);
+        debit["a365_transactionkey"] = "LEAVE-" + source.Id.ToString("D") + "-DEDUCTION"; debit["a365_periodkey"] = null; linked.Rows.Add(debit);
+        var linkedRequest = new Request { command = "correct2026Preview", employeeId = linked.Employee.ToString("D"), year = 2026 };
+        var linkedPreview = linked.Send(linkedRequest); linkedRequest.command = "correct2026"; linkedRequest.version = (string)linkedPreview["version"]; linked.Send(linkedRequest);
+        Check(debit.GetAttributeValue<decimal>("a365_days") == -0.5m && debit.GetAttributeValue<EntityReference>("a365_leave").Id == source.Id && source.GetAttributeValue<decimal>("a365_paiddays") == 0.5m, "Linked leave snapshots and negative deductions remain unchanged");
+        var conflict = new Fake();
+        var conflictingOld = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        foreach (var field in duplicate.Attributes) conflictingOld[field.Key] = field.Value;
+        conflictingOld["a365_employee"] = new EntityReference("a365_employee", conflict.Employee); conflictingOld["a365_creditperiod"] = "2026-04-01"; conflict.Rows.Add(conflictingOld);
+        var conflictingNew = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        foreach (var field in conflictingOld.Attributes) conflictingNew[field.Key] = field.Value;
+        conflictingNew["a365_creditperiod"] = "2026-01-01"; conflictingNew["a365_transactionkey"] = "AUTO-2026-01-01-SL-2026-01-01"; conflictingNew["a365_days"] = 4m; conflict.Rows.Add(conflictingNew);
+        rejected = false; try { conflict.Send(new Request { command = "correct2026Preview", employeeId = conflict.Employee.ToString("D"), year = 2026 }); } catch { rejected = true; }
+        Check(rejected, "Conflicting canonical grant amounts block correction");
+        fake.IsAdmin = false; request.year = 2026; rejected = false; try { fake.Send(request); } catch { rejected = true; }
+        Check(rejected, "Ordinary users cannot invoke the correction");
+        return checks;
+    }
     public static int RunAnnualAllocation()
     {
         checks = 0;

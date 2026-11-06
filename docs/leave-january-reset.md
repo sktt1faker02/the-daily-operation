@@ -1,5 +1,12 @@
 # January leave-credit reset
 
+**Latest owner correction, November 6, 2026:** the April start was an error.
+The [full 2026 correction](leave-2026-calendar-correction.md) is applied in Dev:
+82 existing April-tagged entries now belong to January-December 2026, with
+amounts, source links, calendar-year totals and audit history retained. This
+supersedes the earlier deployment-only limitation documented below. Production
+remains unchanged.
+
 ## 2026 calendar-period correction - 2026-11-06
 
 Owner requested changing the current balance period to **January 1-December 31,
@@ -21,8 +28,8 @@ Verification checklist:
   timeouts; isolated rerun of all 24 Leave page tests passes. No UI change or
   configured Playwright suite; live browser verification remains pending.
 - [x] Deploy the updated server plugin to owner-confirmed Dev; production pending.
-- [ ] Reconcile existing April-tagged credits/deductions before live use; no
-  migration, balance reset, retagging or historical snapshot changes were run.
+- [x] Owner-authorized correction of existing April-tagged 2026 entries in Dev;
+  see the correction evidence above. No balance reset or snapshot recalculation.
 - [ ] Production preview, issuance and ordinary-account security UAT.
 
 Release gate: `a365_creditperiod` is used for exact balance selection and automatic

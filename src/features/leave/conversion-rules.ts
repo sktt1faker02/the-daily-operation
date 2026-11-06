@@ -11,6 +11,6 @@ export function calculateConversion(monthlySalary: number | undefined, available
 
 export function currentLeaveYear() {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())
-  const [year, month, day] = today.split("-").map(Number)
-  return year >= 2027 ? year - (month === 1 && day < 5 ? 1 : 0) : year - (month < 4 ? 1 : 0)
+  const [year, month] = today.split("-").map(Number)
+  return year >= 2026 ? year : year - (month < 4 ? 1 : 0)
 }

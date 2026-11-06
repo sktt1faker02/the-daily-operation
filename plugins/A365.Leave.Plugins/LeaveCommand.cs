@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.8")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.9")]
 
 namespace A365.Leave.Plugins
 {
@@ -162,6 +162,7 @@ namespace A365.Leave.Plugins
             else if (request.command == "prepareEmail" || request.command == "completeEmail") response = Email(request, system, caller);
             else if (request.command == "deletePreview" || request.command == "delete") response = DeleteLeave(request, context, system, caller);
             else if (request.command == "resetPreview" || request.command == "resetBalances") response = ResetBalances(request, context, system, caller);
+            else if (request.command == "correct2026Preview" || request.command == "correct2026") response = Correct2026(request, context, system, caller);
             else if (request.command == "syncEmployee") response = SyncEmployee(request, system, caller, context.InitiatingUserId);
             else if (request.command == "preview" || request.command == "issue") response = Post(request, context, system, caller);
             else { Rules.Fail("Unknown Leave command."); return; }
@@ -430,6 +431,13 @@ namespace A365.Leave.Plugins
                         Request request = null;
                         try { if (parent.InputParameters.Contains("Request")) request = new JavaScriptSerializer().Deserialize<Request>((string)parent.InputParameters["Request"]); } catch { }
                         bool conversion = context.PrimaryEntityName == "a365_leavecashconversion" || context.PrimaryEntityName == "a365_leaveconversionyear";
+                        if (request != null && request.command == "correct2026")
+                        {
+                            bool coordination = context.PrimaryEntityName == "a365_leavecoordination" && (context.MessageName == "Create" || context.MessageName == "Update" || context.MessageName == "CreateMultiple" || context.MessageName == "UpdateMultiple");
+                            bool ledger = context.PrimaryEntityName == "a365_leavecredittransaction" && (context.MessageName == "Create" || context.MessageName == "Update" || context.MessageName == "CreateMultiple" || context.MessageName == "UpdateMultiple");
+                            if (coordination || ledger) return;
+                            Rules.Fail("The 2026 correction can only reclassify credits and append audit receipts.");
+                        }
                         if (request != null && request.command == "syncEmployee")
                         {
                             bool create = context.MessageName == "Create" || context.MessageName == "CreateMultiple";

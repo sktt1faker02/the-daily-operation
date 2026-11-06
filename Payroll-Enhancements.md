@@ -6,6 +6,30 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-06 - Correct all existing 2026 Leave period classifications
+
+Owner clarified that April was an error and authorized correcting the full
+January-December 2026 cycle in confirmed Dev. Added `CalendarCorrection.cs` and
+admin-only reviewed, atomic-per-employee Leave commands with zero-day audit
+receipts. Retained original amounts, source links, signed employee totals and
+historical operation identities; resolved missing canonical January grant keys
+without deleting grants already accounted for by reset adjustments. Added the
+repeatable Dev `scripts/leave-schema/correct-2026-period.ps1` operation and tests.
+Aligned `conversion-rules.ts` with the Philippine calendar year from 2026.
+
+Deployed signed plugin 1.0.3.9 and verified its downloaded hash; corrected 82
+entries for seven employees, appended 82 audit receipts and verified all 2026
+period tags, original amounts/links, exact employee totals and no-op retries.
+Published the built client to the existing Dev app. All 551 server assertions,
+528 Vitest tests (52 files), lint and build pass; existing bundle-size warnings
+remain. See `docs/leave-2026-calendar-correction.md` and aggregate verification
+JSON. No payroll/leave snapshot recalculation, schema/role changes, deletion,
+balance reset or production changes. Real-user UAT remains pending.
+All six eligible employee live credit previews return January 1-December 31.
+Exported native Dev Leave assembly/registration artifacts into the solution
+source and successfully repacked it. `git diff --check` and correction-script
+syntax checks pass. No commit or Git push.
+
 ### 2026-11-06 - Initialize employee leave and unpaid conversion membership
 
 Fixed the app creation flow to post eligible current-year credits through a
