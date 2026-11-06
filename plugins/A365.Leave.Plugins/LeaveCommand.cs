@@ -162,6 +162,7 @@ namespace A365.Leave.Plugins
             else if (request.command == "prepareEmail" || request.command == "completeEmail") response = Email(request, system, caller);
             else if (request.command == "deletePreview" || request.command == "delete") response = DeleteLeave(request, context, system, caller);
             else if (request.command == "resetPreview" || request.command == "resetBalances") response = ResetBalances(request, context, system, caller);
+            else if (request.command == "syncEmployee") response = SyncEmployee(request, system, caller, context.InitiatingUserId);
             else if (request.command == "preview" || request.command == "issue") response = Post(request, context, system, caller);
             else { Rules.Fail("Unknown Leave command."); return; }
             context.OutputParameters["Response"] = Json.Serialize(response);
@@ -429,6 +430,16 @@ namespace A365.Leave.Plugins
                         Request request = null;
                         try { if (parent.InputParameters.Contains("Request")) request = new JavaScriptSerializer().Deserialize<Request>((string)parent.InputParameters["Request"]); } catch { }
                         bool conversion = context.PrimaryEntityName == "a365_leavecashconversion" || context.PrimaryEntityName == "a365_leaveconversionyear";
+                        if (request != null && request.command == "syncEmployee")
+                        {
+                            bool create = context.MessageName == "Create" || context.MessageName == "CreateMultiple";
+                            bool update = context.MessageName == "Update" || context.MessageName == "UpdateMultiple";
+                            if ((context.PrimaryEntityName == "a365_leavecoordination" && (create || update)) ||
+                                (context.PrimaryEntityName == "a365_leavecredittransaction" && create) ||
+                                (context.PrimaryEntityName == "a365_leavecashconversion" && create) ||
+                                (context.PrimaryEntityName == "a365_leaveconversionyear" && update)) return;
+                            Rules.Fail("Employee leave sync can only append credits and a missing unpaid conversion row.");
+                        }
                         if (request != null && request.command == "resetBalances")
                         {
                             bool coordination = context.PrimaryEntityName == "a365_leavecoordination" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple" || context.MessageName == "Update" || context.MessageName == "UpdateMultiple");

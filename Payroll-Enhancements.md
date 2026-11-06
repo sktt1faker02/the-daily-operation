@@ -6,6 +6,45 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-06 - Initialize employee leave and unpaid conversion membership
+
+Fixed the app creation flow to post eligible current-year credits through a
+retry-safe admin server operation and add a missing Active employee to the
+existing unpaid current-year conversion. Added confirmed Sync leave credits in
+Leave Management for existing employees such as Support User. Failed setup
+preserves the already-created employee and explains recovery. Paid snapshots,
+deductions, manual limits, eligibility and accrual formulas are retained; legacy
+period mismatches require review rather than duplicate grants.
+
+Changed employee hooks/form, Leave page, new sync service/dialog and tests,
+Leave plugin command/write guards and conversion membership helper, build/test
+scripts and [implementation checklist](docs/employee-leave-initialization.md).
+Verified 521 app tests, lint/build, signed server compilation, 23 employee-sync
+checks, server regressions and six Playwright scenarios. After owner authorization,
+deployed the tested assembly to Dev and synced Support 11 User using the
+owner-supplied PHP 30,000 salary: 8.33 VL / 5 SL, one unpaid 2026 conversion row,
+5 convertible days / PHP 6,818.20. A live retry created no duplicate grants or
+conversion rows. The local browser source is updated; no hosted-app publication
+or schema/role changes. Ordinary-account security UAT remains pending. See the
+implementation checklist and deployment evidence.
+
+### 2026-11-06 - Leave calendar-period Dev deployment preflight
+
+Owner confirmed Dev deployment. Rebuilt the signed plugin and passed 367 server
+assertions, preserving the owner's allocation edits. Read-only inspection verified
+the Dev connection, backed up the deployed assembly and found 70 April-tagged
+credit transactions. After the impact was explained, the owner instructed replacing
+the plugin while retaining history without reconciliation. Updated the existing
+Dev assembly and verified its downloaded hash plus a read-only preview returning
+January 1, 2026. Recorded `docs/leave-calendar-period-deployment.json` and release
+notes in `docs/leave-january-reset.md`. No business-data, schema or security writes;
+production unchanged. Existing April credits remain excluded from the new period.
+Live issuance/security UAT remains unverified.
+Exported the actual Dev solution and synchronized its Leave DLL/assembly metadata,
+34 existing step registrations and solution assembly root into
+`solution/A365_DailyOperations/src`. Native DLL hash matches the tested/deployed
+build. Local solution pack and `git diff --check` pass. No commit or Git push.
+
 ### 2026-11-06 - Leave balance period uses the 2026 calendar year
 
 Changed `Rules.Period` and `PeriodEnd` in

@@ -8,4 +8,6 @@ Add-Type -Path (Join-Path $splitRoot 'plugins/A365.Leave.Plugins/PartialPaidLeav
 $splitChecks = [PartialPaidLeaveTests]::Run()
 Write-Host "Passed $splitChecks partial-paid issuance checks using synthetic services. No live records, Dataverse calls or email."
 $annualChecks = [PartialPaidLeaveTests]::RunAnnualAllocation()
+$syncChecks = [PartialPaidLeaveTests]::RunEmployeeSync()
+Write-Host "Passed $syncChecks employee leave setup checks: accrual, conversion, authorization, rollback and retries."
 Write-Host "Passed $annualChecks annual allocation checks: 0 VL / 5 SL opening, monthly VL accrual from 2027, and unchanged 2026 accrual."

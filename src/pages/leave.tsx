@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { SyncEmployeeLeave } from "@/features/leave/sync-employee-leave"
 import { CalendarDays, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ function LeaveWorkspace() {
       {validation && <p id="leave-filter-error" role="alert" className="w-full text-sm text-destructive">{validation}</p>}
     </form>
     <LeaveBalances employeeId={filters.employeeId} year={filters.year} />
+    {employee && <div><SyncEmployeeLeave key={`${employee.a365_employeeid}-${filters.year}`} employee={employee} year={filters.year} /></div>}
     <div className="flex flex-wrap gap-4">
       <ChoiceFilter label="Leave type" value={filters.type} labels={leaveTypeLabels} onChange={type => setFilters(previous => ({ ...previous, type }))} />
       <ChoiceFilter label="Benefit" value={filters.benefit} labels={benefitLabels} onChange={benefit => setFilters(previous => ({ ...previous, benefit }))} />

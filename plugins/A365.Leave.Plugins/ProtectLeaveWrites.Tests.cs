@@ -107,7 +107,17 @@ public static class ProtectLeaveWritesTests
         child.MessageName = "Delete"; Check(child, false, "reset cannot delete conversion records");
         api.InputParameters["Request"] = "{\"command\":\"resetPreview\"}";
         child.PrimaryEntityName = "a365_leavecredittransaction"; Check(child, false, "reset preview cannot append credits");
-        return 55;
+        api.InputParameters["Request"] = "{\"command\":\"syncEmployee\"}";
+        foreach (string entity in new[] { "a365_leavecredittransaction", "a365_leavecashconversion", "a365_leaveconversionyear", "a365_leavecoordination", "a365_leave" })
+        foreach (string message in new[] { "Create", "CreateMultiple", "Update", "UpdateMultiple", "Delete" })
+        {
+            child.PrimaryEntityName = entity; child.MessageName = message;
+            bool create = message == "Create" || message == "CreateMultiple";
+            bool update = message == "Update" || message == "UpdateMultiple";
+            bool allowed = entity == "a365_leavecoordination" ? create || update : entity == "a365_leaveconversionyear" ? update : entity == "a365_leavecredittransaction" || entity == "a365_leavecashconversion" ? create : false;
+            Check(child, allowed, "sync write scope " + entity + " " + message);
+        }
+        return 80;
     }
 
     public static void VerifyLegacyMarkerDependency()

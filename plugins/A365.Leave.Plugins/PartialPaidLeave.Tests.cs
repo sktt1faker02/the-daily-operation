@@ -40,6 +40,72 @@ public static class PartialPaidLeaveTests
         return checks;
     }
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
+    public static int RunEmployeeSync()
+    {
+        checks = 0;
+        var today = DateTime.UtcNow.AddHours(8).Date;
+        decimal earned = Decimal.Round(10m * (today.Month - 1) / 12m, 2, MidpointRounding.AwayFromZero);
+        var fake = new Fake();
+        var employee = fake.Rows.Single(row => row.LogicalName == "a365_employee");
+        employee["a365_datehired"] = today.AddYears(-1); employee["a365_basicmonthlysalary"] = new Money(22000m);
+        var header = new Entity("a365_leaveconversionyear", Guid.NewGuid());
+        header["a365_year"] = today.Year; header["a365_name"] = "Sync test"; header["versionnumber"] = 1L; header["statecode"] = new OptionSetValue(0); fake.Rows.Add(header);
+        var request = new Request { command = "syncEmployee", employeeId = fake.Employee.ToString("D"), year = today.Year };
+        var result = fake.Send(request);
+        Check(Convert.ToDecimal(result["VL"]) == earned, "Backdated hire receives completed current-year months");
+        Check(Convert.ToDecimal(result["SL"]) == 5m && (bool)result["conversionAdded"], "Sync initializes SL and conversion row");
+        var detail = fake.Rows.Single(row => row.LogicalName == "a365_leavecashconversion");
+        Check(detail.GetAttributeValue<Money>("a365_dailyrateused").Value == 1000m, "Conversion snapshots salary-derived rate");
+        detail["a365_availablevl"] = 2m; detail["a365_days"] = 1m;
+        int count = fake.Rows.Count; result = fake.Send(request);
+        Check(fake.Rows.Count == count && !(bool)result["conversionAdded"], "Retry cannot duplicate credits or rows");
+        Check(detail.GetAttributeValue<decimal>("a365_days") == 1m, "Sync preserves manual limits");
+        var deduction = new Entity("a365_leavecredittransaction", Guid.NewGuid());
+        deduction["a365_employee"] = employee.ToEntityReference(); deduction["a365_creditperiod"] = Rules.Iso(Rules.Period(today));
+        deduction["a365_year"] = today.Year; deduction["a365_creditpool"] = new OptionSetValue(749910000); deduction["a365_days"] = -0.5m; fake.Rows.Add(deduction);
+        result = fake.Send(request);
+        Check(Convert.ToDecimal(result["VL"]) == earned - 0.5m, "Sync preserves deductions instead of resetting");
+        Check(!fake.Rows.Any(row => row.LogicalName == "a365_leave"), "No dummy leave or email");
+        fake.IsAdmin = false; count = fake.Rows.Count; bool rejected = false;
+        try { fake.Send(request); } catch { rejected = true; }
+        Check(rejected && fake.Rows.Count == count, "Non-admin cannot sync"); fake.IsAdmin = true;
+        request.year--; rejected = false; try { fake.Send(request); } catch { rejected = true; }
+        Check(rejected, "Historical writes rejected"); request.year++;
+        var noHeader = new Fake();
+        result = noHeader.Send(new Request { command = "syncEmployee", employeeId = noHeader.Employee.ToString("D"), year = today.Year });
+        Check(!(bool)result["conversionAdded"] && !noHeader.Rows.Any(row => row.LogicalName == "a365_leaveconversionyear"), "No unsolicited conversion year");
+        var paid = new Fake();
+        var paidHeader = new Entity("a365_leaveconversionyear", Guid.NewGuid()); paidHeader["a365_year"] = today.Year; paidHeader["statecode"] = new OptionSetValue(1); paid.Rows.Add(paidHeader);
+        result = paid.Send(new Request { command = "syncEmployee", employeeId = paid.Employee.ToString("D"), year = today.Year });
+        Check(!(bool)result["conversionAdded"] && !paid.Rows.Any(row => row.LogicalName == "a365_leavecashconversion"), "Paid roster remains frozen");
+        var failed = new Fake();
+        var failedHeader = new Entity("a365_leaveconversionyear", Guid.NewGuid()); failedHeader["a365_year"] = today.Year; failedHeader["versionnumber"] = 1L; failedHeader["statecode"] = new OptionSetValue(0); failed.Rows.Add(failedHeader);
+        // Missing salary fails conversion setup after the grants have been planned/posted.
+        count = failed.Rows.Count; rejected = false;
+        var failedRequest = new Request { command = "syncEmployee", employeeId = failed.Employee.ToString("D"), year = today.Year };
+        try { failed.Send(failedRequest); } catch { rejected = true; }
+        Check(rejected && failed.Rows.Count == count, "Conversion failure rolls back credits and locks");
+        failed.Rows.Single(row => row.LogicalName == "a365_employee")["a365_basicmonthlysalary"] = new Money(22000m);
+        failed.Send(failedRequest);
+        Check(failed.Rows.Count(row => row.LogicalName == "a365_leavecashconversion") == 1, "Failed setup is retryable");
+        foreach (var mode in new[] { "future", "inactive", "ended", "legacy", "missing-hire" })
+        {
+            var invalid = new Fake(); var person = invalid.Rows.Single(row => row.LogicalName == "a365_employee");
+            if (mode == "future") person["a365_datehired"] = today.AddDays(1);
+            if (mode == "inactive") person["a365_employmentstatus"] = new OptionSetValue(749910001);
+            if (mode == "ended") person["a365_enddate"] = today.AddDays(-1);
+            if (mode == "missing-hire") person.Attributes.Remove("a365_datehired");
+            if (mode == "legacy") {
+                var old = new Entity("a365_leavecredittransaction", Guid.NewGuid()); old["a365_employee"] = person.ToEntityReference(); old["a365_year"] = today.Year;
+                old["a365_creditperiod"] = (today.Year - 1) + "-04-01"; invalid.Rows.Add(old);
+            }
+            rejected = false;
+            try { result = invalid.Send(new Request { command = "syncEmployee", employeeId = invalid.Employee.ToString("D"), year = today.Year }); } catch { rejected = true; }
+            Check(mode == "legacy" || mode == "missing-hire" ? rejected : !(bool)result["eligible"], "Eligibility/history: " + mode);
+            Check(!invalid.Rows.Any(row => row.LogicalName == "a365_leavecredittransaction" && row.Contains("a365_transactionkey")), "Invalid sync posts no grants: " + mode);
+        }
+        return checks;
+    }
     private static void Check(bool condition, string message) { if (!condition) throw new Exception(message); checks++; }
     private sealed class Fake : IOrganizationService, IOrganizationServiceFactory, IServiceProvider
     {

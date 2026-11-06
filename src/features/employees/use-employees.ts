@@ -5,6 +5,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { employeeService } from "./employee-service"
 import { EmploymentStatus, type EmployeeFormValues } from "./types"
+import { toast } from "sonner"
+import { employeeLeaveService } from "@/features/leave/employee-leave-service"
 
 export type EmployeeStatusFilter = "all" | "active" | "inactive"
 
@@ -38,8 +40,20 @@ export function useCreateEmployee() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (values: EmployeeFormValues) => employeeService.create(values),
-    onSuccess: () => {
+    onSuccess: async employee => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+      try {
+        const result = await employeeLeaveService.sync(employee.a365_employeeid)
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["leave", "balances", employee.a365_employeeid, result.year] }),
+          queryClient.invalidateQueries({ queryKey: ["leave", "conversion", "rows", result.year] }),
+          queryClient.invalidateQueries({ queryKey: ["leave", "conversion", "years"] }),
+        ])
+      } catch (error) {
+        // Employee creation already committed. Keep it successful so retrying
+        // leave setup never creates a second employee.
+        toast.error("Employee created; leave setup needs retry.", { description: error instanceof Error ? error.message : "Select the employee in Leave Management and use Sync leave credits." })
+      }
     },
   })
 }

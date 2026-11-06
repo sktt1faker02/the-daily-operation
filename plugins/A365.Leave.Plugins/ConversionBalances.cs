@@ -16,6 +16,23 @@ namespace A365.Leave.Plugins
     }
     public static partial class ConversionCommands
     {
+        internal static bool AddMissingEmployee(IOrganizationService caller, int year, Guid employeeId, Guid actor)
+        {
+            var header = Find(caller, Header, "a365_year", year, HeaderColumns);
+            if (header == null || IsPaid(header)) return false;
+            var query = Query(Detail, DetailColumns);
+            query.Criteria.AddCondition("a365_conversionyear", ConditionOperator.Equal, header.Id);
+            query.Criteria.AddCondition("a365_employee", ConditionOperator.Equal, employeeId);
+            var existing = All(caller, query);
+            if (existing.Count > 1) Rules.Fail("Duplicate conversion rows need review before syncing.");
+            if (existing.Count != 0) return false;
+            var row = NewRow(Guid.NewGuid(), header, Employee(caller, employeeId), actor);
+            var gate = new Entity(Header, header.Id) { RowVersion = header.GetAttributeValue<long>("versionnumber").ToString(CultureInfo.InvariantCulture) };
+            gate["a365_name"] = header.GetAttributeValue<string>("a365_name");
+            caller.Execute(new UpdateRequest { Target = gate, ConcurrencyBehavior = ConcurrencyBehavior.IfRowVersionMatches });
+            caller.Create(row);
+            return true;
+        }
         public static ConversionValues Effective(decimal limitVL, decimal limitDays, decimal rate, decimal recordedVL)
         {
             Validate(limitVL, limitDays);
