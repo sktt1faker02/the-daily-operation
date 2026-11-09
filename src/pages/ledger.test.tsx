@@ -22,15 +22,23 @@ beforeEach(() => {
   vi.mocked(ledgerService.jobs).mockResolvedValue({ jobs: [] })
   vi.mocked(ledgerService.preview).mockResolvedValue({ periods: [], manual: [], missing: 0, revision: "1" })
 })
-describe("Ledger Management", () => {
-  it("renders all seven fields, receipt zeros, scoped totals and server paging", async () => {
+describe("Ledger", () => {
+  it("keeps the record fields and company balance while simplifying the view", async () => {
     const user = userEvent.setup(); mount()
     const table = await screen.findByRole("table", { name: "Ledger records" })
     for (const name of ["Date", "OR Number", "Reference", "Debit (Money out)", "Credit (Money in)", "Chart of Account", "Description", "Action"]) expect(within(table).getByRole("columnheader", { name })).toBeInTheDocument()
-    expect(within(table).getByText("0001")).toBeInTheDocument(); expect(screen.getByText(/all 100 matching/)).toBeInTheDocument()
+    expect(within(table).getByText("0001")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Ledger" })).toBeVisible()
+    expect(screen.queryByText(/Filtered Money|Filtered net movement|Company balance covers/)).not.toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "Direction" })).not.toBeInTheDocument()
+    expect(screen.getByText(/9,000\.00/)).toBeVisible()
     await user.click(screen.getByRole("button", { name: "Next" }))
     await waitFor(() => expect(ledgerService.list).toHaveBeenCalledWith(expect.anything(), "page2"))
     expect(screen.getByText("Company balance")).toBeInTheDocument()
+    await user.type(screen.getByRole("textbox", { name: "Search" }), "Internet")
+    await user.click(screen.getByRole("button", { name: "Apply" }))
+    await waitFor(() => expect(ledgerService.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "Internet", direction: "" }), undefined))
+    expect(screen.getByText(/9,000\.00/)).toBeVisible()
   })
   it("opens HTTPS references in a new tab with keyboard access", async () => {
     const reference = "https://example.com/receipt?id=0001&year=2026"
@@ -82,7 +90,14 @@ describe("Ledger Management", () => {
     access.roleNames = roles.flat(); mount(true)
     expect(await screen.findByText("Employee portal")).toBeInTheDocument(); expect(ledgerService.list).not.toHaveBeenCalled()
   })
-  it("disables historical posting only when no missing work remains", async () => {
-    mount(); expect(await screen.findByRole("button", { name: "All previous paid payroll has been posted" })).toBeDisabled()
+  it("hides the completed historical-posting indicator", async () => {
+    mount(); await screen.findByRole("table", { name: "Ledger records" })
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Post previous paid payroll" })).not.toBeInTheDocument())
+    expect(screen.queryByRole("button", { name: "All previous paid payroll has been posted" })).not.toBeInTheDocument()
+  })
+  it("keeps historical posting available when missing work remains", async () => {
+    vi.mocked(ledgerService.preview).mockResolvedValue({ periods: [{ id: "period1", name: "Missing period", employees: 1, missing: 1, total: 100, error: null }], manual: [], missing: 1, revision: "1" })
+    mount()
+    expect(await screen.findByRole("button", { name: "Post previous paid payroll" })).toBeEnabled()
   })
 })

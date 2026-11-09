@@ -6,6 +6,81 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-09 - Simplify Ledger view
+
+Owner requested renaming the page/sidebar item to Ledger and hiding filtered-total
+cards, the explanatory note, Direction filter and completed historical-posting
+indicator. Company balance, all record columns, CRUD, remaining filters, export,
+missing-work posting and progress/retry handling remain. Changed Ledger page,
+sidebar label, historical success wording and existing tests/browser scenarios.
+No backend, calculations, schema, security or data changes. Acceptance verification
+and Dev release results are in [the UI checklist](docs/ledger-ui-simplification.md).
+Verification: 25 targeted checks, all 552 app tests, lint/build and desktop/mobile
+Ledger browser checks passed. Published the verified frontend to the existing Dev
+app and solution; Prod unchanged. Hosted-session interaction remains unverified.
+
+### 2026-11-09 - Hide Record and Status in Leave Management
+
+Owner requested removing Record and Status from the admin Leave Management table.
+The six visible columns are Employee, Type, Benefit, Dates, Days and Action.
+Verification checklist: aligned headers/row cells/empty colspan; View and Delete
+remain accessible and identify their records; pagination/details work; employee
+Leave History retains its existing columns and read-only actions. Updated shared
+`leave-records.tsx` with personal-view conditions and existing page/browser checks.
+No schema, status data, query, permission or calculation changes. Verified all
+criteria with 34 targeted admin/history tests, 551 full-suite tests / 53 files,
+lint/build, 94 admin browser checks, 12 personal-history browser checks and
+`git diff --check`. Published the tested frontend to Dev; main bundle SHA256
+`F92A6484379320DA2CA709F1D6E3287080673155B52B435FDB07CC6911BC7FA7`.
+Existing build chunk notices remain. Production and live records were not changed;
+signed-in hosted table UAT remains separate from synthetic browser checks.
+
+### 2026-11-09 - Remove Leave Management page hint boxes
+
+Removed the admin guidance banner and the no-employee balance prompt from the
+Leave Management page. Balance cards still load when an employee is selected;
+shared personal-history balance behavior remains unchanged. Verification checklist:
+both highlighted boxes absent, no balance request without a selection, selected
+employee balances visible, existing loading/empty/error/filter flows preserved,
+full app checks and Dev publication. Changed `src/pages/leave.tsx` and existing
+page/browser scenarios; no backend or data changes. All criteria pass: 26 targeted
+Leave page tests, 551 full-suite tests / 53 files, lint/build, 92 Edge checks and
+`git diff --check`. Published to the existing Dev app/solution; tested main bundle
+SHA256 `4DF811AC262C0774E584EF33A86A7A26CB553C35DC2A286F99F2254DC7589F62`.
+Existing build chunk notices remain. Production and live leave data are unchanged;
+signed-in hosted page UAT remains separate from synthetic browser verification.
+
+### 2026-11-09 - Remove Add Leave hints and calculated-day display
+
+Owner requested removing the highlighted pending-credit text, benefit/deduction
+breakdown, unpaid dates, calculated-days display, note helper and footer guidance.
+Updated `add-leave-dialog.tsx` and existing UI/browser scenarios. Verification
+checklist: highlighted content absent; balances/loading/errors retained; manual
+and automatic split payloads unchanged; note limit retained without a dangling
+accessibility description; full app checks and Dev publication. Date prefilling
+and half-day locking remain. No backend/calculation/data changes. Verified 26
+targeted Leave tests, 551 full-suite tests / 53 files, lint/build, 90 Edge checks
+and `git diff --check`. Published the tested frontend to Dev; main bundle SHA256
+`86584A85CD1DC7A1B5BC8AA6A25410B2A8AD9E9F16E6DD81647DD371D849F0E4`.
+Updated the manual-split documentation to reflect the owner's later presentation
+decision. Existing build chunk notices remain. Production and live leave records
+were not changed; signed-in hosted form UAT remains separate.
+
+### 2026-11-09 - Prefill Leave End Date from Start Date
+
+Updated `add-leave-dialog.tsx` so changing or clearing Start Date also copies or
+clears End Date. Full-day leave retains an editable End Date for multi-day
+requests; half-day date locking is preserved. Verification checklist: initial
+prefill, subsequent start changes, clearing, manual end-date override, cancellation
+and reopening, existing half-day behavior, and saved dates in desktop/mobile
+browser flows. Extended existing UI/browser scenarios; no backend, schema,
+calculation or data changes. Verified all criteria above with 26 targeted Leave
+tests, the full 551-test / 53-file suite, lint/build, 90 Edge checks and
+`git diff --check`. Published the tested frontend to the existing Dev app/solution;
+main bundle SHA256 `EEC960739190B2503DDABBBED009B4BF44274025851F5B45AE79911E75F36265`.
+Build retains its large-chunk notices. No real leave records were created;
+signed-in hosted form UAT remains separate. Production is unchanged.
+
 ### 2026-11-09 - Specify paid/unpaid Leave split
 
 Owner approved the optional manual split and deployment to Dev. Added Paid days

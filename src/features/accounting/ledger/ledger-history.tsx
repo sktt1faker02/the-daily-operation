@@ -48,7 +48,7 @@ export function LedgerHistory({ close }: { close: () => void }) {
       {!preview.data.periods.length && <p>No previous paid payroll periods were found.</p>}
       {preview.data.missing === 0 && <p>{preview.data.periods.some(period => period.error) ? "No postable missing rows remain. The exceptions above still require review." : "All previous paid payroll has been posted"}</p>}
       {error && <p role="alert" className="text-destructive">{error}</p>}
-      {confirmed ? <p role="status">Historical posting queued. Review per-period progress on Ledger Management.</p> : <Button disabled={start.isPending || preview.data.manual.length > 0 || preview.data.missing === 0} onClick={() => void run()}>{start.isPending ? "Queuing…" : "Confirm and post missing payroll"}</Button>}
+      {confirmed ? <p role="status">Historical posting queued. Review per-period progress on Ledger.</p> : <Button disabled={start.isPending || preview.data.manual.length > 0 || preview.data.missing === 0} onClick={() => void run()}>{start.isPending ? "Queuing…" : "Confirm and post missing payroll"}</Button>}
     </>}
     <Button variant="outline" disabled={start.isPending} onClick={close}>Close</Button>
   </DialogContent></Dialog>

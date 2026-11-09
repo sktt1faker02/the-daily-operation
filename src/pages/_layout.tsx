@@ -54,7 +54,7 @@ function useNav() {
     const leaveGroups: NavGroup[] = leaveAccessState(access) === "allowed"
       ? [{ label: "Leave", items: [{ to: "/leave", label: "Leave Management", icon: CalendarDays }, { to: "/leave-conversion", label: "Leave Conversion", icon: Coins }] }]
       : [];
-    const ledgerGroups: NavGroup[] = ledgerAccess(access) === "allowed" ? [{ label: "Ledger", items: [{ to: "/ledger", label: "Ledger Management", icon: BookOpen }] }] : [];
+    const ledgerGroups: NavGroup[] = ledgerAccess(access) === "allowed" ? [{ label: "Ledger", items: [{ to: "/ledger", label: "Ledger", icon: BookOpen }] }] : [];
     const groups = [...ADMIN_GROUPS, ...leaveGroups, ...ledgerGroups, ...(showMyPayroll ? [MY_PORTAL_GROUP] : [])];
     return { groups, brandTo };
   }

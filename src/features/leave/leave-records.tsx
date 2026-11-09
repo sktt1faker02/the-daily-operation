@@ -28,7 +28,7 @@ export function LeaveRecords({ filters, onOpen, personal = false }: { filters: L
   if (query.isPending) return <div role="status" aria-label={`Loading ${title.toLowerCase()}`} aria-busy="true"><Skeleton className="h-48 w-full" /></div>
   if (query.isError || !page) return <div role="alert" className="space-y-3 rounded-md border p-5"><p>Unable to load {title.toLowerCase()}. Check your access and try again.</p><Button variant="outline" onClick={() => void query.refetch()}>Retry records</Button></div>
   const count = page.leaves.length + page.credits.length + page.conversions.length
-  const headers = filters.section === "leave" ? ["Record", "Employee", "Type", "Benefit", "Dates", "Days", "Status", "Action"]
+  const headers = filters.section === "leave" ? [...(personal ? ["Record"] : []), "Employee", "Type", "Benefit", "Dates", "Days", ...(personal ? ["Status"] : []), "Action"]
     : filters.section === "credits" ? ["Date", "Employee", "Year", "Pool", "Movement", "Days", "Source", "Note"]
       : ["Record", "Employee", "Year", "Days", "Daily rate used", "Amount", "Status", "Action"]
   return <section aria-label={title} className="space-y-3">
@@ -36,10 +36,10 @@ export function LeaveRecords({ filters, onOpen, personal = false }: { filters: L
       <TableHeader><TableRow>{headers.map(header => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader>
       <TableBody>
         {page.leaves.map(row => <TableRow key={row.a365_leaveid}>
-          <TableCell className="font-medium">{row.a365_name}</TableCell><TableCell>{employeeName(row._a365_employee_value)}</TableCell>
+          {personal && <TableCell className="font-medium">{row.a365_name}</TableCell>}<TableCell>{employeeName(row._a365_employee_value)}</TableCell>
           <TableCell>{choiceLabel(leaveTypeLabels, row.a365_leavetype)}</TableCell><TableCell>{choiceLabel(benefitLabels, row.a365_benefit)}</TableCell>
           <TableCell className="whitespace-nowrap">{formatLeaveDate(row.a365_startdate)} – {formatLeaveDate(row.a365_enddate)}</TableCell><TableCell className="tabular-nums">{formatDays(row.a365_days)}{row.a365_benefit === 749910002 && <span className="block whitespace-nowrap text-xs text-muted-foreground">{leaveAllocationDisplay(row).paid} paid / {leaveAllocationDisplay(row).unpaid} unpaid</span>}</TableCell>
-          <TableCell><Badge variant="outline">{choiceLabel(leaveStatusLabels, row.a365_leavestatus)}</Badge></TableCell>
+          {personal && <TableCell><Badge variant="outline">{choiceLabel(leaveStatusLabels, row.a365_leavestatus)}</Badge></TableCell>}
           <TableCell><div className="flex items-center gap-1"><Button variant="ghost" size="icon" aria-label={`View ${row.a365_name}`} title="View leave" onClick={() => onOpen({ kind: "leave", id: row.a365_leaveid })}><Eye className="size-4" aria-hidden="true" /></Button>{!personal && <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label={`Delete ${row.a365_name}`} title="Delete leave" onClick={() => setDeleting(row)}><Trash2 className="size-4" aria-hidden="true" /></Button>}</div></TableCell>
         </TableRow>)}
         {page.conversions.map(row => <TableRow key={row.a365_leavecashconversionid}>

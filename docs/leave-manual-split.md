@@ -5,12 +5,18 @@ record covers the requested workdays; Payroll Admin may specify its paid portion
 even when enough credits exist to pay the entire leave. The remainder is unpaid.
 The motivating case is one full-day VL with 0.5 paid and 0.5 unpaid.
 
+Subsequent owner presentation update, 2026-11-09: remove the Add Leave benefit,
+deduction, unpaid-date and calculated-day hints. The server still computes and
+validates the same split; the form retains balances, manual Paid days and errors.
+The original release verification below records behavior before this UI cleanup.
+
 ## Acceptance verification checklist
 
 - [x] Paid requests offer an optional **Specify paid/unpaid split** control and
   labelled Paid days input; default automatic treatment is preserved.
 - [x] Preview calculates unpaid days from total workdays minus specified paid
-  days, shows Partially Paid when applicable and shows the dated allocation.
+  days and derives Partially Paid and the dated allocation server-side. On-form
+  breakdown hints were subsequently removed by the owner presentation update.
 - [x] Server rejects negative/over-precision paid amounts, paid amounts above
   requested workdays/available credits, and a manual amount on an Unpaid request.
 - [x] Save persists one source and its immutable version-1 dated allocation,

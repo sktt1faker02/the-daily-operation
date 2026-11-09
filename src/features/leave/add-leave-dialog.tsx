@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { LeaveEmployeePicker } from "./employee-picker"
-import { requestedBenefitLabels, benefitLabels, leaveTypeLabels } from "./types"
-import { formatDays } from "./rules"
+import { requestedBenefitLabels, leaveTypeLabels } from "./types"
 import { leaveAccessState } from "./rules"
 import { useIssueLeave, useLeavePostingPreview } from "./use-leave-posting"
 import { LeavePostingError } from "./posting-service"
@@ -47,7 +46,7 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
   function update<K extends keyof LeaveEntryValues>(key: K, value: LeaveEntryValues[K]) {
     setValues(previous => {
       const next = { ...previous, [key]: value }
-      if (next.halfDay && (key === "halfDay" || key === "startDate")) next.endDate = next.startDate
+      if (key === "startDate" || (next.halfDay && key === "halfDay")) next.endDate = next.startDate
       if (next.benefit !== "749910000") delete next.manualPaidDays
       return next
     })
@@ -124,14 +123,10 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
         : errors.manualPaidDays ? <p className="text-sm text-muted-foreground">Enter valid Paid days to preview the paid/unpaid split.</p>
         : preview.isPending || preview.isFetching ? <div role="status" aria-label="Loading employee credits"><Skeleton className="h-12 w-full" /><span className="sr-only">Loading complete credit history…</span></div>
           : preview.isError ? <div role="alert" className="space-y-2"><p className="text-sm">{preview.error instanceof LeavePostingError ? preview.error.message : "Employee credits are unavailable. No zero balance has been assumed."}</p><Button type="button" size="sm" variant="outline" onClick={() => void preview.refetch()}>Retry employee credits</Button></div>
-            : <><dl className="grid grid-cols-2 gap-4 text-sm"><div><dt>VL available</dt><dd className="font-semibold tabular-nums">{formatCreditDays(preview.data.VL)} days</dd></div><div><dt>SL available</dt><dd className="font-semibold tabular-nums">{formatCreditDays(preview.data.SL)} days</dd></div></dl>
-              {(preview.data.pendingVL > 0 || preview.data.pendingSL > 0) && <p className="text-xs text-muted-foreground">Includes credits due to post: VL {formatCreditDays(preview.data.pendingVL)}, SL {formatCreditDays(preview.data.pendingSL)} days. These post together with the Leave when submitted.</p>}
-              {preview.data.benefit !== null && <div className="space-y-2 text-sm"><p>Benefit: {benefitLabels[preview.data.benefit]}. Paid: {formatCreditDays(preview.data.paidDays ?? 0)} days; Unpaid: {formatCreditDays(preview.data.unpaidDays ?? 0)} days.</p><p>{preview.data.paidDays === 0 ? "No credits will be deducted." : `${formatCreditDays(preview.data.paidDays ?? 0)} days will be deducted from ${preview.data.pool}.`}</p>{preview.data.allocation?.some(day => day.unpaidDays > 0) && <p>Unpaid dates: {preview.data.allocation.filter(day => day.unpaidDays > 0).map(day => `${formatLeaveDate(day.date)} (${formatDays(day.unpaidDays)} days)`).join(", ")}</p>}</div>}</>}
-      <div><Label htmlFor="add-leave-days">Calculated leave days</Label><output id="add-leave-days" className="mt-1 block text-sm text-muted-foreground">{preview.isSuccess && !preview.isFetching && preview.data.days !== null ? `${formatCreditDays(preview.data.days)} workdays` : "Select valid dates, type and benefit to calculate workdays."}</output></div>
+            : <dl className="grid grid-cols-2 gap-4 text-sm"><div><dt>VL available</dt><dd className="font-semibold tabular-nums">{formatCreditDays(preview.data.VL)} days</dd></div><div><dt>SL available</dt><dd className="font-semibold tabular-nums">{formatCreditDays(preview.data.SL)} days</dd></div></dl>}
     </section>
 
-    <div className="space-y-2"><Label htmlFor="add-leave-note">Note (optional)</Label><Textarea id="add-leave-note" maxLength={2000} value={values.note} onChange={event => update("note", event.target.value)} aria-describedby="add-leave-note-help" /><p id="add-leave-note-help" className="text-xs text-muted-foreground">Internal note, up to 2,000 characters. Excluded from the employee email.</p></div>
-    <p className="text-xs text-muted-foreground">Monday–Friday workdays; holidays are excluded. Half-day leave uses 0.5 day on a single date. Sick leave uses SL credits; VL and General Leave use VL credits. Paid requests use available credits on the earliest leave dates; remaining days or portions are unpaid. Credits and dates are checked again when submitted. Email follows after the Leave is recorded.</p>
+    <div className="space-y-2"><Label htmlFor="add-leave-note">Note (optional)</Label><Textarea id="add-leave-note" maxLength={2000} value={values.note} onChange={event => update("note", event.target.value)} /></div>
     </fieldset>
     {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
     {uncertain && <p role="status" className="text-sm">Keep this request unchanged and retry to check the same operation. Do not create a replacement Leave.</p>}

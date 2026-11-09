@@ -45,24 +45,18 @@ export default function LedgerPage() {
     finally { exportBusy.current = false; setExporting(false) }
   }
   return <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
-    <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight">Ledger Management</h1><p className="mt-1 text-sm text-muted-foreground">Record and review business receipts and payments.</p></div>
-      <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={historyComplete} onClick={() => setHistory(true)}><BookOpen className="size-4" aria-hidden />{historyComplete ? preview.data?.periods.some(period => period.error) ? "No postable missing payroll" : "All previous paid payroll has been posted" : "Post previous paid payroll"}</Button><Button variant="outline" disabled={!ledger.data || exporting || ledger.isError} onClick={() => void runExport()}><Download className="size-4" aria-hidden />{exporting ? "Exporting…" : "Export to Excel"}</Button><Button disabled={!ledger.data || ledger.isError} onClick={() => setForm("new")}><Plus className="size-4" aria-hidden />Add record</Button></div>
+    <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight">Ledger</h1><p className="mt-1 text-sm text-muted-foreground">Record and review business receipts and payments.</p></div>
+      <div className="flex flex-wrap gap-2">{!historyComplete && <Button variant="outline" onClick={() => setHistory(true)}><BookOpen className="size-4" aria-hidden />Post previous paid payroll</Button>}<Button variant="outline" disabled={!ledger.data || exporting || ledger.isError} onClick={() => void runExport()}><Download className="size-4" aria-hidden />{exporting ? "Exporting…" : "Export to Excel"}</Button><Button disabled={!ledger.data || ledger.isError} onClick={() => setForm("new")}><Plus className="size-4" aria-hidden />Add record</Button></div>
     </header>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {preview.data?.periods.filter(period => period.error).map(period => <p key={period.id} role="status" className="text-sm text-muted-foreground">{period.name}: {period.error}</p>)}
     {ledger.isPending && <p role="status">Loading ledger records and balances…</p>}
     {ledger.isError && <div role="alert" className="space-y-2 rounded-md border p-4"><p>{ledger.error.message}</p><Button variant="outline" onClick={refresh}>Retry ledger</Button></div>}
-    {ledger.data && !ledger.isError && <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[
-        ["Company balance", ledger.data.balance], ["Filtered Money out", ledger.data.totals.debit], ["Filtered Money in", ledger.data.totals.credit], ["Filtered net movement", ledger.data.totals.net],
-      ].map(([label, amount]) => <Card key={String(label)}><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{label}</CardTitle></CardHeader><CardContent><p className="text-xl font-semibold tabular-nums">{formatCurrency(Number(amount))}</p></CardContent></Card>)}</div>
-      <p className="text-xs text-muted-foreground">Company balance covers all recorded entries, independent of filters and pages. Filtered totals cover all {ledger.data.totals.count} matching records. Excluded or unrecorded movements limit completeness.</p>
-    </>}
-    <form className="grid items-end gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-6" onSubmit={e => { e.preventDefault(); setFilters({ ...draft }); setCursors([undefined]) }}>
+    {ledger.data && !ledger.isError && <Card className="w-full sm:max-w-sm"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Company balance</CardTitle></CardHeader><CardContent><p className="text-xl font-semibold tabular-nums">{formatCurrency(ledger.data.balance)}</p></CardContent></Card>}
+    <form className="grid items-end gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-5" onSubmit={e => { e.preventDefault(); setFilters({ ...draft }); setCursors([undefined]) }}>
       <div><Label htmlFor="ledger-from">From</Label><Input id="ledger-from" type="date" value={draft.start} onChange={e => set("start", e.target.value)} /></div>
       <div><Label htmlFor="ledger-to">To</Label><Input id="ledger-to" type="date" value={draft.end} onChange={e => set("end", e.target.value)} /></div>
       <div><Label htmlFor="filter-category">Chart of Account</Label><select id="filter-category" className="h-10 w-full rounded-md border bg-background px-2 text-sm" value={draft.category} onChange={e => set("category", e.target.value)}><option value="">All categories</option>{ledger.data?.categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-      <div><Label htmlFor="filter-direction">Direction</Label><select id="filter-direction" className="h-10 w-full rounded-md border bg-background px-2 text-sm" value={draft.direction} onChange={e => set("direction", e.target.value)}><option value="">All directions</option><option value="debit">Money out</option><option value="credit">Money in</option></select></div>
       <div><Label htmlFor="ledger-search">Search</Label><Input id="ledger-search" placeholder="Description, OR or reference" maxLength={200} value={draft.search} onChange={e => set("search", e.target.value)} /></div>
       <div className="flex gap-2"><Button type="submit" variant="outline">Apply</Button><Button type="button" variant="ghost" onClick={() => { setDraft(emptyFilters); setFilters(emptyFilters); setCursors([undefined]) }}>Clear</Button></div>
     </form>
