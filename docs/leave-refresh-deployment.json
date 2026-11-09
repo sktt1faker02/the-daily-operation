@@ -1,0 +1,33 @@
+{
+  "BusinessDataWrites": "None",
+  "Maximums": {
+    "VL": 10,
+    "SL": 5
+  },
+  "ActualRefreshRollbackConcurrency": "Synthetic checks only",
+  "DeployedHashMatchesTested": true,
+  "Solution": "A365_DailyOperations",
+  "PeriodStart": "2026-01-01",
+  "ActiveEmployeeCount": 6,
+  "Year": 2026,
+  "VerifiedAt": "2026-11-09T06:02:00.5766788Z",
+  "Schema": "Unchanged",
+  "CanApply": true,
+  "CreditCountUnchanged": true,
+  "OrdinaryAccountSecurity": "Not exercised",
+  "IsInTransaction": true,
+  "RefreshExecuted": false,
+  "RefreshPreview": "Passed",
+  "AssemblyVersion": "1.0.3.10",
+  "Emails": "None",
+  "Environment": "https://org9a7651f0.crm5.dynamics.com",
+  "BlockedEmployeeCount": 0,
+  "SHA256": "F01D6CE69B0816A7B42F3D2CC747C00158DA84FE7122011C00D1E7BE96534BC6",
+  "ActiveSynchronousWriteGuards": 20,
+  "Roles": "Unchanged",
+  "NativeLeaveSourceSynchronized": true,
+  "NativeSolutionPack": "Passed",
+  "ClientPublished": false,
+  "ClientTesting": "npm run dev",
+  "ServerSyntheticChecks": 663
+}

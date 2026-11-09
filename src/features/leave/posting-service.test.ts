@@ -86,7 +86,7 @@ describe("Transactional Leave client boundary", () => {
   })
 
   it("requests a read-only server preview and verifies complete period values", async () => {
-    const preview = { policyVersion: "2026-10-22.1", periodStart: "2026-04-01", periodEnd: "2027-03-31", VL: 5, SL: 5, pendingVL: 5, pendingSL: 5, days: 1, benefit: 749910000, pool: "VL", allocationVersion: 1, paidDays: 1, unpaidDays: 0, allocation: [{ date: values.startDate, paidDays: 1, unpaidDays: 0 }] }
+    const preview = { policyVersion: "2026-10-22.1", periodStart: "2026-01-01", periodEnd: "2027-03-31", VL: 5, SL: 5, pendingVL: 5, pendingSL: 5, days: 1, benefit: 749910000, pool: "VL", allocationVersion: 1, paidDays: 1, unpaidDays: 0, allocation: [{ date: values.startDate, paidDays: 1, unpaidDays: 0 }] }
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success(preview))
     expect(await postingService.preview(values)).toEqual(preview)
     expect(readRequest(0)).toMatchObject({ command: "preview", employeeId, startDate: values.startDate })
@@ -94,7 +94,7 @@ describe("Transactional Leave client boundary", () => {
   })
   it.each(["749910000", "749910001", "749910002"])("sends half-day type %s and blocks servers that still count a full day", async leaveType => {
     const halfDay = { ...values, halfDay: true, leaveType, endDate: values.startDate }
-    const preview = { allocationVersion: 1, periodStart: "2026-04-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, days: 0.5, benefit: 749910000, pool: leaveType === "749910001" ? "SL" : "VL", paidDays: 0.5, unpaidDays: 0, allocation: [{ date: values.startDate, paidDays: 0.5, unpaidDays: 0 }] }
+    const preview = { allocationVersion: 1, periodStart: "2026-01-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, days: 0.5, benefit: 749910000, pool: leaveType === "749910001" ? "SL" : "VL", paidDays: 0.5, unpaidDays: 0, allocation: [{ date: values.startDate, paidDays: 0.5, unpaidDays: 0 }] }
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success(preview))
     expect(await postingService.preview(halfDay)).toEqual(preview)
     expect(readRequest(0)).toMatchObject({ halfDay: true, leaveType: Number(leaveType) })
@@ -107,7 +107,7 @@ describe("Transactional Leave client boundary", () => {
   it("blocks older servers and incomplete split previews", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ days: 5, benefit: 749910001 }))
     await expect(postingService.preview(values)).rejects.toMatchObject({ uncertain: false, message: expect.stringContaining("server update") })
-    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ allocationVersion: 1, periodStart: "2026-04-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, days: 5, benefit: 749910002, paidDays: 4, unpaidDays: 1, allocation: [] }))
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValue(success({ allocationVersion: 1, periodStart: "2026-01-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, days: 5, benefit: 749910002, paidDays: 4, unpaidDays: 1, allocation: [] }))
     await expect(postingService.preview(values)).rejects.toMatchObject({ uncertain: false, message: expect.stringContaining("preview could not be verified") })
   })
   it("submits the reviewed breakdown so changed credits cannot silently change it", async () => {
@@ -187,22 +187,33 @@ describe("Transactional Leave client boundary", () => {
 })
 
 
-describe("Leave reset server contract", () => {
-  const reviewed = { resetVersion: 1 as const, year: 2026, periodStart: "2026-04-01", employeeCount: 2, VL: 10 as const, SL: 5 as const, version: "a".repeat(64) }
-  it("uses the existing generated command and the exact reviewed reset identity", async () => {
+describe("Leave refresh server contract", () => {
+  const reviewed = { refreshVersion: 1 as const, year: 2026, periodStart: "2026-01-01", employeeCount: 2, canApply: true, employees: Array.from({ length: 2 }, (_, index) => ({ employeeId: "10000000-0000-0000-0000-00000000000" + (index + 1), employeeName: `Employee ${index + 1}`, beforeVL: 17.83, beforeSL: 9, earnedVL: 8.33, usedVL: 2, usedSL: 1, convertedVL: 1, VL: 5.33, SL: 4, issue: null })), version: "a".repeat(64) }
+  it("uses the existing generated command and the exact reviewed refresh identity", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(reviewed))
-    expect(await postingService.resetPreview()).toEqual(reviewed)
-    expect(readRequest(0)).toEqual({ command: "resetPreview" })
+    expect(await postingService.refreshPreview()).toEqual(reviewed)
+    expect(readRequest(0)).toEqual({ command: "refreshPreview" })
     const result = { ...reviewed, completed: true, operationId }
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(result))
-    expect(await postingService.resetBalances(reviewed, operationId)).toEqual(result)
-    expect(readRequest(1)).toEqual({ command: "resetBalances", operationId, year: 2026, version: reviewed.version })
+    expect(await postingService.refreshBalances(reviewed, operationId)).toEqual(result)
+    expect(readRequest(1)).toEqual({ command: "refreshBalances", operationId, year: 2026, version: reviewed.version })
     expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
   })
   it("rejects malformed previews and treats incomplete completion as uncertain", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success({ ...reviewed, employeeCount: -1 }))
-    await expect(postingService.resetPreview()).rejects.toMatchObject({ uncertain: false })
+    await expect(postingService.refreshPreview()).rejects.toMatchObject({ uncertain: false })
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success({ ...reviewed, completed: true, operationId: "wrong" }))
-    await expect(postingService.resetBalances(reviewed, operationId)).rejects.toMatchObject({ uncertain: true })
+    await expect(postingService.refreshBalances(reviewed, operationId)).rejects.toMatchObject({ uncertain: true })
+  })
+  it("rejects old reset responses, duplicate employees and inconsistent spendable balances", async () => {
+    for (const response of [
+      { resetVersion: 1, year: 2026, VL: 10, SL: 5 },
+      { ...reviewed, employees: [reviewed.employees[0], reviewed.employees[0]] },
+      { ...reviewed, employees: reviewed.employees.map(row => ({ ...row, VL: 10 })) },
+      { ...reviewed, employees: reviewed.employees.map(row => ({ ...row, usedSL: 6, SL: -1 })) },
+    ]) {
+      vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(response))
+      await expect(postingService.refreshPreview()).rejects.toMatchObject({ uncertain: false })
+    }
   })
 })

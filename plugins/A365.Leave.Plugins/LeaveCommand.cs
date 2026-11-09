@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.9")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.12")]
 
 namespace A365.Leave.Plugins
 {
@@ -161,7 +161,7 @@ namespace A365.Leave.Plugins
             if (request.command == "diagnostics") response = new { policyVersion = "2026-10-22.1", isInTransaction = context.IsInTransaction, serverValidation = true };
             else if (request.command == "prepareEmail" || request.command == "completeEmail") response = Email(request, system, caller);
             else if (request.command == "deletePreview" || request.command == "delete") response = DeleteLeave(request, context, system, caller);
-            else if (request.command == "resetPreview" || request.command == "resetBalances") response = ResetBalances(request, context, system, caller);
+            else if (request.command == "refreshPreview" || request.command == "refreshBalances") response = RefreshBalances(request, context, system, caller);
             else if (request.command == "correct2026Preview" || request.command == "correct2026") response = Correct2026(request, context, system, caller);
             else if (request.command == "syncEmployee") response = SyncEmployee(request, system, caller, context.InitiatingUserId);
             else if (request.command == "preview" || request.command == "issue") response = Post(request, context, system, caller);
@@ -448,13 +448,12 @@ namespace A365.Leave.Plugins
                                 (context.PrimaryEntityName == "a365_leaveconversionyear" && update)) return;
                             Rules.Fail("Employee leave sync can only append credits and a missing unpaid conversion row.");
                         }
-                        if (request != null && request.command == "resetBalances")
+                        if (request != null && request.command == "refreshBalances")
                         {
                             bool coordination = context.PrimaryEntityName == "a365_leavecoordination" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple" || context.MessageName == "Update" || context.MessageName == "UpdateMultiple");
                             bool credit = context.PrimaryEntityName == "a365_leavecredittransaction" && (context.MessageName == "Create" || context.MessageName == "CreateMultiple");
-                            bool conversionReset = conversion && (context.MessageName == "Update" || context.MessageName == "UpdateMultiple");
-                            if (coordination || credit || conversionReset) return;
-                            Rules.Fail("Leave reset can only append credit adjustments, coordinate employees and update unpaid conversion values.");
+                            if (coordination || credit) return;
+                            Rules.Fail("Leave refresh can only append credit adjustments and coordinate employees.");
                         }
                         if (request != null && request.command == "delete")
                         {

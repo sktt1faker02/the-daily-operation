@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { pathToFileURL } from "node:url"
 const { chromium } = await import(pathToFileURL(process.argv[2]).href)
 const base = "http://127.0.0.1:3107"
-const preview = { resetVersion: 1, year: 2026, periodStart: "2026-04-01", employeeCount: 3, VL: 10, SL: 5, version: "a".repeat(64) }
+const preview = { refreshVersion: 1, year: 2026, periodStart: "2026-01-01", employeeCount: 3, canApply: true, employees: Array.from({ length: 3 }, (_, index) => ({ employeeId: "10000000-0000-0000-0000-00000000000" + (index + 1), employeeName: `Employee ${index + 1}`, beforeVL: 17.83, beforeSL: 9, earnedVL: 8.33, usedVL: 2, usedSL: 1, convertedVL: 1, VL: 5.33, SL: 4, issue: null })), version: "a".repeat(64) }
 const browser = await chromium.launch({ channel: "msedge", headless: true })
 try {
   for (const scenario of ["cancel", "success", "preview-error", "uncertain", "empty", "mobile", "employee"]) {
@@ -26,10 +26,10 @@ try {
         if (url.pathname === "/src/features/leave/leave-service.ts") body = `export const buildLeaveFilter=()=>'';export const leaveService={async list(){return {leaves:[],credits:[],conversions:[],employees:[]};},async balances(){return {VL:10,SL:5,movements:2};},async searchEmployees(){return {rows:[]};}};`
         if (url.pathname === "/src/generated/services/A365_LeaveCommandService.ts") body = `
           export const A365_LeaveCommandService={async a365_LeaveCommand(raw){const request=JSON.parse(raw);
-            if(request.command==='resetPreview'){window.__previewCalls++;
+            if(request.command==='refreshPreview'){window.__previewCalls++;
               ${scenario === "preview-error" ? "throw new Error('LEAVE: Synthetic preview failure.');" : ""}
-              return {success:true,data:{Response:JSON.stringify(${JSON.stringify({ ...preview, employeeCount: scenario === "empty" ? 0 : 3 })})}};}
-            if(request.command==='resetBalances'){window.__resets.push(request);await new Promise(resolve=>setTimeout(resolve,150));
+              return {success:true,data:{Response:JSON.stringify(${JSON.stringify({ ...preview, employeeCount: scenario === "empty" ? 0 : 3, employees: scenario === "empty" ? [] : preview.employees, canApply: scenario !== "empty" })})}};}
+            if(request.command==='refreshBalances'){window.__resets.push(request);await new Promise(resolve=>setTimeout(resolve,150));
               ${scenario === "uncertain" ? "if(window.__resets.length===1)throw new Error('Synthetic uncertain network response');" : ""}
               return {success:true,data:{Response:JSON.stringify({...${JSON.stringify(preview)},completed:true,operationId:request.operationId})}};}
             throw new Error('Unexpected command');}};`
@@ -39,17 +39,17 @@ try {
       await page.goto(base, { waitUntil: "domcontentloaded", timeout: 60000 })
       if (scenario === "employee") {
         await page.getByRole("heading", { name: "Leave access denied" }).waitFor()
-        assert.equal(await page.getByRole("button", { name: "Reset leave balances" }).count(), 0)
+        assert.equal(await page.getByRole("button", { name: "Refresh balance" }).count(), 0)
       } else {
-        await page.getByRole("button", { name: "Reset leave balances" }).click().catch(async error => { console.error({scenario,errors,text:await page.locator("body").innerText()});throw error })
+        await page.getByRole("button", { name: "Refresh balance" }).click().catch(async error => { console.error({scenario,errors,text:await page.locator("body").innerText()});throw error })
         const dialog = page.getByRole("dialog")
         await dialog.waitFor()
         if (scenario === "preview-error") {
           await dialog.getByRole("alert").waitFor()
-          assert.equal(await dialog.getByRole("button", { name: "Reset balances", exact: true }).isDisabled(), true)
+          assert.equal(await dialog.getByRole("button", { name: "Refresh balance", exact: true }).isDisabled(), true)
           assert.equal(await page.evaluate(() => window.__resets.length), 0)
         } else {
-          await dialog.getByText(scenario === "empty" ? "No active employees need resetting." : "3 active employees", { exact: true }).waitFor()
+          await dialog.getByText(scenario === "empty" ? "No active employees to refresh." : "3 active employees", { exact: true }).waitFor()
           if (["cancel", "mobile"].includes(scenario)) {
             if (scenario === "mobile") {
               const box = await dialog.boundingBox()
@@ -59,15 +59,15 @@ try {
             await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
             assert.equal(await page.evaluate(() => window.__resets.length), 0)
           } else if (scenario === "empty") {
-            assert.equal(await dialog.getByRole("button", { name: "Reset balances", exact: true }).isDisabled(), true)
+            assert.equal(await dialog.getByRole("button", { name: "Refresh balance", exact: true }).isDisabled(), true)
           } else {
-            await dialog.getByRole("button", { name: "Reset balances", exact: true }).click()
+            await dialog.getByRole("button", { name: "Refresh balance", exact: true }).click()
             if (scenario === "uncertain") {
-              await dialog.getByRole("button", { name: "Retry same reset" }).waitFor()
+              await dialog.getByRole("button", { name: "Retry same refresh" }).waitFor()
               assert.equal(await dialog.getByRole("button", { name: "Cancel", exact: true }).isDisabled(), true)
               await page.keyboard.press("Escape")
               assert.equal(await dialog.isVisible(), true)
-              await dialog.getByRole("button", { name: "Retry same reset" }).click()
+              await dialog.getByRole("button", { name: "Retry same refresh" }).click()
             }
             await dialog.waitFor({ state: "hidden" })
             const writes = await page.evaluate(() => window.__resets)
@@ -79,5 +79,5 @@ try {
       assert.deepEqual(errors, [])
     } finally { await context.close() }
   }
-  console.log("Passed 7 leave reset browser scenarios: confirmation/cancel, success, preview error, uncertain retry, empty, mobile and employee denial. No live writes.")
+  console.log("Passed 7 leave refresh browser scenarios: confirmation/cancel, success, preview error, uncertain retry, empty, mobile and employee denial. No live writes.")
 } finally { await browser.close() }

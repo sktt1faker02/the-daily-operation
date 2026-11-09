@@ -72,11 +72,14 @@ namespace A365.Leave.Plugins
                 try { allocation = Json.Deserialize<LeaveAllocation>(rawAllocation); }
                 catch { Rules.Fail("The saved leave allocation needs review."); return null; }
                 if (allocation == null || allocation.version != 1 || allocation.days == null || allocation.days.Length == 0 || allocation.days.Length > 366 || allocation.PaidDays != paid || allocation.UnpaidDays != unpaid) Rules.Fail("The saved leave allocation needs review.");
+                // Half-day issuance persists one 0.5-day allocation on one date.
+                // Validate the saved shape without reapplying today's policy.
+                decimal dayAmount = days == 0.5m && start == source.GetAttributeValue<DateTime>("a365_enddate").Date && allocation.days.Length == 1 ? 0.5m : 1m;
                 var previous = start.AddDays(-1); bool unpaidStarted = false;
                 foreach (var day in allocation.days)
                 {
                     var date = Rules.Day(day.date);
-                    if (date < start || date > source.GetAttributeValue<DateTime>("a365_enddate").Date || date <= previous || day.paidDays < 0 || day.unpaidDays < 0 || day.paidDays + day.unpaidDays != 1 || (unpaidStarted && day.paidDays > 0)) Rules.Fail("The saved leave allocation needs review.");
+                    if (date < start || date > source.GetAttributeValue<DateTime>("a365_enddate").Date || date <= previous || day.paidDays < 0 || day.unpaidDays < 0 || day.paidDays + day.unpaidDays != dayAmount || (unpaidStarted && day.paidDays > 0)) Rules.Fail("The saved leave allocation needs review.");
                     previous = date; if (day.unpaidDays > 0) unpaidStarted = true;
                 }
                 offsets = allocation.days.Select(day => (Rules.Day(day.date) - start).Days).ToArray();

@@ -27,8 +27,13 @@ export interface PostingPreview {
 export type NotificationOutcome = "accepted" | "failed" | "unknown"
 export interface ReviewedAllocation { paidDays: number; unpaidDays: number }
 export interface LeaveDeletionPreview { restoredDays: number; pool: "VL" | "SL"; creditPeriod: string; year: number }
-export interface LeaveResetPreview { resetVersion: 1; year: number; periodStart: string; employeeCount: number; VL: 10; SL: 5; version: string }
-export interface LeaveResetResult { resetVersion: 1; completed: true; operationId: string; year: number; periodStart: string; employeeCount: number; VL: 10; SL: 5 }
+export interface LeaveRefreshEmployee {
+  employeeId: string; employeeName: string; beforeVL: number; beforeSL: number
+  earnedVL: number; usedVL: number; usedSL: number; convertedVL: number
+  VL: number; SL: number; issue: string | null
+}
+export interface LeaveRefreshPreview { refreshVersion: 1; year: number; periodStart: string; employeeCount: number; canApply: boolean; employees: LeaveRefreshEmployee[]; version: string }
+export interface LeaveRefreshResult { refreshVersion: 1; completed: true; operationId: string; year: number; periodStart: string; employeeCount: number }
 
 export class LeavePostingError extends Error {
   readonly uncertain: boolean
@@ -72,21 +77,36 @@ function source(value: unknown): LeaveRecord {
 }
 
 export const postingService = {
-  async resetPreview(): Promise<LeaveResetPreview> {
-    const result = await command({ command: "resetPreview" })
-    if (result.resetVersion !== 1 || !Number.isInteger(result.year) || Number(result.year) < 1900 || Number(result.year) > 9998 || !Number.isInteger(result.employeeCount) || Number(result.employeeCount) < 0 || result.VL !== 10 || result.SL !== 5 || typeof result.version !== "string" || !/^[a-f0-9]{64}$/.test(result.version) || typeof result.periodStart !== "string") {
-      throw new LeavePostingError("The leave reset preview could not be verified. The Leave server update may be required.", false)
+  async refreshPreview(): Promise<LeaveRefreshPreview> {
+    const result = await command({ command: "refreshPreview" })
+    if (result.refreshVersion !== 1 || !Number.isInteger(result.year) || Number(result.year) < 1900 || Number(result.year) > 9998 || !Number.isInteger(result.employeeCount) || Number(result.employeeCount) < 0 || typeof result.canApply !== "boolean" || !Array.isArray(result.employees) || result.employees.length !== result.employeeCount || typeof result.version !== "string" || !/^[a-f0-9]{64}$/.test(result.version) || typeof result.periodStart !== "string") {
+      throw new LeavePostingError("The balance refresh preview could not be verified. The Leave server update may be required.", false)
     }
     dateOnly(result.periodStart)
-    return result as unknown as LeaveResetPreview
-  },
-  async resetBalances(preview: LeaveResetPreview, operationId: string): Promise<LeaveResetResult> {
-    const id = requireGuid(operationId)
-    const result = await command({ command: "resetBalances", operationId: id, year: preview.year, version: preview.version })
-    if (result.resetVersion !== 1 || result.completed !== true || result.operationId !== id || result.year !== preview.year || result.periodStart !== preview.periodStart || result.employeeCount !== preview.employeeCount || result.VL !== 10 || result.SL !== 5) {
-      throw new LeavePostingError("The reset outcome could not be confirmed. Retry this reset; do not start another one.", true)
+    const ids = new Set<string>()
+    for (const employee of result.employees) {
+      const row = employee as Partial<LeaveRefreshEmployee> | null
+      if (!row || typeof row.employeeId !== "string" || typeof row.employeeName !== "string" || (row.issue !== null && typeof row.issue !== "string") ||
+        (["beforeVL", "beforeSL", "earnedVL", "usedVL", "usedSL", "convertedVL", "VL", "SL"] as const).some(key => typeof row[key] !== "number" || !Number.isFinite(row[key]))) {
+        throw new LeavePostingError("The employee balance preview could not be verified.", false)
+      }
+      const verified = row as LeaveRefreshEmployee
+      const id = requireGuid(verified.employeeId)
+      if (ids.has(id) || verified.earnedVL < 0 || verified.earnedVL > 10 || verified.usedVL < 0 || verified.usedSL < 0 || verified.convertedVL < 0 || verified.convertedVL > 5 ||
+        Math.round(verified.VL * 100) !== Math.round((verified.earnedVL - verified.usedVL - verified.convertedVL) * 100) || Math.round(verified.SL * 100) !== Math.round((5 - verified.usedSL) * 100) ||
+        (result.canApply && (verified.VL < 0 || verified.SL < 0 || verified.issue !== null))) throw new LeavePostingError("The employee balance preview is inconsistent. Refresh and try again.", false)
+      ids.add(id)
     }
-    return result as unknown as LeaveResetResult
+    if (result.canApply && !result.employeeCount) throw new LeavePostingError("No employees are available to refresh.", false)
+    return result as unknown as LeaveRefreshPreview
+  },
+  async refreshBalances(preview: LeaveRefreshPreview, operationId: string): Promise<LeaveRefreshResult> {
+    const id = requireGuid(operationId)
+    const result = await command({ command: "refreshBalances", operationId: id, year: preview.year, version: preview.version })
+    if (result.refreshVersion !== 1 || result.completed !== true || result.operationId !== id || result.year !== preview.year || result.periodStart !== preview.periodStart || result.employeeCount !== preview.employeeCount) {
+      throw new LeavePostingError("The refresh outcome could not be confirmed. Retry this refresh; do not start another one.", true)
+    }
+    return result as unknown as LeaveRefreshResult
   },
   async deletionPreview(record: LeaveRecord): Promise<LeaveDeletionPreview> {
     const id = requireGuid(record.a365_leaveid), employeeId = requireGuid(record._a365_employee_value ?? "")

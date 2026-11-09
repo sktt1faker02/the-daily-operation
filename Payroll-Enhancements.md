@@ -6,6 +6,79 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-09 - Deploy Refresh balance backend to Dev
+
+Owner authorized Dev backend deployment and direct future plugin/backend updates
+to Dev without repeated permission requests. Updated only the existing Leave
+assembly to 1.0.3.10; the release includes the current half-day deletion fix.
+Pinned tested DLL SHA256:
+`F01D6CE69B0816A7B42F3D2CC747C00158DA84FE7122011C00D1E7BE96534BC6`.
+
+All 663 current synthetic server checks pass. Live read-only refresh preview
+passes for six Active employees, with no blocked balances. Downloaded DLL matches
+the tested release; transaction context, 20 guards and unchanged credit count are
+verified. Added a read-only deployment verifier/evidence and synchronized the
+exported native Leave assembly and references. No app publication is needed for
+`npm run dev`. No live balance refresh, financial/source write, schema/role change
+or email was performed. Real-user/concurrency/rollback UAT remains outstanding.
+See [release details](docs/leave-refresh-balance.md) and
+[deployment evidence](docs/leave-refresh-deployment.json).
+
+
+### 2026-11-09 - Fix deletion of half-day Leave
+
+Reproduced the reported allocation-review error: deletion required 1.0 per saved
+allocation day although half-day issuance stores 0.5. Updated `DeleteLeave.cs`
+to accept the existing one-date, one-entry half-day shape and added deletion
+regressions in `PartialPaidLeave.Tests.cs`. Both combined and isolated builds pass
+137 synthetic deletion checks, including partial/zero paid credits, audit, retries,
+invalid shapes and rollback. No entitlement or payroll calculation change.
+The owner approved isolated Dev release 1.0.3.11, excluding unpublished Refresh
+balance changes. It was applied, then superseded by a concurrent 1.0.3.10 release
+that already includes the same fix. Downloaded current Dev DLL passes all 137
+deletion checks and matches the native solution export. Combined local source is
+reserved as 1.0.3.12. App tests (537), lint/build and 74 browser checks pass.
+Deployment and limits are in [the fix checklist](docs/leave-half-day-deletion.md).
+
+### 2026-11-09 - Refresh leave balances from entitlement and recorded usage
+
+Replaced the fixed remaining-balance reset with Refresh balance for Active
+employees. The server previews earned VL / 5 SL minus saved paid leave and paid
+VL conversions, then appends audited adjustments that reconcile previous resets
+and duplicate grants. Negative targets block confirmation. Existing records,
+conversion limits, paid snapshots and payroll remain unchanged. Old reset commands
+are retired; stable receipts protect retries and repeated refreshes add no credits.
+
+Changed the Leave page, existing reset-dialog/hook files, posting service/contract,
+Leave plugin refresh/guard source, obsolete conversion-reset helper, colocated
+client/server tests and browser harness. Details and checklist:
+[refresh balance implementation](docs/leave-refresh-balance.md).
+
+Verification: 537 app tests, 570 synthetic server assertions, seven Edge browser
+scenarios, lint, build, signed plugin compilation and diff whitespace checks pass.
+Existing large-bundle warning remains. Plugin 1.0.3.10 and the client are not
+deployed; no live balances or data were changed. Live ordinary-account access,
+Dataverse concurrency/rollback and hosted-app UAT remain outstanding.
+
+
+### 2026-11-09 - Initialize Ledger configuration after solution deployment
+
+Updated `plugins/A365.Ledger.Plugins/LedgerCommand.cs` (1.0.0.4) and its server
+tests so Ledger reads work without a seeded coordination row and the first
+authorized mutation initializes configuration from the target's published Choice
+metadata. Existing configuration, idempotency, transaction rollback, auditing and
+Payroll Admin restrictions remain enforced; no payroll calculation changes.
+Signed compilation and 113 server contract assertions pass. App lint/build and
+desktop/mobile Ledger browser checks pass. Target-environment
+first-use/concurrency/security remain unverified. On the owner's subsequent
+instruction, updated the existing Dev assembly to 1.0.0.4, verified its exact DLL
+hash and solution membership, and passed 38 read-only live checks. No production,
+roles or financial records changed; zero ordinary-account identities verified.
+The exported/unpacked Dev solution also contains the exact tested 1.0.0.4 DLL.
+See [pipeline fix and delivery checklist](docs/ledger-pipeline-initialization.md)
+and [release runbook](docs/ledger-release.md). The single-worker app suite passes
+537 tests / 53 files after timeouts in the initial parallel run.
+
 ### 2026-11-06 - Hide inactive employees from Leave modules
 
 Leave Management now filters inactive employees from pickers and paged lists,

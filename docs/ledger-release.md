@@ -1,5 +1,11 @@
 # Ledger release runbook
 
+**2026-11-09 update:** Dev server version **1.0.0.4** removes the requirement to
+manually seed Ledger coordination after a solution pipeline deployment. See
+[pipeline initialization](ledger-pipeline-initialization.md) for verification and
+delivery requirements and the authorized Dev deployment results. This does not change the historical activation evidence
+below or waive auditing, authorization or server component prerequisites.
+
 Implementation dated 2026-11-03. The owner subsequently authorized the complete
 activation sequence and Dev deployment. **Activation is complete**; see the
 [current activation results](ledger-activation.md). The preparation details and

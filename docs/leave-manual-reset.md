@@ -1,5 +1,11 @@
 # Manual leave balance reset
 
+> Owner update, 2026-11-09: the manual reset is replaced locally by
+> [Refresh balance](leave-refresh-balance.md): earned VL / 5 SL minus recorded
+> paid usage and paid VL conversions. It preserves conversion limits and snapshots.
+> Fixed 10/5 reset behavior below is release history. The backend is deployed to
+> Dev for local client testing; hosted app publication was not performed.
+
 **Latest follow-up, 2026-11-03:** reset also restores matching unpaid
 current-year conversion limits to 10 Available VL / 5 conversion days, using saved
 rates in the same transaction. Paid conversions stay unchanged. This follow-up is

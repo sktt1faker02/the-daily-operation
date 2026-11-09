@@ -96,16 +96,16 @@ public static class ProtectLeaveWritesTests
         foreach (string entity in new[] { "a365_leavecredittransaction", "a365_leavecoordination" }) {
             child.PrimaryEntityName = entity; Check(child, false, "preview cannot authorize bulk writes");
         }
-        api.InputParameters["Request"] = "{\"command\":\"resetBalances\"}";
+        api.InputParameters["Request"] = "{\"command\":\"refreshBalances\"}";
         child.PrimaryEntityName = "a365_leavecredittransaction";
         foreach (string message in new[] { "Create", "CreateMultiple" }) { child.MessageName = message; Check(child, true, "reset can append credit adjustments"); }
         foreach (string message in new[] { "Update", "UpdateMultiple", "Delete" }) { child.MessageName = message; Check(child, false, "reset cannot rewrite credit history"); }
         child.PrimaryEntityName = "a365_leavecoordination";
         foreach (string message in new[] { "Create", "CreateMultiple", "Update", "UpdateMultiple" }) { child.MessageName = message; Check(child, true, "reset coordinates employee writes"); }
         child.PrimaryEntityName = "a365_leave"; child.MessageName = "Create"; Check(child, false, "reset cannot create Leave records");
-        child.PrimaryEntityName = "a365_leavecashconversion"; child.MessageName = "Update"; Check(child, true, "reset can restore unpaid conversion limits");
+        child.PrimaryEntityName = "a365_leavecashconversion"; child.MessageName = "Update"; Check(child, false, "refresh cannot modify conversion snapshots or limits");
         child.MessageName = "Delete"; Check(child, false, "reset cannot delete conversion records");
-        api.InputParameters["Request"] = "{\"command\":\"resetPreview\"}";
+        api.InputParameters["Request"] = "{\"command\":\"refreshPreview\"}";
         child.PrimaryEntityName = "a365_leavecredittransaction"; Check(child, false, "reset preview cannot append credits");
         api.InputParameters["Request"] = "{\"command\":\"syncEmployee\"}";
         foreach (string entity in new[] { "a365_leavecredittransaction", "a365_leavecashconversion", "a365_leaveconversionyear", "a365_leavecoordination", "a365_leave" })

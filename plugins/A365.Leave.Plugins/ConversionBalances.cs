@@ -63,25 +63,5 @@ namespace A365.Leave.Plugins
             }
             return totals;
         }
-        internal static void ResetForEmployee(IOrganizationService caller, Guid employeeId, int year)
-        {
-            var header = Find(caller, Header, "a365_year", year, HeaderColumns);
-            if (header == null || IsPaid(header)) return;
-            var query = Query(Detail, DetailColumns);
-            query.Criteria.AddCondition("a365_conversionyear", ConditionOperator.Equal, header.Id);
-            query.Criteria.AddCondition("a365_employee", ConditionOperator.Equal, employeeId);
-            var rows = All(caller, query);
-            if (rows.Count > 1) Rules.Fail("Duplicate conversion rows need review before resetting.");
-            if (rows.Count == 0 || rows[0].GetAttributeValue<OptionSetValue>("a365_conversionstatus").Value != 749910000) return;
-            var row = rows[0];
-            decimal rate = row.GetAttributeValue<Money>("a365_dailyrateused").Value;
-            if (row.GetAttributeValue<decimal>("a365_availablevl") == 10m && row.GetAttributeValue<decimal>("a365_days") == 5m && row.GetAttributeValue<Money>("a365_amount").Value == Amount(rate, 5m)) return;
-            var gate = new Entity(Header, header.Id) { RowVersion = header.GetAttributeValue<long>("versionnumber").ToString(CultureInfo.InvariantCulture) };
-            gate["a365_name"] = header.GetAttributeValue<string>("a365_name");
-            caller.Execute(new UpdateRequest { Target = gate, ConcurrencyBehavior = ConcurrencyBehavior.IfRowVersionMatches });
-            var reset = new Entity(Detail, row.Id);
-            reset["a365_availablevl"] = 10m; reset["a365_days"] = 5m; reset["a365_amount"] = new Money(Amount(rate, 5m));
-            caller.Update(reset);
-        }
     }
 }

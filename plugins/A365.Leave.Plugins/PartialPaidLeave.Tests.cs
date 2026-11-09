@@ -187,7 +187,7 @@ public static class PartialPaidLeaveTests
         }
         public readonly List<Entity> Rows = new List<Entity>();
         public readonly Guid User = Guid.NewGuid(), Employee = Guid.NewGuid();
-        public bool IsAdmin = true, FailDelete, PageEmployees, FailConversion;
+        public bool IsAdmin = true, FailDelete, PageEmployees, PageSources, FailConversion;
         public Guid FailResetEmployee;
         public readonly RemoteExecutionContext Context;
         public Fake()
@@ -219,7 +219,7 @@ public static class PartialPaidLeaveTests
                     if (condition.Operator == ConditionOperator.OnOrAfter) return value != null && (DateTime)value >= (DateTime)condition.Values[0];
                     throw new Exception("Unexpected condition");
                 });
-            if (PageEmployees && query.EntityName == "a365_employee") { var all = rows.OrderBy(row => row.Id).ToList(); int page = query.PageInfo.PageNumber; return new EntityCollection(all.Skip(page - 1).Take(1).ToList()) { MoreRecords = all.Count > page, PagingCookie = "page-" + page }; }
+            if ((PageEmployees && query.EntityName == "a365_employee") || (PageSources && query.EntityName == "a365_leave")) { var all = rows.OrderBy(row => row.Id).ToList(); int page = query.PageInfo.PageNumber; return new EntityCollection(all.Skip(page - 1).Take(1).ToList()) { MoreRecords = all.Count > page, PagingCookie = "page-" + page }; }
             return new EntityCollection(rows.Take(query.TopCount ?? 5000).ToList());
         }
         public Entity Retrieve(string table, Guid id, ColumnSet columns) { return Rows.Single(row => row.LogicalName == table && row.Id == id); }
@@ -332,6 +332,50 @@ public static class PartialPaidLeaveTests
     }
     public static int RunDeletion()
     {
+        foreach (string scenario in new[] { "spanning", "quarter-day", "rollback" })
+        {
+            var fake = new Fake(); var issue = Prepare(fake, 749910000, 749910000);
+            issue.halfDay = true; issue.endDate = issue.startDate; issue.expectedPaidDays = 0.5m; issue.expectedUnpaidDays = 0m; fake.Send(issue);
+            var source = fake.Rows.Single(row => row.LogicalName == "a365_leave");
+            var debit = fake.Rows.Single(row => row.GetAttributeValue<EntityReference>("a365_leave") != null);
+            decimal paid = 0.5m;
+            if (scenario == "spanning") source["a365_enddate"] = ((DateTime)source["a365_startdate"]).AddDays(1);
+            if (scenario == "quarter-day") {
+                paid = 0.25m; source["a365_days"] = paid; source["a365_paiddays"] = paid; debit["a365_days"] = -paid;
+                source["a365_allocationjson"] = Json.Serialize(new LeaveAllocation { version = 1, days = new[] { new AllocatedDay { date = issue.startDate, paidDays = paid, unpaidDays = 0m } } });
+            }
+            fake.FailDelete = scenario == "rollback";
+            int count = fake.Rows.Count; bool halfRejected = false;
+            try { fake.Send(new Request { command = "delete", employeeId = issue.employeeId, operationId = issue.operationId, expectedRestoredDays = paid }); }
+            catch (InvalidPluginExecutionException error) { halfRejected = error.Message.Contains(scenario == "rollback" ? "Synthetic delete failure" : "The saved leave allocation needs review."); }
+            Check(halfRejected && fake.Rows.Count == count && fake.Rows.Any(row => row.LogicalName == "a365_leave"), "Half-day invalid shape/delete failure preserves source and writes no receipt: " + scenario);
+            Check(fake.Rows.Single(row => row.Id == debit.Id).GetAttributeValue<decimal>("a365_days") == -paid && fake.Rows.Single(row => row.Id == debit.Id).GetAttributeValue<EntityReference>("a365_leave") != null, "Half-day rejection/rollback preserves original debit and source link: " + scenario);
+        }
+        foreach (int halfType in new[] { 749910000, 749910001, 749910002 })
+        foreach (decimal available in new[] { 4m, 0.25m, 0m, -1m })
+        {
+            // -1 selects explicit Unpaid with sufficient credits; the other
+            // cases cover fully paid, partially paid and exhausted credits.
+            var fake = new Fake(); var issue = Prepare(fake, halfType, available == -1m ? 749910001 : 749910000);
+            var adjustment = fake.Rows.Single(row => row.LogicalName == "a365_leavecredittransaction" && !row.Contains("a365_transactionkey"));
+            adjustment["a365_days"] = adjustment.GetAttributeValue<decimal>("a365_days") + (available == -1m ? 4m : available) - 4m;
+            decimal paid = available == -1m ? 0m : Math.Min(0.5m, available);
+            issue.halfDay = true; issue.endDate = issue.startDate; issue.expectedPaidDays = paid; issue.expectedUnpaidDays = 0.5m - paid;
+            fake.Send(issue);
+            var source = fake.Rows.Single(row => row.LogicalName == "a365_leave");
+            var request = new Request { command = "deletePreview", employeeId = issue.employeeId, operationId = issue.operationId };
+            int before = fake.Rows.Count;
+            Check(Convert.ToDecimal(fake.Send(request)["restoredDays"]) == paid && fake.Rows.Count == before, "Half-day preview reports exact restoration without writes");
+            request.command = "delete"; request.expectedRestoredDays = paid;
+            Check((bool)fake.Send(request)["deleted"] && !fake.Rows.Any(row => row.Id == source.Id), "Half-day deletion accepts persisted issuance allocation");
+            var receipt = fake.Rows.Single(row => row.GetAttributeValue<string>("a365_transactionkey") == "LEAVE-" + issue.operationId + "-DELETE");
+            Check(receipt.GetAttributeValue<decimal>("a365_days") == paid && receipt.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == (halfType == 749910001 ? 749910001 : 749910000), "Half-day restores only deducted credits to original pool");
+            var audit = Json.Deserialize<Dictionary<string, object>>(receipt.GetAttributeValue<string>("a365_note"));
+            Check(Convert.ToDecimal(audit["days"]) == 0.5m && Convert.ToDecimal(audit["paidDays"]) == paid && Convert.ToDecimal(audit["unpaidDays"]) == 0.5m - paid && (string)audit["deletedBy"] == fake.User.ToString("D") && audit["workdayGaps"] != null, "Half-day audit preserves saved split, dates and actor");
+            Check(!fake.Rows.Any(row => row.GetAttributeValue<EntityReference>("a365_leave") != null), "Half-day debit history is detached before source removal");
+            before = fake.Rows.Count; fake.Send(request);
+            Check(fake.Rows.Count == before, "Half-day retry does not restore credits twice");
+        }
         foreach (int type in new[] { 749910000, 749910001, 749910002 })
         {
             var fake = new Fake(); var issue = Prepare(fake, type, 749910000); fake.Send(issue);
@@ -418,76 +462,125 @@ public static class PartialPaidLeaveTests
     }
     private static Request ResetRequest(Fake fake)
     {
-        var preview = fake.Send(new Request { command = "resetPreview" });
-        return new Request { command = "resetBalances", operationId = Guid.NewGuid().ToString("D"), year = Convert.ToInt32(preview["year"]), version = (string)preview["version"] };
+        var preview = fake.Send(new Request { command = "refreshPreview" });
+        return new Request { command = "refreshBalances", operationId = Guid.NewGuid().ToString("D"), year = Convert.ToInt32(preview["year"]), version = (string)preview["version"] };
+    }
+    private static Entity RefreshSource(Fake fake, int type, decimal days, int benefit, int status = 749910000)
+    {
+        var row = new Entity("a365_leave", Guid.NewGuid());
+        row["a365_employee"] = new EntityReference("a365_employee", fake.Employee);
+        row["a365_startdate"] = Rules.Period(DateTime.UtcNow.AddHours(8).Date).AddDays(5);
+        row["a365_enddate"] = row["a365_startdate"];
+        row["a365_days"] = days; row["a365_leavetype"] = new OptionSetValue(type);
+        row["a365_benefit"] = new OptionSetValue(benefit); row["a365_leavestatus"] = new OptionSetValue(status);
+        fake.Rows.Add(row); return row;
+    }
+    private static decimal RefreshBalance(Fake fake, int pool)
+    {
+        int year = DateTime.UtcNow.AddHours(8).Year;
+        return fake.Rows.Where(row => row.LogicalName == "a365_leavecredittransaction" && row.GetAttributeValue<EntityReference>("a365_employee").Id == fake.Employee && row.GetAttributeValue<int>("a365_year") == year && row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == pool).Sum(row => row.GetAttributeValue<decimal>("a365_days"));
+    }
+    private static Dictionary<string, object> RefreshRow(Dictionary<string, object> preview)
+    {
+        return (Dictionary<string, object>)((System.Collections.ArrayList)preview["employees"])[0];
     }
     public static int RunReset()
     {
         checks = 0; var fake = new Fake(); var today = DateTime.UtcNow.AddHours(8).Date; var period = Rules.Period(today);
-        var old = ResetCredit(fake, fake.Employee, 749910000, -3m, period, today.Year);
-        ResetCredit(fake, fake.Employee, 749910001, -2m, period, today.Year);
-        // Earlier portion of this calendar year must not inflate displayed balances.
-        if (period.Year == today.Year && period.Month > 1) ResetCredit(fake, fake.Employee, 749910000, 2m, period.AddYears(-1), today.Year);
+        var old = ResetCredit(fake, fake.Employee, 749910000, 17.83m, period, today.Year);
+        ResetCredit(fake, fake.Employee, 749910001, 9m, period, today.Year);
+        var source = RefreshSource(fake, 749910001, 1m, 749910000);
+        RefreshSource(fake, 749910001, 3m, 749910001); // Unpaid consumes no credits.
+        RefreshSource(fake, 749910001, 4m, 749910000, 749910001); // Cancelled consumes none.
+        var partial = RefreshSource(fake, 749910001, 0.5m, 749910002);
+        partial["a365_paiddays"] = 0.25m; partial["a365_unpaiddays"] = 0.25m;
+        partial["a365_allocationjson"] = Json.Serialize(new LeaveAllocation { version = 1, days = new[] { new AllocatedDay { date = Rules.Iso(period.AddDays(5)), paidDays = 0.25m, unpaidDays = 0.25m } } });
         var inactive = new Entity("a365_employee", Guid.NewGuid()); inactive["a365_employmentstatus"] = new OptionSetValue(749910001); fake.Rows.Add(inactive);
         var onLeave = new Entity("a365_employee", Guid.NewGuid()); onLeave["a365_employmentstatus"] = new OptionSetValue(749910002); fake.Rows.Add(onLeave);
-        var before = fake.Rows.Count; var request = ResetRequest(fake);
-        Check(fake.Rows.Count == before, "Reset preview must not write grants, locks or credits");
-        var result = fake.Send(request);
-        Check(Convert.ToInt32(result["employeeCount"]) == 1, "Reset only Active employment status");
-        foreach (int pool in new[] { 749910000, 749910001 }) {
-            var rows = fake.Rows.Where(row => row.LogicalName == "a365_leavecredittransaction" && row.GetAttributeValue<EntityReference>("a365_employee").Id == fake.Employee && row.GetAttributeValue<int>("a365_year") == today.Year && row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == pool);
-            Check(rows.Sum(row => row.GetAttributeValue<decimal>("a365_days")) == (pool == 749910000 ? 10m : 5m), "Calendar-year remaining balance must equal target");
-        }
-        Check(old.GetAttributeValue<decimal>("a365_days") == -3m && fake.Rows.Any(row => row.Id == old.Id), "Reset preserves source ledger deductions");
+        int before = fake.Rows.Count;
+        var preview = fake.Send(new Request { command = "refreshPreview" }); var row = RefreshRow(preview);
+        decimal earned = Convert.ToDecimal(row["earnedVL"]);
+        Check(fake.Rows.Count == before, "Refresh preview never writes credits or locks");
+        fake.PageSources = true;
+        Check(Convert.ToDecimal(RefreshRow(fake.Send(new Request { command = "refreshPreview" }))["SL"]) == 3.75m, "All current-period source pages included");
+        decimal vlUsed = Math.Min(0.5m, Math.Floor(earned * 100m / 2m) / 100m);
+        RefreshSource(fake, 749910000, vlUsed > 0 ? vlUsed : 0.5m, vlUsed > 0 ? 749910000 : 749910001);
+        RefreshSource(fake, 749910002, vlUsed > 0 ? vlUsed : 0.5m, vlUsed > 0 ? 749910000 : 749910001);
+        decimal expectedVL = earned - 2m * vlUsed;
+        Check(Convert.ToInt32(preview["employeeCount"]) == 1 && (bool)preview["canApply"], "Only active employees included");
+        Check(Convert.ToDecimal(row["beforeVL"]) == 17.83m && Convert.ToDecimal(row["beforeSL"]) == 9m, "Preview shows incorrect recorded balances");
+        Check(Convert.ToDecimal(row["SL"]) == 3.75m && earned >= 0 && earned <= 10, "Saved partial paid portions, unpaid and cancelled sources handled");
+        var request = ResetRequest(fake); fake.Send(request);
+        Check(RefreshBalance(fake, 749910000) == expectedVL && RefreshBalance(fake, 749910001) == 3.75m, "Refresh neutralizes old resets and duplicate grants without double deduction");
+        Check(old.GetAttributeValue<decimal>("a365_days") == 17.83m && fake.Rows.Any(r => r.Id == old.Id), "Original signed history retained");
         var projected = fake.Send(new Request { command = "preview", employeeId = fake.Employee.ToString("D") });
-        Check(Convert.ToDecimal(projected["VL"]) == 10m && Convert.ToDecimal(projected["SL"]) == 5m, "Posting preview remains 10/5 after due credits materialized");
-        ResetCredit(fake, fake.Employee, 749910000, -1m, period, today.Year);
+        Check(Convert.ToDecimal(projected["VL"]) == expectedVL && Convert.ToDecimal(projected["SL"]) == 3.75m, "Due grants cannot be added again after refresh");
+        fake.Send(ResetRequest(fake));
+        Check(RefreshBalance(fake, 749910000) == expectedVL && RefreshBalance(fake, 749910001) == 3.75m, "Fresh repeated refresh does not add spendable credits");
+        ResetCredit(fake, fake.Employee, 749910001, -1m, period, today.Year);
         before = fake.Rows.Count; fake.Send(request);
-        Check(fake.Rows.Count == before, "Same operation retry must not apply again after subsequent leave");
-        var next = ResetRequest(fake); fake.Send(next);
-        Check(fake.Rows.Count > before, "Fresh confirmation permits intentional later reset");
-        var stale = ResetRequest(fake); ResetCredit(fake, fake.Employee, 749910000, -1m, period, today.Year);
+        Check(fake.Rows.Count == before && RefreshBalance(fake, 749910001) == 2.75m, "Uncertain retry returns receipt without undoing subsequent deduction");
+        var stale = ResetRequest(fake); source["a365_days"] = 2m;
         before = fake.Rows.Count; bool rejected = false; try { fake.Send(stale); } catch { rejected = true; }
-        Check(rejected && fake.Rows.Count == before, "Changed reviewed balances abort without writes");
-        fake.IsAdmin = false; rejected = false; try { fake.Send(new Request { command = "resetPreview" }); } catch { rejected = true; }
-        Check(rejected, "Non-admin cannot preview reset");
+        Check(rejected && fake.Rows.Count == before, "Changed source rejects stale preview without writes");
+        source = fake.Rows.Single(r => r.Id == source.Id);
+        source["a365_days"] = 6m;
+        preview = fake.Send(new Request { command = "refreshPreview" });
+        Check(!(bool)preview["canApply"] && RefreshRow(preview)["issue"] != null, "Overused SL is flagged instead of clamped");
+        rejected = false; try { fake.Send(ResetRequest(fake)); } catch { rejected = true; }
+        Check(rejected, "Overuse blocks refresh atomically");
+        source = fake.Rows.Single(r => r.Id == source.Id);
+        source["a365_days"] = 1m;
+        fake.IsAdmin = false; rejected = false; try { fake.Send(new Request { command = "refreshPreview" }); } catch { rejected = true; }
+        Check(rejected, "Employee cannot preview refresh");
         rejected = false; try { fake.Send(request); } catch { rejected = true; }
-        Check(rejected, "Non-admin cannot retry completed reset");
+        Check(rejected, "Employee cannot retry completed refresh");
+        fake.IsAdmin = true;
+        foreach (string command in new[] { "resetPreview", "resetBalances" }) {
+            rejected = false; try { fake.Send(new Request { command = command }); } catch { rejected = true; }
+            Check(rejected, "Stale clients cannot restore fixed balances");
+        }
         var bulk = new Fake(); bulk.PageEmployees = true;
         var second = new Entity("a365_employee", Guid.NewGuid()); second["a365_employmentstatus"] = new OptionSetValue(749910000); second["a365_datehired"] = today.AddYears(-2); bulk.Rows.Add(second);
         var bulkRequest = ResetRequest(bulk); before = bulk.Rows.Count;
-        Check(bulk.Rows.Count == before, "Paged preview has no writes");
-        bulk.FailResetEmployee = bulk.Rows.Where(row => row.LogicalName == "a365_employee").OrderBy(row => row.Id).Last().Id;
+        bulk.FailResetEmployee = bulk.Rows.Where(r => r.LogicalName == "a365_employee").OrderBy(r => r.Id).Last().Id;
         rejected = false; try { bulk.Send(bulkRequest); } catch { rejected = true; }
-        Check(rejected && bulk.Rows.Count == before, "Failure on later employee rolls back earlier reset writes and locks");
-        bulk.FailResetEmployee = Guid.Empty; result = bulk.Send(bulkRequest);
-        Check(Convert.ToInt32(result["employeeCount"]) == 2, "All employee pages are reset on retry");
-        var empty = new Fake(); empty.Rows.RemoveAll(row => row.LogicalName == "a365_employee");
-        Check(Convert.ToInt32(empty.Send(new Request { command = "resetPreview" })["employeeCount"]) == 0, "Empty employee scope is explicit");
+        Check(rejected && bulk.Rows.Count == before, "Later employee write failure rolls back all refresh writes");
+        bulk.FailResetEmployee = Guid.Empty;
+        Check(Convert.ToInt32(bulk.Send(bulkRequest)["employeeCount"]) == 2, "All active employee pages refreshed on retry");
+        var empty = new Fake(); empty.Rows.RemoveAll(r => r.LogicalName == "a365_employee");
+        preview = empty.Send(new Request { command = "refreshPreview" });
+        Check(Convert.ToInt32(preview["employeeCount"]) == 0 && !(bool)preview["canApply"], "Empty scope cannot apply");
+        var newHire = new Fake(); newHire.Rows.Single(r => r.Id == newHire.Employee)["a365_datehired"] = today;
+        Check(Convert.ToDecimal(RefreshRow(newHire.Send(new Request { command = "refreshPreview" }))["earnedVL"]) == 0m, "New hire has no completed-month VL");
+        var deleted = new Fake(); RefreshSource(deleted, 749910001, 2m, 749910000); deleted.Rows.RemoveAll(r => r.LogicalName == "a365_leave");
+        Check(Convert.ToDecimal(RefreshRow(deleted.Send(new Request { command = "refreshPreview" }))["SL"]) == 5m, "Deleted sources are not deducted again");
+        var longHistory = new Fake();
+        for (int index = 0; index < 60; index++) ResetCredit(longHistory, longHistory.Employee, 749910000, 0m, period, today.Year)["a365_note"] = new string('a', 2000);
+        Check((bool)longHistory.Send(new Request { command = "refreshPreview" })["canApply"], "Retained audit history exceeding 100 KB can be previewed");
         return checks;
     }
-
     public static int RunResetConversion()
     {
         checks = 0; var fake = new Fake(); int year = DateTime.UtcNow.AddHours(8).Year;
-        var header = new Entity("a365_leaveconversionyear", Guid.NewGuid()); header["a365_year"] = year; header["a365_name"] = "Synthetic conversion"; header["versionnumber"] = 1L; header["statecode"] = new OptionSetValue(0); fake.Rows.Add(header);
+        var header = new Entity("a365_leaveconversionyear", Guid.NewGuid()); header["a365_year"] = year; header["versionnumber"] = 1L; header["statecode"] = new OptionSetValue(0); fake.Rows.Add(header);
         var row = new Entity("a365_leavecashconversion", Guid.NewGuid()); row["a365_employee"] = new EntityReference("a365_employee", fake.Employee); row["a365_conversionyear"] = header.ToEntityReference(); row["a365_year"] = year;
         row["a365_availablevl"] = 2m; row["a365_days"] = 1m; row["a365_dailyrateused"] = new Money(100m); row["a365_amount"] = new Money(100m); row["a365_conversionstatus"] = new OptionSetValue(749910000); fake.Rows.Add(row);
-        var request = ResetRequest(fake); int before = fake.Rows.Count;
-        fake.FailConversion = true; bool rejected = false; try { fake.Send(request); } catch { rejected = true; }
-        Check(rejected && fake.Rows.Count == before, "Conversion failure rolls back the whole reset and receipt");
-        row = fake.Rows.Single(r => r.Id == row.Id && r.LogicalName == row.LogicalName);
-        Check(row.GetAttributeValue<decimal>("a365_availablevl") == 2m, "Failed reset preserves original conversion limits");
-        fake.FailConversion = false; fake.Send(request);
-        row = fake.Rows.Single(r => r.Id == row.Id && r.LogicalName == row.LogicalName);
-        Check(row.GetAttributeValue<decimal>("a365_availablevl") == 10m && row.GetAttributeValue<decimal>("a365_days") == 5m && row.GetAttributeValue<Money>("a365_amount").Value == 500m, "Successful reset restores unpaid conversion 10/5 and saved-rate amount");
-        Check(row.GetAttributeValue<Money>("a365_dailyrateused").Value == 100m, "Reset preserves daily rate snapshot");
-        row["a365_availablevl"] = 3m; row["a365_days"] = 2m; row["a365_amount"] = new Money(200m);
-        fake.Send(request);
-        Check(row.GetAttributeValue<decimal>("a365_availablevl") == 3m, "Retry completed reset does not replace a later manual edit");
-        header = fake.Rows.Single(r => r.LogicalName == "a365_leaveconversionyear"); header["statecode"] = new OptionSetValue(1);
+        var preview = fake.Send(new Request { command = "refreshPreview" }); decimal earned = Convert.ToDecimal(RefreshRow(preview)["earnedVL"]);
+        Check(Convert.ToDecimal(RefreshRow(preview)["convertedVL"]) == 0m, "Unpaid conversions do not reduce entitlement");
+        fake.FailConversion = true; fake.Send(ResetRequest(fake));
+        Check(row.GetAttributeValue<decimal>("a365_availablevl") == 2m && row.GetAttributeValue<decimal>("a365_days") == 1m && row.GetAttributeValue<Money>("a365_amount").Value == 100m, "Refresh never edits unpaid limits, amount or rate");
+        var stale = ResetRequest(fake); header["statecode"] = new OptionSetValue(1);
+        bool rejected = false; try { fake.Send(stale); } catch { rejected = true; }
+        Check(rejected, "Conversion payment after preview invalidates confirmation");
+        // Failed synthetic transaction reloads entity instances.
+        row = fake.Rows.Single(r => r.LogicalName == "a365_leavecashconversion"); header = fake.Rows.Single(r => r.LogicalName == "a365_leaveconversionyear");
+        decimal converted = Math.Min(1m, earned); row["a365_days"] = converted;
         fake.Send(ResetRequest(fake));
-        Check(row.GetAttributeValue<decimal>("a365_availablevl") == 3m && row.GetAttributeValue<decimal>("a365_days") == 2m, "Fresh reset cannot alter paid conversion snapshot");
+        Check(RefreshBalance(fake, 749910000) == earned - converted, "Paid conversion reduces VL exactly once");
+        fake.Send(ResetRequest(fake));
+        Check(RefreshBalance(fake, 749910000) == earned - converted, "Repeated refresh cannot double subtract paid conversion");
+        Check(row.GetAttributeValue<decimal>("a365_availablevl") == 2m && row.GetAttributeValue<Money>("a365_amount").Value == 100m && row.GetAttributeValue<Money>("a365_dailyrateused").Value == 100m, "Paid financial snapshot preserved");
         return checks;
     }
 }

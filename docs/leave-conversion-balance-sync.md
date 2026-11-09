@@ -1,5 +1,11 @@
 # Leave Management and Conversion balance connection
 
+> Owner update, 2026-11-09: the manual reset is replaced locally by
+> [Refresh balance](leave-refresh-balance.md): earned VL / 5 SL minus recorded
+> paid usage and paid VL conversions. It preserves conversion limits and snapshots.
+> Fixed 10/5 reset behavior below is release history. The backend is deployed to
+> Dev for local client testing; hosted app publication was not performed.
+
 Owner decisions, 2026-11-03: unpaid conversion years follow the recorded VL ledger
 for the same employee/year, while retaining manual conversion overrides. The latest
 clarification is a cap, not a deduction of one conversion day for every VL day:

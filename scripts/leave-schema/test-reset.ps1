@@ -6,7 +6,7 @@ $resetAssembly = Join-Path $resetRoot 'plugins/A365.Leave.Plugins/bin/A365.Leave
 [Reflection.Assembly]::LoadFrom($resetAssembly) | Out-Null
 Add-Type -Path (Join-Path $resetRoot 'plugins/A365.Leave.Plugins/PartialPaidLeave.Tests.cs') -ReferencedAssemblies @($resetSdk, $resetAssembly, 'System.Runtime.Serialization', 'System.Web.Extensions')
 $resetChecks = [PartialPaidLeaveTests]::RunReset()
-Write-Host "Passed $resetChecks synthetic leave reset checks, including write guards, paging, rollback and retries. No live writes."
+Write-Host "Passed $resetChecks synthetic leave refresh checks, including write guards, paging, rollback and retries. No live writes."
 
 $resetConversionChecks = [PartialPaidLeaveTests]::RunResetConversion()
-Write-Host "Passed $resetConversionChecks reset/conversion atomicity checks. No live writes."
+Write-Host "Passed $resetConversionChecks refresh/conversion preservation checks. No live writes."

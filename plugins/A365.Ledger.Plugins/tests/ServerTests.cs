@@ -7,6 +7,7 @@ using System.Runtime.Remoting.Proxies;
 using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
+using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
 using A365.Ledger.Plugins;
 
@@ -24,6 +25,9 @@ sealed class Boundary : IOrganizationService, IOrganizationServiceFactory, IServ
     public Dictionary<string, Entity> Rows = new Dictionary<string, Entity>();
     public bool Admin = true, Transaction = true, FailPayment, AuditEnabled = true;
     public int FailWrite, Writes;
+    public int MetadataReads;
+    public Dictionary<string, int> CategoryMetadata = Rules.Labels.Select((label, index) => new { label, index }).ToDictionary(item => item.label, item => 749910000 + item.index);
+    public Action BeforeUpsert, BeforeAggregate;
     public Guid Actor = Guid.NewGuid();
     public IPluginExecutionContext Context;
     FilterExpression aggregateFilter;
@@ -75,6 +79,7 @@ sealed class Boundary : IOrganizationService, IOrganizationServiceFactory, IServ
     public EntityCollection RetrieveMultiple(QueryBase queryBase)
     {
         if (queryBase is FetchExpression) {
+            if (BeforeAggregate != null) { var action = BeforeAggregate; BeforeAggregate = null; action(); }
             var groups = Ledger.Where(row => Matches(row, aggregateFilter)).GroupBy(row => row.GetAttributeValue<string>("a365_direction"));
             var aggregates = groups.Select(group => { var row = new Entity(LedgerCommand.Table); row["direction"] = new AliasedValue(LedgerCommand.Table, "a365_direction", group.Key); row["amount"] = new AliasedValue(LedgerCommand.Table, "a365_amount", group.Sum(item => item.GetAttributeValue<decimal>("a365_amount"))); row["count"] = new AliasedValue(LedgerCommand.Table, LedgerCommand.Table + "id", group.Count()); return row; }).ToList();
             return new EntityCollection(aggregates);
@@ -107,6 +112,21 @@ sealed class Boundary : IOrganizationService, IOrganizationServiceFactory, IServ
     }
     public OrganizationResponse Execute(OrganizationRequest request)
     {
+        var metadata = request as RetrieveAttributeRequest;
+        if (metadata != null) {
+            if (metadata.EntityLogicalName != LedgerCommand.Table || metadata.LogicalName != "a365_category" || metadata.RetrieveAsIfPublished) throw new Exception("Expected published Ledger category metadata");
+            MetadataReads++;
+            var choice = new PicklistAttributeMetadata { OptionSet = new OptionSetMetadata() };
+            foreach (var item in CategoryMetadata) choice.OptionSet.Options.Add(new OptionMetadata(new Label(item.Key, 1033), item.Value));
+            var result = new RetrieveAttributeResponse(); result["AttributeMetadata"] = choice; return result;
+        }
+        var upsert = request as UpsertRequest;
+        if (upsert != null) {
+            if (BeforeUpsert != null) { var action = BeforeUpsert; BeforeUpsert = null; action(); }
+            var created = !Rows.ContainsKey(Key(upsert.Target.LogicalName, upsert.Target.Id));
+            if (created) Create(upsert.Target); else Update(upsert.Target);
+            var result = new UpsertResponse(); result["RecordCreated"] = created; result["Target"] = upsert.Target.ToEntityReference(); return result;
+        }
         if (request.RequestName == "QueryExpressionToFetchXml") { aggregateFilter = ((QueryExpression)request["Query"]).Criteria; var converted = new OrganizationResponse(); converted["FetchXml"] = "<fetch><entity name='a365_ledgertransaction'/></fetch>"; return converted; }
         var update = request as UpdateRequest;
         if (update != null) { if (Get(update.Target.LogicalName, update.Target.Id).RowVersion != update.Target.RowVersion) throw new InvalidPluginExecutionException("Concurrency conflict"); Update(update.Target); return new UpdateResponse(); }
@@ -137,6 +157,46 @@ static class Tests
     static Request Manual(string amount) { return new Request { command = "save", operationId = Guid.NewGuid().ToString(), date = "2026-11-03", category = Categories["Utilities"].ToString(), direction = "debit", amount = amount, description = "Internet", receipt = "0001", reference = "" }; }
     static void Main()
     {
+        var fresh = Fixture(); fresh.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company));
+        // Values are deliberately different from Dev: initialization must inspect
+        // actual target metadata rather than infer option numbers from labels.
+        fresh.CategoryMetadata = Rules.Labels.Select((label, index) => new { label, index }).ToDictionary(item => item.label, item => 800000000 + item.index);
+        var initialRows = fresh.Rows.Count;
+        var freshList = (Dictionary<string, object>)fresh.Run(new Request { command = "list" });
+        Check((decimal)Convert.ToDecimal(freshList["balance"]) == 0m && fresh.Rows.Count == initialRows, "Fresh Ledger loads without seeding records during reads");
+        fresh.Run(new Request { command = "historyPreview" }); fresh.Run(new Request { command = "historyJobs" });
+        Check(!fresh.Rows.ContainsKey(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)), "Preview/progress stay read-only before initialization");
+        var firstSave = Manual("10"); firstSave.category = fresh.CategoryMetadata["Utilities"].ToString(); fresh.Run(firstSave);
+        Check(fresh.Ledger.Count == 1 && fresh.Ledger[0].GetAttributeValue<OptionSetValue>("a365_category").Value == fresh.CategoryMetadata["Utilities"], "First save uses actual target choices");
+        var initialized = fresh.Get(LedgerCommand.Coordination, LedgerCommand.Company);
+        Check(initialized.GetAttributeValue<string>("a365_revision") != "uninitialized", "First save persists financial revision");
+        var metadataReads = fresh.MetadataReads; fresh.Run(firstSave);
+        Check(fresh.Ledger.Count == 1 && fresh.MetadataReads == metadataReads && fresh.Get(LedgerCommand.Coordination, LedgerCommand.Company).GetAttributeValue<string>("a365_revision") == initialized.GetAttributeValue<string>("a365_revision"), "Retry is idempotent and reuses existing configuration and revision");
+        Reject(() => fresh.Run(new Request { command = "list", revision = (string)freshList["revision"] }), "Export detects first save after uninitialized read");
+        var missingAudit = Fixture(); missingAudit.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)); missingAudit.AuditEnabled = false;
+        Reject(() => missingAudit.Run(Manual("1")), "Fresh initialization cannot bypass audit");
+        Check(missingAudit.Ledger.Count == 0 && !missingAudit.Rows.ContainsKey(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)), "Failed save rolls back initialization too");
+        var freshDenied = Fixture(); freshDenied.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)); freshDenied.Admin = false;
+        Reject(() => freshDenied.Run(new Request { command = "list" }), "Fresh initialization requires Payroll Admin");
+        Check(freshDenied.MetadataReads == 0, "Unauthorized requests do not initialize or inspect configuration");
+        var invalidMetadata = Fixture(); invalidMetadata.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)); invalidMetadata.CategoryMetadata.Remove("Payroll");
+        Reject(() => invalidMetadata.Run(Manual("1")), "Incomplete target choice metadata is rejected");
+        Check(!invalidMetadata.Rows.ContainsKey(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)), "Invalid metadata cannot seed configuration");
+        var extraCategory = Fixture(); extraCategory.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)); extraCategory.CategoryMetadata.Add("Unexpected", 42);
+        Reject(() => extraCategory.Run(new Request { command = "list" }), "Unexpected target category is rejected");
+        var duplicateValue = Fixture(); duplicateValue.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)); duplicateValue.CategoryMetadata["Payroll"] = duplicateValue.CategoryMetadata["Utilities"];
+        Reject(() => duplicateValue.Run(new Request { command = "list" }), "Duplicate target category values are rejected");
+        var firstWriteFailure = Fixture(); firstWriteFailure.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)); firstWriteFailure.FailWrite = 1;
+        Reject(() => firstWriteFailure.Run(Manual("1")), "First financial write failure");
+        Check(!firstWriteFailure.Rows.ContainsKey(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company)) && firstWriteFailure.Ledger.Count == 0, "Financial failure rolls back automatic initialization");
+        var racing = Fixture(); racing.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company));
+        racing.CategoryMetadata = new Dictionary<string, int>(fresh.CategoryMetadata);
+        racing.BeforeUpsert = () => { var winner = new Entity(LedgerCommand.Coordination, LedgerCommand.Company); winner["a365_revision"] = "other-writer"; winner["a365_categories"] = new JavaScriptSerializer().Serialize(Categories); racing.Put(winner); };
+        racing.Run(Manual("1"));
+        Check(racing.Get(LedgerCommand.Coordination, LedgerCommand.Company).GetAttributeValue<string>("a365_categories") == new JavaScriptSerializer().Serialize(Categories), "Concurrent initialization preserves winner's configuration");
+        var overlappingRead = Fixture(); overlappingRead.Rows.Remove(Boundary.Key(LedgerCommand.Coordination, LedgerCommand.Company));
+        overlappingRead.BeforeAggregate = () => { var winner = new Entity(LedgerCommand.Coordination, LedgerCommand.Company); winner["a365_revision"] = "committed-write"; overlappingRead.Put(winner); };
+        Reject(() => overlappingRead.Run(new Request { command = "list" }), "First-use read rejects concurrent committed initialization");
         Check(Rules.BusinessDate(new DateTime(2026, 11, 2, 16, 1, 0, DateTimeKind.Utc)) == "2026-11-03", "Manila UTC date boundary");
         Check(Rules.Amount("0.10", false) + Rules.Amount("0.20", false) == 0.30m, "Decimal money");
         var canonical = new JavaScriptSerializer();

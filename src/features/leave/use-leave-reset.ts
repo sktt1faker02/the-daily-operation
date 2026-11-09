@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { postingService, type LeaveResetPreview } from "./posting-service"
+import { postingService, type LeaveRefreshPreview } from "./posting-service"
 
-export function useLeaveReset() {
+export function useLeaveRefresh() {
   const client = useQueryClient()
-  const preview = useQuery({ queryKey: ["leave", "reset-preview"], queryFn: () => postingService.resetPreview(), retry: false, staleTime: 0, gcTime: 0 })
+  const preview = useQuery({ queryKey: ["leave", "refresh-preview"], queryFn: () => postingService.refreshPreview(), retry: false, staleTime: 0, gcTime: 0 })
   const reset = useMutation({
-    mutationFn: ({ reviewed, operationId }: { reviewed: LeaveResetPreview; operationId: string }) => postingService.resetBalances(reviewed, operationId),
+    mutationFn: ({ reviewed, operationId }: { reviewed: LeaveRefreshPreview; operationId: string }) => postingService.refreshBalances(reviewed, operationId),
     retry: false,
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["leave", "balances"] }),
         client.invalidateQueries({ queryKey: ["leave", "posting-preview"] }),
         client.invalidateQueries({ queryKey: ["leave", "conversion", "rows"] }),
+        client.invalidateQueries({ queryKey: ["leave", "list"] }),
       ])
     },
   })

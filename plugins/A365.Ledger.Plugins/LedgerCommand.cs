@@ -8,8 +8,9 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Sdk.Messages;
+using Microsoft.Xrm.Sdk.Metadata;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.0.3")]
+[assembly: System.Reflection.AssemblyVersion("1.0.0.4")]
 namespace A365.Ledger.Plugins
 {
     public sealed class Request
@@ -75,8 +76,7 @@ namespace A365.Ledger.Plugins
             // Only mutations take a write lock. Read/export commands compare
             // financial revisions around their reads without changing records.
             bool readOnly = new[] { "list", "operation", "historyPreview", "historyJobs", "sources" }.Contains(request.command);
-            if (!readOnly) { var gate = new Entity(Coordination, Company); gate["a365_locktoken"] = Guid.NewGuid().ToString("D"); system.Update(gate); }
-            var coordination = system.Retrieve(Coordination, Company, new ColumnSet("a365_revision", "a365_categories"));
+            var coordination = GetCoordination(system, !readOnly);
             var revision = coordination.GetAttributeValue<string>("a365_revision");
             var categories = Json.Deserialize<Dictionary<string, int>>(coordination.GetAttributeValue<string>("a365_categories"));
             if (categories == null || categories.Count != 9 || Rules.Labels.Any(label => !categories.ContainsKey(label)) || categories.Values.Distinct().Count() != 9) Rules.Fail("Ledger category metadata needs verification.");
@@ -146,8 +146,50 @@ namespace A365.Ledger.Plugins
                 receipt["a365_actor"] = new EntityReference("systemuser", context.InitiatingUserId); receipt["a365_completedon"] = DateTime.UtcNow; system.Create(receipt);
                 var changed = new Entity(Coordination, Company); changed["a365_revision"] = Guid.NewGuid().ToString("D"); system.Update(changed);
             }
-            if ((request.command == "list" || request.command == "historyPreview") && system.Retrieve(Coordination, Company, new ColumnSet("a365_revision")).GetAttributeValue<string>("a365_revision") != revision) Rules.Fail("The ledger changed during this read. Refresh and try again.");
+            if (request.command == "list" || request.command == "historyPreview")
+            {
+                var current = Find(system, Coordination, Company);
+                if ((current == null ? "uninitialized" : current.GetAttributeValue<string>("a365_revision")) != revision) Rules.Fail("The ledger changed during this read. Refresh and try again.");
+            }
             context.OutputParameters["Response"] = Json.Serialize(result);
+        }
+        private static Entity GetCoordination(IOrganizationService system, bool mutation)
+        {
+            var row = Find(system, Coordination, Company);
+            if (row == null)
+            {
+                // Solutions carry Choice metadata, but not this configuration row.
+                // Read-only commands use published metadata without creating records.
+                var response = (RetrieveAttributeResponse)system.Execute(new RetrieveAttributeRequest {
+                    EntityLogicalName = Table, LogicalName = "a365_category", RetrieveAsIfPublished = false
+                });
+                var choice = response.AttributeMetadata as PicklistAttributeMetadata;
+                var categories = new Dictionary<string, int>();
+                if (choice == null || choice.OptionSet == null) Rules.Fail("Ledger category metadata needs verification.");
+                foreach (var option in choice.OptionSet.Options)
+                {
+                    // Use the solution's English labels, independent of caller language.
+                    var label = option.Label == null ? null : option.Label.LocalizedLabels.FirstOrDefault(item => item.LanguageCode == 1033);
+                    if (label == null || !Rules.Labels.Contains(label.Label) || !option.Value.HasValue || categories.ContainsKey(label.Label)) Rules.Fail("Ledger category metadata needs verification.");
+                    categories.Add(label.Label, option.Value.Value);
+                }
+                if (categories.Count != Rules.Labels.Length || categories.Values.Distinct().Count() != Rules.Labels.Length) Rules.Fail("Ledger category metadata needs verification.");
+                row = new Entity(Coordination, Company);
+                row["a365_name"] = "Company ledger"; row["a365_revision"] = "uninitialized";
+                row["a365_categories"] = Json.Serialize(categories);
+                if (mutation)
+                {
+                    // Upsert acquires the singleton row without overwriting another
+                    // first writer's revision/categories. A conflict fails atomically
+                    // and is retryable through the existing operation identity.
+                    var target = new Entity(Coordination, Company); target["a365_name"] = "Company ledger";
+                    var upsert = (UpsertResponse)system.Execute(new UpsertRequest { Target = target });
+                    if (upsert.RecordCreated) system.Update(row);
+                }
+            }
+            if (!mutation) return row;
+            var gate = new Entity(Coordination, Company); gate["a365_locktoken"] = Guid.NewGuid().ToString("D"); system.Update(gate);
+            return system.Retrieve(Coordination, Company, new ColumnSet("a365_revision", "a365_categories"));
         }
         public static void RequireAdmin(IOrganizationService system, Guid user)
         {

@@ -1,5 +1,11 @@
 # January leave-credit reset
 
+> Owner update, 2026-11-09: the manual reset is replaced locally by
+> [Refresh balance](leave-refresh-balance.md): earned VL / 5 SL minus recorded
+> paid usage and paid VL conversions. It preserves conversion limits and snapshots.
+> Fixed 10/5 reset behavior below is release history. The backend is deployed to
+> Dev for local client testing; hosted app publication was not performed.
+
 **Latest owner correction, November 6, 2026:** the April start was an error.
 The [full 2026 correction](leave-2026-calendar-correction.md) is applied in Dev:
 82 existing April-tagged entries now belong to January-December 2026, with
