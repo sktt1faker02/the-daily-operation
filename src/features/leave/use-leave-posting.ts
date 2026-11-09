@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { postingService, type ReviewedAllocation } from "./posting-service"
 import type { LeaveEntryValues } from "./entry-rules"
+import { validateLeaveEntry } from "./entry-rules"
 
 export function useLeavePostingPreview(values: LeaveEntryValues) {
   return useQuery({
-    queryKey: ["leave", "posting-preview", values.employee?.a365_employeeid, values.leaveType, values.benefit, values.startDate, values.endDate, Boolean(values.halfDay)],
-    queryFn: () => postingService.preview(values), enabled: Boolean(values.employee), retry: false, staleTime: 0,
+    queryKey: ["leave", "posting-preview", values.employee?.a365_employeeid, values.leaveType, values.benefit, values.startDate, values.endDate, Boolean(values.halfDay), values.manualPaidDays],
+    queryFn: () => postingService.preview(values), enabled: Boolean(values.employee) && !validateLeaveEntry(values).manualPaidDays, retry: false, staleTime: 0,
   })
 }
 

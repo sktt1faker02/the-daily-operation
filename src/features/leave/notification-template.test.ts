@@ -11,6 +11,14 @@ const record: LeaveRecord = {
 }
 
 describe("Recorded Leave email composition", () => {
+  it("reports the saved manually selected half-paid full day", () => {
+    const draft = buildRecordedLeaveEmail({ ...record, a365_startdate: "2026-10-22", a365_enddate: "2026-10-22", a365_days: 1, a365_benefit: 749910002,
+      a365_paiddays: 0.5, a365_unpaiddays: 0.5, a365_allocationjson: JSON.stringify({ version: 1, manualPaidDays: 0.5, days: [{ date: "2026-10-22", paidDays: 0.5, unpaidDays: 0.5 }] }) }, employee)
+    if (draft.status !== "prepared") throw new Error("Expected a prepared draft.")
+    expect(draft.text).toContain("Paid days: 0.50")
+    expect(draft.text).toContain("Unpaid days: 0.50")
+    expect(draft.text).toContain("Benefit: Partially Paid")
+  })
   it("shows the saved partially paid breakdown and unpaid date", () => {
     const days = [26, 27, 28, 29, 30].map((date, index) => ({ date: `2026-10-${date}`, paidDays: index < 4 ? 1 : 0, unpaidDays: index < 4 ? 0 : 1 }))
     const draft = buildRecordedLeaveEmail({ ...record, a365_startdate: "2026-10-26", a365_enddate: "2026-10-30", a365_days: 5, a365_benefit: 749910002,

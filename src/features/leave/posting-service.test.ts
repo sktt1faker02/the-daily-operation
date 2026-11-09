@@ -25,6 +25,30 @@ beforeEach(() => {
 })
 
 describe("Transactional Leave client boundary", () => {
+  const splitPreview = { policyVersion: "2026-10-22.1", periodStart: "2026-01-01", periodEnd: "2026-12-31", VL: 7.5, SL: 5, pendingVL: 0, pendingSL: 0, allocationVersion: 1,
+    days: 1, benefit: 749910002, pool: "VL", paidDays: 0.5, unpaidDays: 0.5, manualPaidDays: 0.5, allocation: [{ date: values.startDate, paidDays: 0.5, unpaidDays: 0.5 }] }
+  it("sends manual paid amount separately from the reviewed split and verifies saved mode", async () => {
+    const split = { ...values, manualPaidDays: "0.5" }
+    const record = { ...saved, a365_benefit: 749910002, a365_paiddays: 0.5, a365_unpaiddays: 0.5, a365_allocationjson: JSON.stringify({ version: 1, manualPaidDays: 0.5, days: splitPreview.allocation }) }
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(splitPreview)).mockResolvedValueOnce(success(record)).mockResolvedValueOnce(success({ alreadySent: true, outcome: "accepted" }))
+    expect((await postingService.preview(split)).unpaidDays).toBe(0.5)
+    expect(readRequest(0)).toMatchObject({ command: "preview", manualPaidDays: 0.5 })
+    await postingService.submit(split, operationId, { paidDays: 0.5, unpaidDays: 0.5 })
+    expect(readRequest(1)).toMatchObject({ command: "issue", manualPaidDays: 0.5, expectedPaidDays: 0.5, expectedUnpaidDays: 0.5 })
+  })
+  it("blocks older servers even if their automatic paid amount happens to match", async () => {
+    const legacy: Partial<typeof splitPreview> = { ...splitPreview }; delete legacy.manualPaidDays
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(legacy))
+    await expect(postingService.preview({ ...values, manualPaidDays: "0.5" })).rejects.toMatchObject({ uncertain: false, message: expect.stringContaining("server update") })
+  })
+  it("blocks unreviewed changes and treats a missing saved manual identity as uncertain", async () => {
+    const split = { ...values, manualPaidDays: "0.5" }
+    await expect(postingService.submit(split, operationId, { paidDays: 1, unpaidDays: 0 })).rejects.toMatchObject({ uncertain: false })
+    expect(A365_LeaveCommandService.a365_LeaveCommand).not.toHaveBeenCalled()
+    const record = { ...saved, a365_benefit: 749910002, a365_paiddays: 0.5, a365_unpaiddays: 0.5, a365_allocationjson: JSON.stringify({ version: 1, days: splitPreview.allocation }) }
+    vi.mocked(A365_LeaveCommandService.a365_LeaveCommand).mockResolvedValueOnce(success(record))
+    await expect(postingService.submit(split, operationId, { paidDays: 0.5, unpaidDays: 0.5 })).rejects.toMatchObject({ uncertain: true })
+  })
   it("verifies a read-only deletion impact before a confirmed delete", async () => {
     vi.mocked(A365_LeaveCommandService.a365_LeaveCommand)
       .mockResolvedValueOnce(success({ deleted: false, recordId: operationId, employeeId, restoredDays: 0, pool: "VL", creditPeriod: "2026-04-01", year: 2026 }))

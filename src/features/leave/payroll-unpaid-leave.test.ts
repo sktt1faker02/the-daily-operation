@@ -7,6 +7,12 @@ const id = "10000000-0000-0000-0000-000000000001"
 const row = (overrides: Partial<PayrollLeave> = {}): PayrollLeave => ({ a365_leaveid: "leave-1", _a365_employee_value: id, a365_startdate: "2026-10-22", a365_enddate: "2026-10-23", a365_days: 2, a365_leavestatus: 749910000, a365_benefit: 749910001, ...overrides })
 beforeEach(() => vi.clearAllMocks())
 describe("unpaidLeaveDaysForPeriod", () => {
+  it("uses the saved unpaid half of a manually split full day without reapplying credits", () => {
+    const split = row({ a365_startdate: "2026-10-22", a365_enddate: "2026-10-22", a365_days: 1, a365_benefit: 749910002, a365_paiddays: 0.5, a365_unpaiddays: 0.5,
+      a365_allocationjson: JSON.stringify({ version: 1, manualPaidDays: 0.5, days: [{ date: "2026-10-22", paidDays: 0.5, unpaidDays: 0.5 }] }) })
+    expect(unpaidLeaveDaysForPeriod([split], id, "2026-10-16", "2026-10-31")).toBe(0.5)
+    expect(unpaidLeaveDaysForPeriod([split], id, "2026-10-01", "2026-10-15")).toBe(0)
+  })
   it("fills the owner's October 16–31 cutoff with 2 days", () => expect(unpaidLeaveDaysForPeriod([row()], id, "2026-10-16", "2026-10-31")).toBe(2))
   it("allocates only workdays within a cutoff boundary", () => expect(unpaidLeaveDaysForPeriod([row({ a365_startdate: "2026-10-15", a365_enddate: "2026-10-19", a365_days: 3 })], id, "2026-10-16", "2026-10-31")).toBe(2))
   it("ignores paid, cancelled and other employees", () => expect(unpaidLeaveDaysForPeriod([row({ a365_benefit: 749910000 }), row({ a365_leavestatus: 749910001 }), row({ _a365_employee_value: "other" })], id, "2026-10-16", "2026-10-31")).toBe(0))

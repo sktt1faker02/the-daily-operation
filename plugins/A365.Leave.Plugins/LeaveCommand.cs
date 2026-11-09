@@ -6,7 +6,7 @@ using System.Web.Script.Serialization;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
 
-[assembly: System.Reflection.AssemblyVersion("1.0.3.12")]
+[assembly: System.Reflection.AssemblyVersion("1.0.3.13")]
 
 namespace A365.Leave.Plugins
 {
@@ -20,6 +20,7 @@ namespace A365.Leave.Plugins
         public int benefit { get; set; }
         public int allocationVersion { get; set; }
         public decimal? expectedPaidDays { get; set; }
+        public decimal? manualPaidDays { get; set; }
         public decimal? expectedUnpaidDays { get; set; }
         public decimal? expectedRestoredDays { get; set; }
         public string startDate { get; set; }
@@ -46,6 +47,7 @@ namespace A365.Leave.Plugins
     public sealed class LeaveAllocation
     {
         public int version { get; set; }
+        public decimal? manualPaidDays { get; set; }
         public AllocatedDay[] days { get; set; }
         public decimal PaidDays { get { return days.Sum(day => day.paidDays); } }
         public decimal UnpaidDays { get { return days.Sum(day => day.unpaidDays); } }
@@ -103,12 +105,13 @@ namespace A365.Leave.Plugins
         {
             return requested != 749910000 || balance <= 0 ? 749910001 : balance >= days ? 749910000 : 749910002;
         }
-        public static LeaveAllocation Allocate(int requested, decimal balance, DateTime start, DateTime end, Policy policy, bool halfDay = false)
+        public static LeaveAllocation Allocate(int requested, decimal balance, DateTime start, DateTime end, Policy policy, bool halfDay = false, decimal? manualPaidDays = null)
         {
-            Days(start, end, policy, halfDay);
+            var total = Days(start, end, policy, halfDay);
             if (requested != 749910000 && requested != 749910001) Fail("Select Paid or Unpaid.");
             if (balance != Math.Round(balance, 2)) Fail("The credit balance precision needs review.");
-            decimal remaining = requested == 749910000 ? Math.Max(0, balance) : 0;
+            if (manualPaidDays.HasValue && (requested != 749910000 || manualPaidDays.Value < 0 || manualPaidDays.Value != Math.Round(manualPaidDays.Value, 2) || manualPaidDays.Value > total || manualPaidDays.Value > Math.Max(0, balance))) Fail("Paid days must be non-negative, have at most two decimal places, and not exceed the leave workdays or available credits. Select Paid to specify a split.");
+            decimal remaining = manualPaidDays ?? (requested == 749910000 ? Math.Max(0, balance) : 0);
             var holidays = new HashSet<string>(policy.holidays.Select(day => day.date));
             var allocated = new List<AllocatedDay>();
             for (var day = start; day <= end; day = day.AddDays(1))
@@ -119,7 +122,7 @@ namespace A365.Leave.Plugins
                 allocated.Add(new AllocatedDay { date = Iso(day), paidDays = paid, unpaidDays = portion - paid });
                 remaining -= paid;
             }
-            return new LeaveAllocation { version = 1, days = allocated.ToArray() };
+            return new LeaveAllocation { version = 1, manualPaidDays = manualPaidDays, days = allocated.ToArray() };
         }
         public static void Fail(string message) { throw new InvalidPluginExecutionException("LEAVE: " + message); }
     }
@@ -233,9 +236,9 @@ namespace A365.Leave.Plugins
             overlap.Criteria.AddCondition("a365_enddate", ConditionOperator.OnOrAfter, start);
             if (caller.RetrieveMultiple(overlap).Entities.Count != 0) Rules.Fail("These dates overlap an Issued leave record.");
             int pool = request.leaveType == 749910001 ? 749910001 : 749910000;
-            var allocation = Rules.Allocate(request.benefit, pool == 749910000 ? vl : sl, start, end, policy, request.halfDay);
+            var allocation = Rules.Allocate(request.benefit, pool == 749910000 ? vl : sl, start, end, policy, request.halfDay, request.manualPaidDays);
             int benefit = allocation.Benefit;
-            if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL", allocationVersion = 1, paidDays = (decimal?)allocation.PaidDays, unpaidDays = (decimal?)allocation.UnpaidDays, allocation = allocation.days };
+            if (request.command == "preview") return new { policyVersion = policy.version, periodStart = Rules.Iso(period), periodEnd = Rules.Iso(Rules.PeriodEnd(period)), VL = vl, SL = sl, pendingVL = vl-postedVL, pendingSL = sl-postedSL, days = (decimal?)days, benefit = (int?)benefit, pool = pool == 749910000 ? "VL" : "SL", allocationVersion = 1, paidDays = (decimal?)allocation.PaidDays, unpaidDays = (decimal?)allocation.UnpaidDays, manualPaidDays = request.manualPaidDays, allocation = allocation.days };
             if (request.expectedPaidDays != allocation.PaidDays || request.expectedUnpaidDays != allocation.UnpaidDays)
                 Rules.Fail("The paid/unpaid breakdown changed. Refresh the credit preview and review it before submitting again.");
 
@@ -250,7 +253,7 @@ namespace A365.Leave.Plugins
             leave["a365_paiddays"] = allocation.PaidDays;
             leave["a365_unpaiddays"] = allocation.UnpaidDays;
             // Only serialize the versioned per-date contract, not computed properties.
-            leave["a365_allocationjson"] = Json.Serialize(new { version = 1, days = allocation.days });
+            leave["a365_allocationjson"] = Json.Serialize(new { version = 1, days = allocation.days, manualPaidDays = request.manualPaidDays });
             leave["a365_issuedby"] = new EntityReference("systemuser", context.InitiatingUserId);
             leave["a365_issuedon"] = DateTime.UtcNow;
             leave["a365_leavestatus"] = new OptionSetValue(749910000);
@@ -359,6 +362,9 @@ namespace A365.Leave.Plugins
         }
         private static void Match(Entity source, Request request, Guid employee)
         {
+            var raw = source.GetAttributeValue<string>("a365_allocationjson");
+            var snapshot = String.IsNullOrEmpty(raw) ? null : Json.Deserialize<LeaveAllocation>(raw);
+            if ((snapshot == null ? null : snapshot.manualPaidDays) != request.manualPaidDays) Rules.Fail("This operation identity belongs to a different paid/unpaid split. Review the existing leave instead of retrying changed values.");
             if ((source.GetAttributeValue<decimal>("a365_days") == 0.5m) != request.halfDay || source.GetAttributeValue<EntityReference>("a365_employee").Id != employee || Choice(source, "a365_leavetype") != request.leaveType ||
                 source.GetAttributeValue<int>("a365_requestedbenefit") != request.benefit || Rules.Iso(source.GetAttributeValue<DateTime>("a365_startdate")) != request.startDate ||
                 Rules.Iso(source.GetAttributeValue<DateTime>("a365_enddate")) != request.endDate || (source.GetAttributeValue<string>("a365_note") ?? "") != (request.note ?? "")) Rules.Fail("This operation identity belongs to a different request. Review the existing leave instead of retrying changed values.");

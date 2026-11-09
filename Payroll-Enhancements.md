@@ -6,6 +6,34 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-09 - Specify paid/unpaid Leave split
+
+Owner approved the optional manual split and deployment to Dev. Added Paid days
+entry with an unpaid remainder, server validation against workdays/available
+credits, and explicit-mode metadata within existing allocation snapshots. A full
+day can now be 0.5 paid / 0.5 unpaid even with sufficient credits. Default automatic
+treatment, overlap protection, pools, immutable history and payroll formulas are
+preserved. Changed Leave form/rules/hook/service, server allocator/retry matching,
+integration tests and release tooling. Server 1.0.3.13 and the matching frontend
+are deployed to Dev; the read-only 0.5/0.5 preview and native export hashes pass.
+Verified 551 app tests, 815 server checks, 88 browser checks, lint/build and diff
+checks. No schema, roles or live leave data changed. Production is untouched.
+Verification and financial/security UAT limits are tracked in
+[the manual split checklist](docs/leave-manual-split.md).
+
+### 2026-11-09 - Simplify Leave success toast
+
+Changed the successful Add Leave toast to exactly **Leave Recorded** in
+`src/features/leave/add-leave-dialog.tsx`, as requested. Failed and uncertain email
+warnings and the save/notification workflows remain unchanged. Verification
+checklist: exact success wording; existing failure/uncertain branches preserved;
+Leave UI regressions, app tests, lint/build and browser checks. All pass: 24
+targeted Leave UI tests, 537 app tests / 53 files, lint/build, 74 Edge checks and
+`git diff --check`. Initial browser checks were interrupted by a page reload;
+rerun passed. Build retains its existing large-chunk notices. Local change only;
+no deployment or live business data changes during that edit. Subsequently
+published to Dev with the manual split release above.
+
 ### 2026-11-09 - Deploy Refresh balance backend to Dev
 
 Owner authorized Dev backend deployment and direct future plugin/backend updates

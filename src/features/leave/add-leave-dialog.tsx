@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react"
 import { toast } from "sonner"
 import { useAccessProfile } from "@/features/payroll/hooks/use-access-profile"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -47,6 +48,7 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
     setValues(previous => {
       const next = { ...previous, [key]: value }
       if (next.halfDay && (key === "halfDay" || key === "startDate")) next.endDate = next.startDate
+      if (next.benefit !== "749910000") delete next.manualPaidDays
       return next
     })
     setSubmitError("")
@@ -69,7 +71,7 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
     setSubmitError("")
     try {
       const result = await issue.mutateAsync({ values, operationId, reviewed: { paidDays: preview.data!.paidDays!, unpaidDays: preview.data!.unpaidDays! }, onCommitted: () => setCommitted(true) })
-      if (result.notification === "accepted") toast.success("Leave recorded. Email accepted by the sending service.")
+      if (result.notification === "accepted") toast.success("Leave Recorded")
       else if (result.notification === "failed") toast.warning("Leave recorded, but the email notification could not be sent.")
       else toast.warning("Leave recorded. The email outcome is uncertain; review its status before retrying.")
       onBlockedChange(false)
@@ -105,10 +107,21 @@ function EntryForm({ onClose, onBlockedChange }: { onClose: () => void; onBlocke
       </div>
     </div>
 
+    {values.benefit === "749910000" && <div className="space-y-3">
+      <div className="flex items-center gap-2"><Checkbox id="add-leave-split" checked={values.manualPaidDays !== undefined} onCheckedChange={checked => update("manualPaidDays", checked === true ? "" : undefined)} /><Label htmlFor="add-leave-split">Specify paid/unpaid split</Label></div>
+      {values.manualPaidDays !== undefined && <div className="space-y-2">
+        <Label htmlFor="add-leave-paid-days">Paid days</Label>
+        <Input id="add-leave-paid-days" required inputMode="decimal" maxLength={6} value={values.manualPaidDays} onChange={event => update("manualPaidDays", event.target.value)} aria-invalid={Boolean(errors.manualPaidDays)} aria-describedby="add-leave-split-help add-leave-split-error" />
+        <p id="add-leave-split-help" className="text-xs text-muted-foreground">The remaining workdays will be unpaid. For one full day, enter 0.5 for half paid and half unpaid. Paid days cannot exceed available credits.</p>
+        <p id="add-leave-split-error" role={errors.manualPaidDays ? "alert" : undefined} className="text-sm text-destructive">{errors.manualPaidDays}</p>
+      </div>}
+    </div>}
+
     <section aria-label="Credit preview" className="space-y-3 rounded-md border p-4">
       <h3 className="text-sm font-medium">Credit preview</h3>
       {preview.data && !preview.isError && <p className="text-xs text-muted-foreground">Balance period: {formatLeaveDate(preview.data.periodStart)} – {formatLeaveDate(preview.data.periodEnd)}</p>}
       {!values.employee ? <p className="text-sm text-muted-foreground">Select an employee to view their recorded credits.</p>
+        : errors.manualPaidDays ? <p className="text-sm text-muted-foreground">Enter valid Paid days to preview the paid/unpaid split.</p>
         : preview.isPending || preview.isFetching ? <div role="status" aria-label="Loading employee credits"><Skeleton className="h-12 w-full" /><span className="sr-only">Loading complete credit history…</span></div>
           : preview.isError ? <div role="alert" className="space-y-2"><p className="text-sm">{preview.error instanceof LeavePostingError ? preview.error.message : "Employee credits are unavailable. No zero balance has been assumed."}</p><Button type="button" size="sm" variant="outline" onClick={() => void preview.refetch()}>Retry employee credits</Button></div>
             : <><dl className="grid grid-cols-2 gap-4 text-sm"><div><dt>VL available</dt><dd className="font-semibold tabular-nums">{formatCreditDays(preview.data.VL)} days</dd></div><div><dt>SL available</dt><dd className="font-semibold tabular-nums">{formatCreditDays(preview.data.SL)} days</dd></div></dl>

@@ -10,6 +10,7 @@ export interface LeaveEntryValues {
   endDate: string
   note: string
   halfDay?: boolean
+  manualPaidDays?: string
 }
 
 export function emptyLeaveEntry(): LeaveEntryValues {
@@ -29,8 +30,17 @@ export function validateLeaveEntry(values: LeaveEntryValues): Partial<Record<key
   }
   if (!errors.startDate && !errors.endDate && values.endDate < values.startDate) errors.endDate = "End Date cannot precede Start Date."
   if (values.halfDay && !errors.endDate && values.startDate !== values.endDate) errors.endDate = "Half-day leave must start and end on the same date."
+  try { manualPaidDays(values) } catch (error) { errors.manualPaidDays = (error as Error).message }
   if (values.note.length > 2000) errors.note = "Note must be 2,000 characters or fewer."
   return errors
+}
+
+/** Undefined keeps automatic treatment; zero is an explicit unpaid portion. */
+export function manualPaidDays(values: LeaveEntryValues): number | undefined {
+  if (values.manualPaidDays === undefined) return undefined
+  if (values.benefit !== "749910000") throw new Error("Select Paid to specify a paid/unpaid split.")
+  if (!/^\d+(\.\d{1,2})?$/.test(values.manualPaidDays) || Number(values.manualPaidDays) > 366) throw new Error("Enter Paid days from 0 to 366 with at most two decimal places.")
+  return Number(values.manualPaidDays)
 }
 
 /** Approved pool mapping only. This does not compute an entitlement or debit. */

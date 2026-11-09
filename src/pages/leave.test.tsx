@@ -137,6 +137,49 @@ describe("Add Leave modal", () => {
     expect(within(reopened).getByRole("combobox", { name: "Leave duration" })).toHaveTextContent("Full day")
   })
 
+  it("previews an explicit half-paid full day and keeps that split unchanged for uncertain retry", async () => {
+    const { user, dialog } = await openModal()
+    await completeForm(user, dialog)
+    vi.mocked(postingService.preview).mockImplementation(async values => {
+      const paidDays = values.manualPaidDays !== undefined ? Number(values.manualPaidDays) : 1
+      return { policyVersion: "2026-10-22.1", periodStart: "2026-01-01", periodEnd: "2026-12-31", VL: 7.5, SL: 5, pendingVL: 0, pendingSL: 0,
+        allocationVersion: 1, days: 1, benefit: paidDays === 1 ? 749910000 : 749910002, pool: "VL", paidDays, unpaidDays: 1 - paidDays,
+        allocation: [{ date: values.startDate, paidDays, unpaidDays: 1 - paidDays }] }
+    })
+    await user.click(within(dialog).getByRole("checkbox", { name: "Specify paid/unpaid split" }))
+    expect(within(dialog).getByRole("button", { name: "Submit" })).toBeDisabled()
+    await user.type(within(dialog).getByLabelText("Paid days", { exact: true }), "0.5")
+    expect(await within(dialog).findByText("Benefit: Partially Paid. Paid: 0.50 days; Unpaid: 0.50 days.")).toBeVisible()
+    expect(within(dialog).getByLabelText("Calculated leave days")).toHaveTextContent("1.00 workdays")
+    vi.mocked(postingService.submit).mockRejectedValueOnce(new LeavePostingError("The save outcome is uncertain.", true))
+    await user.click(within(dialog).getByRole("button", { name: "Submit" }))
+    await within(dialog).findByRole("alert")
+    expect(within(dialog).getByLabelText("Paid days", { exact: true })).toBeDisabled()
+    expect(within(dialog).getByLabelText("Paid days", { exact: true })).toHaveValue("0.5")
+    await user.click(within(dialog).getByRole("button", { name: "Retry Submit" }))
+    await waitFor(() => expect(postingService.submit).toHaveBeenCalledTimes(2))
+    const calls = vi.mocked(postingService.submit).mock.calls
+    expect(calls[0].slice(0, 3)).toEqual(calls[1].slice(0, 3))
+    expect(calls[1][0]).toMatchObject({ manualPaidDays: "0.5", halfDay: false })
+    expect(calls[1][2]).toEqual({ paidDays: 0.5, unpaidDays: 0.5 })
+  })
+
+  it("blocks invalid manual input and clears the split when switching to Unpaid", async () => {
+    const { user, dialog } = await openModal()
+    await completeForm(user, dialog)
+    await user.click(within(dialog).getByRole("checkbox", { name: "Specify paid/unpaid split" }))
+    await user.type(within(dialog).getByLabelText("Paid days", { exact: true }), "-0.5")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Enter Paid days")
+    expect(within(dialog).getByRole("button", { name: "Submit" })).toBeDisabled()
+    await user.click(within(dialog).getByRole("combobox", { name: "Benefit" }))
+    await user.click(screen.getByRole("option", { name: "Unpaid" }))
+    expect(within(dialog).queryByLabelText("Paid days", { exact: true })).not.toBeInTheDocument()
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Submit" })).toBeEnabled())
+    expect(vi.mocked(postingService.preview).mock.lastCall?.[0].manualPaidDays).toBeUndefined()
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    expect(postingService.submit).not.toHaveBeenCalled()
+  })
+
   it("reviews a four-paid/one-unpaid split while keeping only Paid and Unpaid as inputs", async () => {
     vi.mocked(postingService.preview).mockResolvedValue({ policyVersion: "2026-10-22.1", periodStart: "2026-04-01", periodEnd: "2027-01-04", VL: 4, SL: 5, pendingVL: 0, pendingSL: 0, allocationVersion: 1,
       days: 5, benefit: 749910002, pool: "VL", paidDays: 4, unpaidDays: 1,

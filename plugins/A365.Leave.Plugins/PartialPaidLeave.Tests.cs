@@ -330,6 +330,67 @@ public static class PartialPaidLeaveTests
         Check(rejected, "old client cannot issue an unreviewed allocation");
         return checks;
     }
+    public static int RunManualSplit()
+    {
+        foreach (int type in new[] { 749910000, 749910001, 749910002 })
+        foreach (decimal paid in new[] { 0m, 0.25m, 0.5m, 1m })
+        {
+            var fake = new Fake(); var issue = Prepare(fake, type, 749910000);
+            issue.endDate = issue.startDate; issue.manualPaidDays = paid;
+            issue.command = "preview"; int before = fake.Rows.Count;
+            var preview = fake.Send(issue);
+            Check(Convert.ToDecimal(preview["paidDays"]) == paid && Convert.ToDecimal(preview["unpaidDays"]) == 1m - paid && Convert.ToDecimal(preview["manualPaidDays"]) == paid && fake.Rows.Count == before, "Manual preview preserves exact paid request despite sufficient credits");
+            issue.command = "issue"; issue.expectedPaidDays = paid; issue.expectedUnpaidDays = 1m - paid;
+            fake.Send(issue);
+            var source = fake.Rows.Single(row => row.LogicalName == "a365_leave");
+            var allocation = Json.Deserialize<LeaveAllocation>(source.GetAttributeValue<string>("a365_allocationjson"));
+            Check(source.GetAttributeValue<decimal>("a365_days") == 1m && allocation.manualPaidDays == paid && allocation.days.Length == 1 && allocation.PaidDays == paid && allocation.UnpaidDays == 1m - paid, "One source retains full-day manual split and explicit retry identity");
+            Check(source.GetAttributeValue<OptionSetValue>("a365_benefit").Value == (paid == 0 ? 749910001 : paid == 1 ? 749910000 : 749910002), "Manual split derives Paid/Unpaid/Partially Paid benefit");
+            var debits = fake.Rows.Where(row => row.GetAttributeValue<EntityReference>("a365_leave") != null).ToList();
+            Check(paid == 0 ? debits.Count == 0 : debits.Count == 1 && debits[0].GetAttributeValue<decimal>("a365_days") == -paid, "Only specified paid portion is deducted");
+            before = fake.Rows.Count; fake.Send(issue); Check(fake.Rows.Count == before, "Manual save retry creates no duplicate source/deduction");
+            issue.manualPaidDays = null; bool changed = false;
+            try { fake.Send(issue); } catch (InvalidPluginExecutionException) { changed = true; }
+            Check(changed && fake.Rows.Count == before, "Retry cannot silently switch manual split to automatic");
+            issue.manualPaidDays = paid == 0.5m ? 0.25m : 0.5m; changed = false;
+            try { fake.Send(issue); } catch (InvalidPluginExecutionException) { changed = true; }
+            Check(changed && fake.Rows.Count == before, "Retry cannot change requested paid amount");
+            var overlap = new Request { command = "issue", employeeId = issue.employeeId, operationId = Guid.NewGuid().ToString("D"), leaveType = type, benefit = 749910000, startDate = issue.startDate, endDate = issue.endDate, manualPaidDays = 0.5m, expectedPaidDays = 0.5m, expectedUnpaidDays = 0.5m, allocationVersion = 1 };
+            bool rejectedOverlap = false; try { fake.Send(overlap); } catch (InvalidPluginExecutionException error) { rejectedOverlap = error.Message.Contains("overlap"); }
+            Check(rejectedOverlap, "Manual split preserves overlap protection");
+            var deletion = new Request { command = "delete", employeeId = issue.employeeId, operationId = issue.operationId, expectedRestoredDays = paid };
+            Check(Convert.ToDecimal(fake.Send(deletion)["restoredDays"]) == paid, "Deleting manual split restores only verified paid portion");
+            before = fake.Rows.Count; fake.Send(deletion); Check(fake.Rows.Count == before, "Manual split deletion cannot restore twice");
+        }
+        foreach (decimal invalid in new[] { -0.5m, 0.001m, 1.01m, 5m })
+        {
+            var fake = new Fake(); var issue = Prepare(fake, 749910000, 749910000); issue.endDate = issue.startDate; issue.manualPaidDays = invalid;
+            int before = fake.Rows.Count; bool rejected = false;
+            try { fake.Send(issue); } catch (InvalidPluginExecutionException error) { rejected = error.Message.Contains("Paid days must"); }
+            Check(rejected && fake.Rows.Count == before, "Invalid manual split rejected atomically: " + invalid);
+        }
+        var stale = new Fake(); var request = Prepare(stale, 749910000, 749910000); request.endDate = request.startDate; request.manualPaidDays = 0.5m; request.command = "preview"; stale.Send(request);
+        var grant = stale.Rows.Single(row => row.LogicalName == "a365_leavecredittransaction" && !row.Contains("a365_transactionkey")); grant["a365_days"] = grant.GetAttributeValue<decimal>("a365_days") - 3.75m;
+        request.command = "issue"; request.expectedPaidDays = 0.5m; request.expectedUnpaidDays = 0.5m; bool blocked = false;
+        try { stale.Send(request); } catch (InvalidPluginExecutionException error) { blocked = error.Message.Contains("Paid days must"); }
+        Check(blocked && !stale.Rows.Any(row => row.LogicalName == "a365_leave"), "Changed credits block manual split instead of silently reducing paid days");
+        var unpaid = new Fake(); var unpaidRequest = Prepare(unpaid, 749910000, 749910001); unpaidRequest.manualPaidDays = 0.5m; blocked = false;
+        try { unpaid.Send(unpaidRequest); } catch (InvalidPluginExecutionException error) { blocked = error.Message.Contains("Select Paid"); }
+        Check(blocked, "Unpaid benefit cannot carry manual paid request");
+        var half = new Fake(); var halfRequest = Prepare(half, 749910000, 749910000); halfRequest.halfDay = true; halfRequest.endDate = halfRequest.startDate; halfRequest.manualPaidDays = 0.25m; halfRequest.expectedPaidDays = 0.25m; halfRequest.expectedUnpaidDays = 0.25m;
+        half.Send(halfRequest); Check(half.Rows.Single(row => row.LogicalName == "a365_leave").GetAttributeValue<decimal>("a365_unpaiddays") == 0.25m, "Manual split respects a half-day total");
+        var auto = new Fake(); var autoRequest = Prepare(auto, 749910000, 749910000); auto.Send(autoRequest); autoRequest.manualPaidDays = 4m; blocked = false;
+        try { auto.Send(autoRequest); } catch (InvalidPluginExecutionException) { blocked = true; }
+        Check(blocked, "Automatic retry cannot change to manual even when paid total matches");
+        var multiple = new Fake(); var multipleRequest = Prepare(multiple, 749910000, 749910000); multipleRequest.manualPaidDays = 1.25m; multipleRequest.expectedPaidDays = 1.25m; multipleRequest.expectedUnpaidDays = 3.75m; multiple.Send(multipleRequest);
+        var dated = Json.Deserialize<LeaveAllocation>(multiple.Rows.Single(row => row.LogicalName == "a365_leave").GetAttributeValue<string>("a365_allocationjson"));
+        Check(dated.days[0].paidDays == 1m && dated.days[1].paidDays == 0.25m && dated.days.Skip(2).All(day => day.paidDays == 0m) && dated.UnpaidDays == 3.75m, "Manual total retains earliest-paid dated allocation across workdays");
+        var failing = new Fake(); var failingRequest = Prepare(failing, 749910000, 749910000); failingRequest.endDate = failingRequest.startDate; failingRequest.manualPaidDays = 0.5m; failingRequest.expectedPaidDays = 0.5m; failingRequest.expectedUnpaidDays = 0.5m;
+        failing.FailResetEmployee = failing.Employee; int original = failing.Rows.Count; blocked = false;
+        try { failing.Send(failingRequest); } catch (InvalidPluginExecutionException) { blocked = true; }
+        Check(blocked && failing.Rows.Count == original && !failing.Rows.Any(row => row.LogicalName == "a365_leave"), "Manual credit write failure rolls back the source and all financial writes");
+        return checks;
+    }
     public static int RunDeletion()
     {
         foreach (string scenario in new[] { "spanning", "quarter-day", "rollback" })

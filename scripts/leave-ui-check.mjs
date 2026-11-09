@@ -36,7 +36,8 @@ async function scenario(name, role = "admin", width = 1280) {
       export const postingService = {
         async preview(values){
           const complete=Boolean(values.startDate&&values.endDate&&values.leaveType&&values.benefit); const days=values.halfDay?0.5:1;
-          return {policyVersion:'2026-10-22.1',periodStart:'2026-04-01',periodEnd:'2027-03-31',VL:7.5,SL:5,pendingVL:0,pendingSL:0,allocationVersion:1,paidDays:complete?(values.benefit==='749910000'?days:0):null,unpaidDays:complete?(values.benefit==='749910001'?days:0):null,allocation:null,days:complete?days:null,benefit:complete?Number(values.benefit):null,pool:complete?(values.leaveType==='749910001'?'SL':'VL'):null};
+          const manual=values.manualPaidDays!==undefined; const paid=manual?Number(values.manualPaidDays):values.benefit==='749910000'?days:0;
+          return {policyVersion:'2026-10-22.1',periodStart:'2026-04-01',periodEnd:'2027-03-31',VL:7.5,SL:5,pendingVL:0,pendingSL:0,allocationVersion:1,paidDays:complete?paid:null,unpaidDays:complete?days-paid:null,allocation:complete&&manual?[{date:values.startDate,paidDays:paid,unpaidDays:days-paid}]:null,days:complete?days:null,benefit:complete?(paid===0?749910001:paid===days?749910000:749910002):null,pool:complete?(values.leaveType==='749910001'?'SL':'VL'):null};
         },
         async submit(values,id,reviewed,onCommitted){window.leaveSubmitted={values,reviewed};onCommitted?.();return {record:{...${JSON.stringify(leave)},a365_leaveid:id,a365_leavestatus:749910000},notification:'failed'};},
         async notify(){return 'accepted';}
@@ -69,6 +70,36 @@ async function scenario(name, role = "admin", width = 1280) {
 }
 
 try {
+  for (const width of [1280, 390]) {
+    const splitRun = await scenario("manual-split", "admin", width), splitPage = splitRun.page
+    await splitPage.getByRole("button", { name: "Add Leave", exact: true }).click()
+    const dialog = splitPage.getByRole("dialog", { name: "Add Leave", exact: true })
+    await dialog.getByRole("combobox", { name: "Employee", exact: true }).click()
+    await splitPage.getByRole("option", { name: /Test Employee/ }).click()
+    await dialog.getByLabel("Start Date", { exact: true }).fill("2026-10-23")
+    await dialog.getByLabel("End Date", { exact: true }).fill("2026-10-23")
+    await dialog.getByRole("combobox", { name: "Leave Type", exact: true }).click()
+    await splitPage.getByRole("option", { name: "VL", exact: true }).click()
+    await dialog.getByRole("combobox", { name: "Benefit", exact: true }).click()
+    await splitPage.getByRole("option", { name: "Paid", exact: true }).click()
+    const split = dialog.getByRole("checkbox", { name: "Specify paid/unpaid split" })
+    await split.focus(); await splitPage.keyboard.press("Space")
+    assert.equal(await dialog.getByRole("button", { name: "Submit", exact: true }).isDisabled(), true)
+    await dialog.getByLabel("Paid days", { exact: true }).fill("0.001")
+    await dialog.getByRole("alert").waitFor()
+    assert.match(await dialog.getByRole("alert").innerText(), /Enter Paid days/)
+    await dialog.getByLabel("Paid days", { exact: true }).fill("0.5")
+    await dialog.getByText("Benefit: Partially Paid. Paid: 0.50 days; Unpaid: 0.50 days.", { exact: true }).waitFor()
+    await dialog.getByText("0.50 days will be deducted from VL.", { exact: true }).waitFor()
+    await dialog.getByRole("button", { name: "Submit", exact: true }).click()
+    await dialog.waitFor({ state: "hidden" })
+    const saved = await splitPage.evaluate(() => window.leaveSubmitted)
+    assert.equal(saved.values.manualPaidDays, "0.5")
+    assert.deepEqual(saved.reviewed, { paidDays: 0.5, unpaidDays: 0.5 })
+    assert.deepEqual(splitRun.errors, [])
+    checks += 7
+    await splitRun.context.close()
+  }
   let run = await scenario("records")
   let { page } = run
   await page.getByRole("heading", { name: "Leave Management", exact: true }).waitFor().catch(async error => { console.error({ errors: run.errors, text: await page.locator("body").innerText() }); throw error })

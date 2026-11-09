@@ -5,6 +5,7 @@ import { buildRecordedLeaveEmail, type LeaveEmailContext } from "./notification-
 import { dateOnly, requireGuid } from "./rules"
 import { leaveService } from "./leave-service"
 import type { LeaveEntryValues } from "./entry-rules"
+import { manualPaidDays } from "./entry-rules"
 import type { LeaveRecord } from "./types"
 import { leaveAllocation, type AllocatedDay } from "./allocation"
 
@@ -125,15 +126,17 @@ export const postingService = {
     }
   },
   async preview(values: LeaveEntryValues): Promise<PostingPreview> {
+    const manual = manualPaidDays(values)
     const complete = Boolean(values.startDate && values.endDate && values.leaveType && values.benefit)
     const response = await command({ command: "preview", employeeId: values.employee?.a365_employeeid,
-      ...(complete ? { startDate: values.startDate, endDate: values.endDate, halfDay: Boolean(values.halfDay), leaveType: Number(values.leaveType), benefit: Number(values.benefit) } : {}),
+      ...(complete ? { startDate: values.startDate, endDate: values.endDate, halfDay: Boolean(values.halfDay), leaveType: Number(values.leaveType), benefit: Number(values.benefit), ...(manual !== undefined ? { manualPaidDays: manual } : {}) } : {}),
     })
     if (response.allocationVersion !== 1) throw new LeavePostingError("The Leave server update for paid/unpaid allocation is required. Contact your administrator.", false)
     if (["VL", "SL", "pendingVL", "pendingSL"].some(key => typeof response[key] !== "number" || !Number.isFinite(response[key])) || typeof response.periodStart !== "string" || typeof response.periodEnd !== "string" || (response.days !== null && typeof response.days !== "number")) {
       throw new LeavePostingError("Complete period credits could not be verified. Refresh the preview.", false)
     }
     if (values.halfDay && complete && response.days !== 0.5) throw new LeavePostingError("The Leave server update for half-day leave is required. Contact your administrator.", false)
+    if (manual !== undefined && complete && (response.manualPaidDays !== manual || response.paidDays !== manual)) throw new LeavePostingError("The Leave server update for a specified paid/unpaid split is required. Refresh the preview before saving.", false)
     if (response.days !== null) {
       try {
         leaveAllocation({ a365_days: Number(response.days), a365_benefit: Number(response.benefit), a365_startdate: values.startDate, a365_enddate: values.endDate,
@@ -145,11 +148,15 @@ export const postingService = {
   },
 
   async submit(values: LeaveEntryValues, operationId: string, reviewed: ReviewedAllocation, onCommitted?: () => void) {
+    const manual = manualPaidDays(values)
+    if (manual !== undefined && manual !== reviewed.paidDays) throw new LeavePostingError("Review the specified paid/unpaid split before saving.", false)
     const record = source(await command({ command: "issue", allocationVersion: 1, operationId: requireGuid(operationId), employeeId: values.employee?.a365_employeeid,
       expectedPaidDays: reviewed.paidDays, expectedUnpaidDays: reviewed.unpaidDays,
+      ...(manual !== undefined ? { manualPaidDays: manual } : {}),
       halfDay: Boolean(values.halfDay), leaveType: Number(values.leaveType), benefit: Number(values.benefit), startDate: values.startDate, endDate: values.endDate, note: values.note,
     }))
     if (record.a365_leaveid.toLowerCase() !== operationId.toLowerCase()) throw new LeavePostingError("The operation identity could not be verified. Retry the same request.", true)
+    if (manual !== undefined && (record.a365_paiddays !== manual || (JSON.parse(record.a365_allocationjson ?? "{}") as { manualPaidDays?: unknown }).manualPaidDays !== manual)) throw new LeavePostingError("The saved paid/unpaid split could not be verified. Retry the same operation.", true)
     onCommitted?.()
     // A confirmed committed source is returned even if email fails. Sending
     // never turns a successful posting into a false save failure.

@@ -7,6 +7,13 @@ const valid = {
 }
 
 describe("Leave entry validation", () => {
+  it.each(["", "-0.5", "0.001", "NaN", "1e2", "367"])("rejects invalid manual Paid days %s", manualPaidDays => {
+    expect(validateLeaveEntry({ ...valid, manualPaidDays }).manualPaidDays).toBeTruthy()
+  })
+  it("accepts explicit paid portions only with the Paid benefit", () => {
+    for (const manualPaidDays of ["0", "0.5", "1.25"]) expect(validateLeaveEntry({ ...valid, manualPaidDays })).toEqual({})
+    expect(validateLeaveEntry({ ...valid, benefit: "749910001", manualPaidDays: "0.5" }).manualPaidDays).toContain("Select Paid")
+  })
   it.each(["749910000", "749910001", "749910002"])("allows half-day leave type %s on a single date", leaveType => {
     const halfDay = { ...valid, halfDay: true, leaveType, endDate: valid.startDate }
     expect(validateLeaveEntry(halfDay)).toEqual({})
