@@ -6,6 +6,10 @@ import { getCurrentUserRoles } from "./security-service"
 import { payrollPeriodService } from "./payroll-period-service"
 import { PayrollStatus } from "../period-status"
 import { sendPayslipReadyNotifications } from "./payslip-ready-notification-service"
+import { getPowerContext, type PowerContext } from "@/lib/power/power-context"
+
+vi.mock("@/lib/power/power-context", () => ({ getPowerContext: vi.fn() }))
+const app = { appId: "40000000-0000-0000-0000-000000000004", environmentId: "50000000-0000-0000-0000-000000000005", appSettings: {}, queryParams: { hint: "private-session" } }
 
 vi.mock("@/lib/power/data-client", () => ({ dataClient: { retrieveMultipleRecordsAsync: vi.fn(), retrieveRecordAsync: vi.fn() } }))
 vi.mock("@/generated/services/WhoAmIService", () => ({ WhoAmIService: { WhoAmI: vi.fn() } }))
@@ -27,6 +31,7 @@ const period = { a365_payrollperiodid: periodId, a365_name: "October cutoff", a3
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(getPowerContext).mockResolvedValue({ app, user: {}, host: { sessionId: "private-session" } })
   vi.mocked(WhoAmIService.WhoAmI).mockResolvedValue({ success: true, data: { UserId: adminId } })
   vi.mocked(getCurrentUserRoles).mockResolvedValue({ isAdmin: true, roleNames: ["A365 - Payroll Admin"] })
   vi.mocked(payrollPeriodService.getPeriod).mockResolvedValue(period)
@@ -37,6 +42,28 @@ beforeEach(() => {
 })
 
 describe("Payslip-ready notifications", () => {
+  it.each([
+    app,
+    { ...app, appId: "60000000-0000-0000-0000-000000000006", environmentId: "70000000-0000-0000-0000-000000000007" },
+  ])("sends the runtime environment's link with the same build: %j", async runtimeApp => {
+    vi.mocked(getPowerContext).mockResolvedValue({ app: runtimeApp, user: {}, host: { sessionId: "private-session" } })
+    await sendPayslipReadyNotifications({ periodId })
+    const message = vi.mocked(Office365OutlookService.SharedMailboxSendEmailV2).mock.calls[0][0]
+    expect(message.Body).toContain(`href="https://apps.powerapps.com/play/e/${runtimeApp.environmentId}/app/${runtimeApp.appId}"`)
+    expect(message.Body).not.toMatch(/b58b083e|d4f0731a|private-session|hint=/)
+  })
+  it.each(["rejected", "missing", "invalid"])("sends nothing and allows retry when host identity is %s", async failure => {
+    if (failure === "rejected") vi.mocked(getPowerContext).mockRejectedValueOnce(new Error("Sensitive host error"))
+    else vi.mocked(getPowerContext).mockResolvedValueOnce({
+      app: failure === "missing" ? undefined : { ...app, environmentId: "" },
+      user: {}, host: { sessionId: "private-session" },
+    } as PowerContext)
+    const result = await sendPayslipReadyNotifications({ periodId })
+    expect(result.error).toContain("No notification emails were sent")
+    expect(result.error).not.toContain("Sensitive")
+    expect(Office365OutlookService.SharedMailboxSendEmailV2).not.toHaveBeenCalled()
+    expect((await sendPayslipReadyNotifications({ periodId })).recipients[0].status).toBe("accepted")
+  })
   it("reads all pages first, excludes omitted employees and deduplicates included employees", async () => {
     vi.mocked(dataClient.retrieveMultipleRecordsAsync)
       .mockResolvedValueOnce({ success: true, data: [entry(1), entry(2, b, false)], skipToken: "next" } as never)

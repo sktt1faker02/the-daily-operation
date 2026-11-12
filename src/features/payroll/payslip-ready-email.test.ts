@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { buildPayslipReadyEmail } from "./payslip-ready-email"
+import { buildPayslipReadyEmail, payslipAppUrl } from "./payslip-ready-email"
 import { PayrollStatus } from "./period-status"
+
+const app = { appId: "40000000-0000-0000-0000-000000000004", environmentId: "50000000-0000-0000-0000-000000000005" }
+const appUrl = `https://apps.powerapps.com/play/e/${app.environmentId}/app/${app.appId}`
 
 const period = { a365_payrollperiodid: "period", a365_name: "Oct 16–31, 2026",
   a365_periodstart: "2026-10-16T00:00:00+14:00", a365_periodend: "2026-10-31",
@@ -8,7 +11,7 @@ const period = { a365_payrollperiodid: "period", a365_name: "Oct 16–31, 2026",
 
 describe("Payslip-ready email", () => {
   it("uses the reference layout, correct dates and My Payroll instructions without financial data", () => {
-    const draft = buildPayslipReadyEmail({ a365_employeeid: "employee", a365_name: "Test <Employee>", a365_workemail: "test@example.invalid" }, period, "2026-10-26")!
+    const draft = buildPayslipReadyEmail({ a365_employeeid: "employee", a365_name: "Test <Employee>", a365_workemail: "test@example.invalid" }, period, "2026-10-26", appUrl)!
     expect(draft.subject).toBe("Your payslip is ready")
     expect(draft.to).toBe("test@example.invalid")
     expect(draft.text).toContain("Payroll period: Oct 16–31, 2026")
@@ -17,7 +20,6 @@ describe("Payslip-ready email", () => {
     expect(draft.text).toContain("Pay date: Oct 31, 2026")
     expect(draft.html).toContain("Test &lt;Employee&gt;")
     expect(draft.html).toContain("My Payroll")
-    const appUrl = "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f"
     expect(draft.html).toContain(`href="${appUrl}"`)
     expect(draft.html).toContain('target="_blank" rel="noopener noreferrer"')
     expect(draft.text).toContain(`Open The Daily Operation: ${appUrl}`)
@@ -27,13 +29,28 @@ describe("Payslip-ready email", () => {
     expect(draft.html).not.toMatch(/<script|<img|<link|salary|Net Pay|Bank Account|Withholding Tax/i)
   })
   it.each([null, "", "bad", "a@example.invalid; b@example.invalid", "a@example.invalid\r\nBcc: other@example.invalid"])("rejects unsafe stored addresses: %s", a365_workemail => {
-    expect(buildPayslipReadyEmail({ a365_employeeid: "employee", a365_name: "Test", a365_workemail }, period, "2026-10-26")).toBeNull()
+    expect(buildPayslipReadyEmail({ a365_employeeid: "employee", a365_name: "Test", a365_workemail }, period, "2026-10-26", appUrl)).toBeNull()
   })
   it("escapes period text and omits absent pay dates", () => {
     const draft = buildPayslipReadyEmail({ a365_employeeid: "employee", a365_name: "Test", a365_workemail: "test@example.invalid" },
-      { ...period, a365_name: '<img src=x onerror="alert(1)">', a365_paydate: null }, "2026-10-26")!
+      { ...period, a365_name: '<img src=x onerror="alert(1)">', a365_paydate: null }, "2026-10-26", appUrl)!
     expect(draft.html).toContain("&lt;img")
     expect(draft.html).not.toContain("<img")
     expect(draft.text).not.toContain("Pay date:")
+  })
+})
+
+describe("Runtime payslip app link", () => {
+  it("uses the supplied host identity and supports default environments", () => {
+    expect(payslipAppUrl(app)).toBe(appUrl)
+    expect(payslipAppUrl({ ...app, environmentId: `Default-${app.environmentId}` }))
+      .toBe(appUrl.replace("/e/", "/e/Default-"))
+  })
+  it.each([
+    { ...app, appId: "" }, { ...app, environmentId: "" },
+    { ...app, appId: `${app.appId}?hint=secret` },
+    { ...app, environmentId: "../../another-environment" },
+  ])("rejects unavailable or malformed host identities: %j", identity => {
+    expect(() => payslipAppUrl(identity)).toThrow("identity is unavailable")
   })
 })

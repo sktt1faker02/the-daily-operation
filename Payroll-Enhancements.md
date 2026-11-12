@@ -6,6 +6,32 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-13 - Use the runtime app identity in payslip email links
+
+Fixed the Dev link retained after pipeline promotion. The payslip email service
+now reads the current app/environment IDs through `getPowerContext`, validates
+them and passes a clean HTTPS play URL into the HTML/plain-text composer.
+Unavailable identity stops sending with a reload/retry message rather than
+falling back to the bundled Dev configuration. No configuration/schema/security,
+financial calculations or payroll lifecycle changes.
+
+Phase 11/12 checklist: verify two runtime identities with the same code; HTML and
+plain-text links; no session/query parameters; missing/malformed/rejected identity
+sends nothing and permits retry; preserve existing notification behavior; verify
+responsive email layout. Updated email composer/service, colocated tests,
+fictional preview and [notification documentation](docs/payslip-ready-notifications.md).
+Verification: 28 targeted tests, production build and Playwright email checks at
+1000/390/320px passed. The full suite finished with 561/562 tests passing using
+`--maxWorkers=2 --testTimeout=60000`; the unrelated Leave History partially paid
+record test failed at `src/pages/leave-history.test.tsx:48` waiting for the table,
+and also failed in an isolated rerun (7/8 passed). The first run with default
+five-second timeouts was stopped after payroll UI timeouts; those tests passed
+in the longer-timeout full run. Final `npm run lint` passed.
+`git diff --check` passed. No deployment or live emails;
+hosted Prod identity, delivery and ordinary-user security checks remain unverified.
+Publish the corrected build in Dev and promote it through the existing pipeline;
+previously delivered emails retain their original links.
+
 ### 2026-11-09 - Simplify Ledger view
 
 Owner requested renaming the page/sidebar item to Ledger and hiding filtered-total

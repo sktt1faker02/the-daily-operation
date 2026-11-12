@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url"
 import { createServer } from "vite"
 
 const payslip = process.argv.includes("--payslip")
+const previewAppUrl = "https://apps.powerapps.com/play/e/50000000-0000-0000-0000-000000000005/app/40000000-0000-0000-0000-000000000004"
 const playwrightPath = process.argv.slice(2).find(argument => argument !== "--payslip")
 const output = resolve(payslip ? ".playwright-cli/payslip-ready-email" : ".playwright-cli/leave-email")
 // Keep this standalone renderer from replacing the running app's Vite cache.
@@ -27,7 +28,7 @@ try {
     const { buildPayslipReadyEmail } = await server.ssrLoadModule("/src/features/payroll/payslip-ready-email.ts")
     draft = buildPayslipReadyEmail(employee, { a365_payrollperiodid: "period", a365_name: "Oct 16–31, 2026",
       a365_periodstart: "2026-10-16", a365_periodend: "2026-10-31", a365_paydate: "2026-10-31",
-      a365_payrollstatus: 749910002 }, "2026-10-26")
+      a365_payrollstatus: 749910002 }, "2026-10-26", previewAppUrl)
   }
   await mkdir(output, { recursive: true })
   await writeFile(resolve(output, "preview.html"), draft.html, "utf8")
@@ -45,7 +46,7 @@ try {
         await page.getByRole("heading", { name: payslip ? "Your payslip is ready" : "Your leave has been recorded" }).waitFor()
         if (payslip) {
           const link = page.getByRole("link", { name: "Open The Daily Operation", exact: true })
-          assert.equal(await link.getAttribute("href"), "https://apps.powerapps.com/play/e/b58b083e-d27d-eabd-a143-2a49dcb9d89a/app/d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f")
+          assert.equal(await link.getAttribute("href"), previewAppUrl)
           assert.equal(await link.getAttribute("target"), "_blank")
           await link.focus()
           assert.equal(await link.evaluate(element => element === document.activeElement), true)

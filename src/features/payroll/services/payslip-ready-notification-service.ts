@@ -4,7 +4,8 @@ import { getCurrentUserRoles } from "./security-service"
 import { payrollPeriodService } from "./payroll-period-service"
 import { Office365OutlookService } from "@/generated/services/Office365OutlookService"
 import { notificationMailboxAddress } from "@/lib/notification-email"
-import { buildPayslipReadyEmail, type PayslipEmailEmployee } from "../payslip-ready-email"
+import { buildPayslipReadyEmail, payslipAppUrl, type PayslipEmailEmployee } from "../payslip-ready-email"
+import { getPowerContext } from "@/lib/power/power-context"
 import { isVisibleToEmployee } from "../period-status"
 import { PAYROLL_ENTRY_TABLE } from "../types"
 
@@ -87,6 +88,14 @@ export async function sendPayslipReadyNotifications(request: PayslipNotification
       return report
     }
     const entries = await includedEntries(periodId)
+    if (entries.length === 0) return report
+    let appUrl: string
+    try {
+      appUrl = payslipAppUrl((await getPowerContext()).app)
+    } catch {
+      report.error = "Unable to determine this application's link. No notification emails were sent. Reload the app and retry notifications."
+      return report
+    }
     const selected = request.entryIds ? new Set(request.entryIds.map(guid)) : null
     const employeeIds = new Set<string>()
     const asOf = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())
@@ -111,7 +120,7 @@ export async function sendPayslipReadyNotifications(request: PayslipNotification
         result.detail = "Unable to read this employee's Work Email. Retry after checking access."
         continue
       }
-      const draft = buildPayslipReadyEmail(employee, period, asOf)
+      const draft = buildPayslipReadyEmail(employee, period, asOf, appUrl)
       if (!draft) {
         result.status = "missing-email"
         result.detail = "Add a valid Work Email to the employee profile, then retry this notification."

@@ -35,10 +35,20 @@ existing Dataverse permissions remain the payslip-access boundary.
 
 Owner update, 2026-11-03: new payslip-ready emails include an **Open The Daily
 Operation** button and the same app URL in the plain-text draft. The HTTPS play
-URL uses the environment/app IDs from `power.config.json`, without local-host,
+URL originally used the environment/app IDs from `power.config.json`. Owner bug
+report, 2026-11-13: pipeline deployment retained these build-time Dev IDs in Prod.
+New emails now use the running Power Apps host's `app.environmentId` and
+`app.appId`, retrieved through the existing `getPowerContext` wrapper. The link has no local-host,
 tenant-session or tracking parameters. Employees sign in and select **My Payroll**;
 the link does not grant record access. Previously delivered emails are unchanged.
 The existing Mark Ready trigger and notification retry behavior are unchanged.
+Missing, malformed or rejected host identity stops the batch before sending and
+shows a reload/retry error; there is no fallback to the Dev configuration.
+
+Deployment: build and publish the corrected app to Dev, then promote that version
+through the existing pipeline. No per-environment URL setting is required.
+Verify a newly sent Prod email opens Prod; already delivered emails retain their
+original links. Do not release payroll again solely to test email delivery.
 
 The results panel distinguishes sender **acceptance**, missing/invalid Work
 Email, unreadable employees and uncertain sends. Acceptance is not confirmation
