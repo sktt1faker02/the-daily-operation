@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "solution:export": "pac solution export --environment https://org9a7651f0.crm5.dynamics.com --name A365_DailyOperations --path ./solutions/A365_DailyOperations.zip --managed false",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -31,6 +32,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "exceljs": "4.4.0",
     "lucide-react": "^0.546.0",
     "pdfmake": "^0.3.11",
     "react": "^19.1.1",

@@ -1,20 +1,22 @@
 /**
  * Payroll status badge. Uses semantic color + text (never color alone) per
- * DESIGN.md "Status Mapping": Draft gray, Processing amber, Ready blue,
- * Paid green, Locked slate.
+ * Status colors: Processing amber, Ready blue, Paid slate (locked internally).
  */
-import { payrollStatusBadgeTone, payrollStatusLabel, type PayrollStatus } from "./types"
+import {
+  payrollStatusBadgeTone,
+  payrollStatusLabel,
+  type PayrollStatusTone,
+  type PayrollStatusValue,
+} from "./period-status"
 
-const TONE_CLASS: Record<string, string> = {
-  draft: "bg-secondary text-muted-foreground border border-border",
+const TONE_CLASS: Record<PayrollStatusTone, string> = {
   processing: "bg-warning-soft text-warning border border-warning/20",
   ready: "bg-primary-soft text-primary border border-primary/20",
-  paid: "bg-success-soft text-success border border-success/20",
   locked: "bg-secondary text-locked border border-border",
   unknown: "bg-secondary text-muted-foreground border border-border",
 }
 
-export function PayrollStatusBadge({ status }: { status: PayrollStatus | null | undefined }) {
+export function PayrollStatusBadge({ status }: { status: PayrollStatusValue | null | undefined }) {
   const tone = payrollStatusBadgeTone(status)
   return (
     <span

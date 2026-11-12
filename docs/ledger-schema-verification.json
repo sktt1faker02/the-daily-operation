@@ -1,0 +1,40 @@
+﻿{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "Solution":  "A365_DailyOperations",
+    "Publisher":  "a365",
+    "Categories":  {
+                       "Payroll":  749910001,
+                       "Software and Licenses":  749910004,
+                       "Utilities":  749910000,
+                       "Capital Deposits":  749910006,
+                       "Government Contributions":  749910002,
+                       "Taxes":  749910003,
+                       "Client Payments":  749910008,
+                       "Rent and Coworking":  749910005,
+                       "Capital Withdrawals":  749910007
+                   },
+    "Tables":  [
+                   "a365_ledgertransaction",
+                   "a365_ledgeroperation",
+                   "a365_ledgercoordination",
+                   "a365_ledgerhistory"
+               ],
+    "ServerRegistered":  true,
+    "RoleGrantsApplied":  true,
+    "SourceKeyIndexStatus": "Active",
+    "TableAuditingEnabled": true,
+    "OrganizationAuditingEnabled": true,
+    "LedgerTransactionCount": 0,
+    "NativeAuditDeletionVerified": true,
+    "MissingPayrollAdminGrants": 0,
+    "ApiBindingGenerated": true,
+    "NativeSolutionExported": true,
+    "NativeSolutionUnpackedPath": "artifacts/ledger.local/activated-solution",
+    "ServerVersion": "1.0.0.2",
+    "ActiveLedgerSteps": 36,
+    "AppDeployed": true,
+    "AppId": "d4f0731a-e91a-40d4-ac0b-3f7e2400fa0f",
+    "DeployedBundleSha256": "98D57334DE808565F5DF37A7950960CD9A960751B97349E397EE55D54BED93E9",
+    "AuditRetentionChanged": false,
+    "OrdinaryEmployeeIdentitiesVerified": 0
+}

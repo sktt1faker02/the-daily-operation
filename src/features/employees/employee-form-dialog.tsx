@@ -328,7 +328,7 @@ export function EmployeeFormDialog({
           <DialogDescription>
             {isEdit
               ? "Update this employee's master data."
-              : "Add an employee. The employee number is generated automatically."}
+              : "Add an employee. The employee number is generated automatically. Saving also posts eligible leave credits for the current year and adds the employee to its existing unpaid leave conversion."}
           </DialogDescription>
         </DialogHeader>
 

@@ -1,0 +1,30 @@
+﻿{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "EnvironmentId":  "b58b083e-d27d-eabd-a143-2a49dcb9d89a",
+    "AssemblyId":  "1d8034c7-e2cd-f111-a05a-000d3a8014e4",
+    "AssemblyVersion":  "1.0.3.8",
+    "SHA256":  "64A18FCA63B73F0A7F2267AD9A279F47CFDE626E2EBAABC663076DE3CD102968",
+    "VerifiedAt":  "2026-11-06T10:16:36.5040817Z",
+    "BackupSHA256":  "F61903A0C7C14795B14954178852860394FDA4837412EF05B71C0659C36DADB2",
+    "BusinessDataWrites":  "None from deployment; employee sync is verified separately.",
+    "EmployeeSync":  {
+                         "Verified":  true,
+                         "Year":  2026,
+                         "VL":  8.33,
+                         "SL":  5,
+                         "VLMovements":  10,
+                         "SLMovements":  1,
+                         "ConversionRows":  1,
+                         "ConvertibleDays":  5,
+                         "DailyRate":  1363.64,
+                         "Amount":  6818.2,
+                         "RetryCreatedDuplicates":  false,
+                         "Paid":  false,
+                         "SalaryProvidedByOwner":  true,
+                         "SchemaChanges":  false,
+                         "RoleChanges":  false,
+                         "Payments":  false,
+                         "Emails":  false,
+                         "OrdinaryAccountUAT":  "Not exercised"
+                     }
+}

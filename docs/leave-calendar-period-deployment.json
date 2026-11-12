@@ -1,0 +1,15 @@
+{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "AssemblyVersion":  "1.0.3.8",
+    "SHA256":  "F61903A0C7C14795B14954178852860394FDA4837412EF05B71C0659C36DADB2",
+    "VerifiedAt":  "2026-11-06T09:37:16.9133875Z",
+    "PeriodStart":  "2026-01-01",
+    "Year":  2026,
+    "EmployeeCount":  6,
+    "ServerChecks":  367,
+    "ExistingAprilTransactions":  70,
+    "BusinessDataWrites":  "None. Owner instructed replacing plugin, retaining existing history without reconciliation.",
+    "Production":  "Unchanged",
+    "LiveIssuance":  "Not performed",
+    "SecurityUAT":  "Not performed"
+}

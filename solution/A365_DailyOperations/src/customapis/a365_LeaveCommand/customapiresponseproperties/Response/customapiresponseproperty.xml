@@ -1,0 +1,11 @@
+<customapiresponseproperty uniquename="Response">
+  <description default="Leave command JSON Response">
+    <label description="Leave command JSON Response" languagecode="1033" />
+  </description>
+  <displayname default="Response">
+    <label description="Response" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <name>a365_LeaveCommand.Response</name>
+  <type>10</type>
+</customapiresponseproperty>

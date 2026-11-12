@@ -1,0 +1,28 @@
+{
+  "AssemblyVersion": "1.0.3.5",
+  "SHA256": "DB5152E9A84F6383E262DEBD2EBE3264BC695E95000B46BDEE63FC1DC2CACAA6",
+  "ActualResetRollbackConcurrency": "Synthetic checks only",
+  "Targets": {
+    "VL": 10,
+    "SL": 5
+  },
+  "ResetPreview": "Passed",
+  "ResetExecuted": false,
+  "OrdinaryAccountSecurity": "Not exercised",
+  "Schema": "Unchanged",
+  "Environment": "https://org9a7651f0.crm5.dynamics.com",
+  "DeployedHashMatchesTested": true,
+  "PeriodStart": "2026-04-01",
+  "Emails": "None",
+  "ActiveSynchronousWriteGuards": 20,
+  "Solution": "A365_DailyOperations",
+  "IsInTransaction": true,
+  "VerifiedAt": "2026-11-03T09:27:37.2647012Z",
+  "Roles": "Unchanged",
+  "BusinessDataWrites": "None",
+  "ActiveEmployeeCount": 7,
+  "CreditCountUnchanged": true,
+  "Year": 2026,
+  "NativeSourceHashMatchesDeployed": true,
+  "NativeSourcePack": "Passed"
+}

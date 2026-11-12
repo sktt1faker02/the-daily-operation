@@ -1,0 +1,19 @@
+{
+    "FiveWorkdayPreviewVerified":  true,
+    "PayrollRead":  "Passed with new fields and Unpaid/Partially Paid filtering",
+    "HistoricalRecords":  "Unchanged",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "Solution":  "A365_DailyOperations",
+    "OrdinaryAccountSecurityUAT":  "Not performed",
+    "SecurityRoles":  "Unchanged",
+    "ExistingDetailVerified":  true,
+    "AssemblyVersion":  "1.0.3.2",
+    "VerifiedAt":  "2026-10-28T04:42:26.4552324Z",
+    "Emails":  "None",
+    "CreditPreviewVerified":  true,
+    "PersonalHistoryVerified":  true,
+    "SHA256":  "B6B9BBD05E93BDA01287F4B61E9290EB387FED05FFFC67C15A2C4216E2C6FF5F",
+    "BusinessDataWrites":  "None",
+    "ListQuery":  "Passed with the same columns/filter/order as the app",
+    "Leave2026Count":  22
+}

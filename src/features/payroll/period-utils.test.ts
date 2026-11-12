@@ -1,9 +1,20 @@
 import { describe, it, expect } from "vitest"
-import { PayrollStatus, payrollStatusLabel, payrollStatusBadgeTone } from "./types"
+import {
+  LEGACY_LOCKED_STATUS,
+  LEGACY_PROCESSING_STATUS,
+  PayrollStatus,
+  payrollStatusBadgeTone,
+  payrollStatusLabel,
+} from "./period-status"
 import {
   basicPayForCutoff,
   suggestSemiMonthlyPeriod,
   formatPeriodName,
+  applyEndChange,
+  applyPayDateChange,
+  applyStartChange,
+  isEndDateDisabled,
+  isValidPeriodDates,
   planLoadEntries,
   planApplyInputs,
   selectPreviousCutoff,
@@ -15,11 +26,11 @@ import type { PayrollEntry } from "./types"
 
 describe("payrollStatusLabel", () => {
   it("maps each status value to its label", () => {
-    expect(payrollStatusLabel(PayrollStatus.Draft)).toBe("Draft")
+    expect(payrollStatusLabel(LEGACY_PROCESSING_STATUS)).toBe("Processing")
     expect(payrollStatusLabel(PayrollStatus.Processing)).toBe("Processing")
     expect(payrollStatusLabel(PayrollStatus.Ready)).toBe("Ready")
-    expect(payrollStatusLabel(PayrollStatus.Paid)).toBe("Paid")
-    expect(payrollStatusLabel(PayrollStatus.Locked)).toBe("Locked")
+    expect(payrollStatusLabel(LEGACY_LOCKED_STATUS)).toBe("Paid")
+    expect(payrollStatusLabel(PayrollStatus.Locked)).toBe("Paid")
   })
   it("returns an em dash for null/undefined", () => {
     expect(payrollStatusLabel(null)).toBe("—")
@@ -29,10 +40,10 @@ describe("payrollStatusLabel", () => {
 
 describe("payrollStatusBadgeTone", () => {
   it("maps status to a semantic tone", () => {
-    expect(payrollStatusBadgeTone(PayrollStatus.Draft)).toBe("draft")
+    expect(payrollStatusBadgeTone(LEGACY_PROCESSING_STATUS)).toBe("processing")
     expect(payrollStatusBadgeTone(PayrollStatus.Processing)).toBe("processing")
     expect(payrollStatusBadgeTone(PayrollStatus.Ready)).toBe("ready")
-    expect(payrollStatusBadgeTone(PayrollStatus.Paid)).toBe("paid")
+    expect(payrollStatusBadgeTone(LEGACY_LOCKED_STATUS)).toBe("locked")
     expect(payrollStatusBadgeTone(PayrollStatus.Locked)).toBe("locked")
     expect(payrollStatusBadgeTone(null)).toBe("unknown")
   })
@@ -40,7 +51,7 @@ describe("payrollStatusBadgeTone", () => {
 
 describe("selectPreviousCutoff", () => {
   // Periods as listPeriods returns them: a365_periodstart descending.
-  const period = (id: string, start: string, status: PayrollStatus) => ({
+  const period = (id: string, start: string, status: PayrollStatus | typeof LEGACY_LOCKED_STATUS | typeof LEGACY_PROCESSING_STATUS) => ({
     a365_payrollperiodid: id,
     a365_periodstart: start,
     a365_payrollstatus: status,
@@ -48,11 +59,11 @@ describe("selectPreviousCutoff", () => {
 
   it("skips an in-progress previous period and copies the last finalized cutoff", () => {
     // Repro of the reported bug: target Mar 1-15; Feb 1-15 is still Processing,
-    // so the source must be the Paid Jan 16-31, not Feb.
+    // so the source must be the Jan 16-31 Locked cutoff, not Feb.
     const periods = [
       period("mar1", "2027-03-01", PayrollStatus.Processing), // target
       period("feb1", "2027-02-01", PayrollStatus.Processing),
-      period("jan16", "2027-01-16", PayrollStatus.Paid),
+      period("jan16", "2027-01-16", LEGACY_LOCKED_STATUS),
       period("jan1", "2027-01-01", PayrollStatus.Locked),
     ]
     expect(selectPreviousCutoff(periods, "mar1")?.a365_payrollperiodid).toBe("jan16")
@@ -60,7 +71,7 @@ describe("selectPreviousCutoff", () => {
 
   it("never selects the target itself or a later finalized period", () => {
     const periods = [
-      period("apr1", "2027-04-01", PayrollStatus.Paid), // later than target
+      period("apr1", "2027-04-01", LEGACY_LOCKED_STATUS), // later than target
       period("mar1", "2027-03-01", PayrollStatus.Processing), // target
       period("jan16", "2027-01-16", PayrollStatus.Locked),
     ]
@@ -70,7 +81,7 @@ describe("selectPreviousCutoff", () => {
   it("returns null when no earlier period is finalized", () => {
     const periods = [
       period("mar1", "2027-03-01", PayrollStatus.Processing),
-      period("feb1", "2027-02-01", PayrollStatus.Draft),
+      period("feb1", "2027-02-01", LEGACY_PROCESSING_STATUS),
     ]
     expect(selectPreviousCutoff(periods, "mar1")).toBeNull()
   })
@@ -144,6 +155,63 @@ describe("suggestSemiMonthlyPeriod", () => {
 describe("formatPeriodName", () => {
   it("formats a same-month range compactly", () => {
     expect(formatPeriodName("2026-09-01", "2026-09-15")).toBe("Sep 1–15, 2026")
+  })
+})
+
+describe("linked payroll period dates", () => {
+  const linked = {
+    start: "2026-09-01",
+    end: "2026-09-15",
+    payDate: "2026-09-15",
+    endManuallyPicked: true,
+    payDateManuallyEdited: false,
+  }
+
+  it("preserves a manually picked End when Start moves earlier", () => {
+    expect(applyStartChange(linked, "2026-09-05")).toMatchObject({
+      start: "2026-09-05",
+      end: "2026-09-15",
+      payDate: "2026-09-15",
+    })
+  })
+
+  it("moves End and linked Pay date forward when Start passes End", () => {
+    expect(applyStartChange(linked, "2026-09-20")).toMatchObject({
+      start: "2026-09-20",
+      end: "2026-09-20",
+      payDate: "2026-09-20",
+    })
+  })
+
+  it("keeps End following Start until an End is explicitly picked", () => {
+    const state = { ...linked, endManuallyPicked: false }
+    expect(applyStartChange(state, "2026-09-07")).toMatchObject({
+      start: "2026-09-07",
+      end: "2026-09-07",
+      payDate: "2026-09-07",
+    })
+  })
+
+  it("updates Pay date when End changes until Pay date is manually edited", () => {
+    expect(applyEndChange(linked, "2026-09-18")).toMatchObject({
+      end: "2026-09-18",
+      payDate: "2026-09-18",
+      endManuallyPicked: true,
+    })
+    const edited = applyPayDateChange(linked, "2026-10-01")
+    expect(applyEndChange(edited, "2026-09-18").payDate).toBe("2026-10-01")
+  })
+
+  it("marks dates before Start disabled, while Start itself remains selectable", () => {
+    expect(isEndDateDisabled("2026-09-14", "2026-09-15")).toBe(true)
+    expect(isEndDateDisabled("2026-09-15", "2026-09-15")).toBe(false)
+    expect(isEndDateDisabled("2026-09-16", "2026-09-15")).toBe(false)
+  })
+
+  it("accepts a one-day period and rejects missing or reversed dates", () => {
+    expect(isValidPeriodDates("2026-09-15", "2026-09-15")).toBe(true)
+    expect(isValidPeriodDates("2026-09-16", "2026-09-15")).toBe(false)
+    expect(isValidPeriodDates("", "2026-09-15")).toBe(false)
   })
 })
 

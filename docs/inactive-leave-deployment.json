@@ -1,0 +1,25 @@
+﻿{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "EnvironmentId":  "b58b083e-d27d-eabd-a143-2a49dcb9d89a",
+    "AssemblyId":  "1d8034c7-e2cd-f111-a05a-000d3a8014e4",
+    "AssemblyVersion":  "1.0.3.9",
+    "SHA256":  "EB451A73C6CEA414831C1E68463B319D06E7D7588BFA7D9F9AC50255BBB74AD4",
+    "VerifiedAt":  "2026-11-06T11:22:45.7144338Z",
+    "BackupSHA256":  "68169CAFCDA9DD8FC03320F35D54E649751FB2FF603350A8BD6494E79D2978CA",
+    "BusinessDataWrites":  "None. Plugin deployment and verification did not modify business records.",
+    "VisibilityVerification":  {
+                                   "VerifiedAt":  "2026-11-06T11:32:00.0648561Z",
+                                   "InactivePickerExcluded":  true,
+                                   "LeaveRecordsExcluded":  true,
+                                   "CreditListsExcluded":  true,
+                                   "ConversionListsExcluded":  true,
+                                   "SavedVL":  10,
+                                   "SavedSL":  5,
+                                   "SavedConversionRows":  1,
+                                   "BusinessDataWrites":  false,
+                                   "OrdinaryAccountUAT":  "Not exercised",
+                                   "ConversionApiSupportExcluded":  true,
+                                   "VisibleConversionEmployees":  6,
+                                   "LastCreditModifiedBeforeDeployment":  "2026-11-06T10:29:17Z"
+                               }
+}

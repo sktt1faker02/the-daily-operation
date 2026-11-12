@@ -1,0 +1,12 @@
+<customapirequestparameter uniquename="Request">
+  <description default="Deletion JSON Request">
+    <label description="Deletion JSON Request" languagecode="1033" />
+  </description>
+  <displayname default="Request">
+    <label description="Request" languagecode="1033" />
+  </displayname>
+  <iscustomizable>1</iscustomizable>
+  <isoptional>0</isoptional>
+  <name>a365_DeleteEmployee.Request</name>
+  <type>10</type>
+</customapirequestparameter>

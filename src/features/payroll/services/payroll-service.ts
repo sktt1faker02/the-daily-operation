@@ -1,16 +1,17 @@
 /**
  * Payroll entry operations that combine the pure calculation engine with
  * Dataverse persistence. Business-oriented; keeps Dataverse access behind this
- * layer. The Draft/Processing status guard on recalculation is enforced at the
+ * layer. The Processing status guard on recalculation is enforced at the
  * data layer in Phase 7 — this operation computes and writes results.
  */
 import { dataClient } from "@/lib/power/data-client"
 import { employeeService } from "@/features/employees/employee-service"
 import { getStatutoryConfig } from "./statutory-config-service"
 import { calculatePayroll, type PayrollInput, type StatutoryConfig } from "./payroll-calculation"
-import type { PayrollEntryInputValues } from "../types"
-import { PayrollStatus } from "../types"
+import type { PayrollEntry, PayrollEntryInputValues } from "../types"
+import { isPeriodEditable } from "../period-status"
 import { payrollPeriodService } from "./payroll-period-service"
+import { parsePayrollEntryInputs } from "./payroll-entry-preview"
 
 const ENTRY_TABLE = "a365_payrollentries"
 
@@ -23,6 +24,7 @@ interface EntryReadModel {
   a365_unpaidleavedays?: number
   a365_withholdingtax?: number
   _a365_employee_value?: string
+  _a365_payrollperiod_value?: string
 }
 
 /**
@@ -51,18 +53,93 @@ export async function calculateAndPersistEntry(
   if (!read.success) throw read.error ?? new Error("Unable to load the payroll entry.")
   const entry = read.data
 
+  await calculateAndPersist(entryId, entry, periodEndDate, calculatedByUserId, preloadedConfig)
+}
+
+/** Save edited inputs and their calculation results in one Dataverse update. */
+export async function saveAndCalculateEntry(
+  entryId: string,
+  periodId: string,
+  periodEndDate: string,
+  calculatedByUserId: string,
+  values: PayrollEntryInputValues,
+): Promise<void> {
+  const period = await payrollPeriodService.getPeriod(periodId)
+  if (!isPeriodEditable(period.a365_payrollstatus)) {
+    throw new Error("Payroll entries can only be edited while the period is Processing.")
+  }
+  const read = await dataClient.retrieveRecordAsync<EntryReadModel>(ENTRY_TABLE, entryId, {
+    select: [
+      "a365_payrollentryid", "a365_basicpay", "a365_allowances", "a365_otherearnings",
+      "a365_otherdeductions", "a365_unpaidleavedays", "a365_withholdingtax", "_a365_employee_value",
+      "_a365_payrollperiod_value",
+    ],
+  })
+  if (!read.success) throw read.error ?? new Error("Unable to load the payroll entry.")
+  if (read.data._a365_payrollperiod_value !== periodId) {
+    throw new Error("The payroll entry does not belong to this period.")
+  }
+  await calculateAndPersist(entryId, read.data, periodEndDate, calculatedByUserId, undefined, values)
+}
+
+/** Read-only context for the editor's preview; never persists a calculation. */
+export async function getPayrollCalculationContext(employeeId: string, periodEndDate: string) {
+  const [employee, config] = await Promise.all([
+    employeeService.get(employeeId), getStatutoryConfig(periodEndDate),
+  ])
+  return { monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0, config }
+}
+
+/** Calculate edited form values through the same engine used on save. */
+export function previewPayrollEntry(
+  entry: PayrollEntry,
+  values: PayrollEntryInputValues,
+  context: Awaited<ReturnType<typeof getPayrollCalculationContext>>,
+): PayrollEntry {
+  const input = parsePayrollEntryInputs(values)
+  const result = calculatePayroll({ ...input, monthlyBasicSalary: context.monthlyBasicSalary }, context.config)
+  return {
+    ...entry,
+    a365_basicpay: input.basicPay,
+    a365_allowances: input.allowances,
+    a365_otherearnings: input.otherEarnings,
+    a365_otherdeductions: input.otherDeductions,
+    a365_unpaidleavedays: input.unpaidLeaveDays,
+    a365_withholdingtax: result.withholdingTax,
+    a365_comment: values.a365_comment,
+    a365_unpaidleave: result.unpaidLeave,
+    a365_sss: result.sss,
+    a365_philhealth: result.philhealth,
+    a365_hdmf: result.hdmf,
+    a365_grosspay: result.grossPay,
+    a365_totaldeductions: result.totalDeductions,
+    a365_netpay: result.netPay,
+  }
+}
+
+async function calculateAndPersist(
+  entryId: string,
+  entry: EntryReadModel,
+  periodEndDate: string,
+  calculatedByUserId: string,
+  preloadedConfig?: StatutoryConfig,
+  editedValues?: PayrollEntryInputValues,
+): Promise<void> {
+
   const employeeId = entry._a365_employee_value
   if (!employeeId) throw new Error("Payroll entry has no linked employee.")
   const employee = await employeeService.get(employeeId)
 
+  const edited = editedValues ? parsePayrollEntryInputs(editedValues) : null
+
   const input: PayrollInput = {
     monthlyBasicSalary: employee.a365_basicmonthlysalary ?? 0,
-    basicPay: entry.a365_basicpay ?? 0,
-    allowances: entry.a365_allowances ?? 0,
-    otherEarnings: entry.a365_otherearnings ?? 0,
-    otherDeductions: entry.a365_otherdeductions ?? 0,
-    unpaidLeaveDays: entry.a365_unpaidleavedays ?? 0,
-    withholdingTax: entry.a365_withholdingtax ?? 0, // manual admin input, used as-is
+    basicPay: edited?.basicPay ?? entry.a365_basicpay ?? 0,
+    allowances: edited?.allowances ?? entry.a365_allowances ?? 0,
+    otherEarnings: edited?.otherEarnings ?? entry.a365_otherearnings ?? 0,
+    otherDeductions: edited?.otherDeductions ?? entry.a365_otherdeductions ?? 0,
+    unpaidLeaveDays: edited?.unpaidLeaveDays ?? entry.a365_unpaidleavedays ?? 0,
+    withholdingTax: edited?.withholdingTax ?? entry.a365_withholdingtax ?? 0,
   }
 
   const config = preloadedConfig ?? (await getStatutoryConfig(periodEndDate))
@@ -81,45 +158,23 @@ export async function calculateAndPersistEntry(
     a365_calculatedon: new Date().toISOString(),
     "a365_CalculatedBy@odata.bind": `/systemusers(${calculatedByUserId})`,
   }
+  if (edited && editedValues) {
+    Object.assign(payload, {
+      a365_basicpay: edited.basicPay,
+      a365_allowances: edited.allowances,
+      a365_otherearnings: edited.otherEarnings,
+      a365_otherdeductions: edited.otherDeductions,
+      a365_unpaidleavedays: edited.unpaidLeaveDays,
+      a365_withholdingtax: edited.withholdingTax,
+      a365_comment: editedValues.a365_comment.trim() || null,
+    })
+  }
   const update = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
     ENTRY_TABLE,
     entryId,
     payload,
   )
   if (!update.success) throw update.error ?? new Error("Unable to save the calculation results.")
-}
-
-/** Parse a controlled numeric input to a number; blank → 0. */
-function toAmount(value: string): number {
-  const trimmed = value.trim()
-  if (trimmed === "") return 0
-  const n = Number(trimmed)
-  return Number.isFinite(n) ? n : 0
-}
-
-/**
- * Persist the editable input columns of a payroll entry. Does NOT touch
- * calculated columns — those change only through calculation.
- */
-export async function updateEntryInputs(
-  entryId: string,
-  values: PayrollEntryInputValues,
-): Promise<void> {
-  const payload: Record<string, unknown> = {
-    a365_basicpay: toAmount(values.a365_basicpay),
-    a365_allowances: toAmount(values.a365_allowances),
-    a365_otherearnings: toAmount(values.a365_otherearnings),
-    a365_otherdeductions: toAmount(values.a365_otherdeductions),
-    a365_unpaidleavedays: toAmount(values.a365_unpaidleavedays),
-    a365_withholdingtax: toAmount(values.a365_withholdingtax),
-    a365_comment: values.a365_comment.trim() || null,
-  }
-  const result = await dataClient.updateRecordAsync<Record<string, unknown>, EntryReadModel>(
-    ENTRY_TABLE,
-    entryId,
-    payload,
-  )
-  if (!result.success) throw result.error ?? new Error("Unable to save the payroll entry.")
 }
 
 /**
@@ -142,11 +197,6 @@ export async function calculatePeriod(
   for (const entry of included) {
     await calculateAndPersistEntry(entry.a365_payrollentryid, periodEndDate, calculatedByUserId, config)
     calculated += 1
-  }
-  // First calculation advances the period Draft → Processing (centralized rule).
-  const period = await payrollPeriodService.getPeriod(periodId)
-  if (period.a365_payrollstatus === PayrollStatus.Draft) {
-    await payrollPeriodService.transitionStatus(periodId, PayrollStatus.Processing, calculatedByUserId)
   }
   return { calculated }
 }

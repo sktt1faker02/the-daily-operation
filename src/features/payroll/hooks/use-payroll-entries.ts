@@ -1,12 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { payrollPeriodService } from "../services/payroll-period-service"
 import {
-  updateEntryInputs,
   calculatePeriod,
   calculateAndPersistEntry,
+  saveAndCalculateEntry,
+  getPayrollCalculationContext,
+  previewPayrollEntry,
 } from "../services/payroll-service"
-import type { PayrollEntryInputValues } from "../types"
+import type { PayrollEntry, PayrollEntryInputValues } from "../types"
 import { payrollKeys } from "./use-payroll-periods"
+
+export function usePayrollEntryPreview(entry: PayrollEntry | null, values: PayrollEntryInputValues, periodEndDate: string, enabled: boolean) {
+  const employeeId = entry?._a365_employee_value
+  const context = useQuery({
+    queryKey: [...payrollKeys.all, "calculation-context", employeeId, periodEndDate],
+    queryFn: () => getPayrollCalculationContext(employeeId!, periodEndDate),
+    enabled: enabled && Boolean(employeeId),
+  })
+  let preview: PayrollEntry | null = null
+  let error: string | null = null
+  if (enabled && entry) {
+    if (!employeeId) error = "Payroll entry has no linked employee."
+    else if (context.isError) error = "Unable to load the calculation preview. Close and reopen the editor to retry."
+    else if (context.data) {
+      try {
+        preview = previewPayrollEntry(entry, values, context.data)
+      } catch {
+        error = "Enter valid non-negative amounts to preview payroll."
+      }
+    }
+  }
+  return { entry: preview, error }
+}
 
 export function usePayrollEntries(periodId: string) {
   return useQuery({
@@ -58,8 +83,12 @@ export function useCopyPreviousCutoff(periodId: string) {
 export function useUpdateEntryInputs(periodId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, values }: { id: string; values: PayrollEntryInputValues }) =>
-      updateEntryInputs(id, values),
+    mutationFn: ({ id, periodEndDate, calculatedByUserId, values }: {
+      id: string
+      periodEndDate: string
+      calculatedByUserId: string
+      values: PayrollEntryInputValues
+    }) => saveAndCalculateEntry(id, periodId, periodEndDate, calculatedByUserId, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.entries(periodId) })
     },

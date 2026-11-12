@@ -1,0 +1,11 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
+  "SchemaName": "a365_systemuser_leave_cancelledby",
+  "ReferencedEntity": "systemuser", "ReferencedAttribute": "systemuserid", "ReferencingEntity": "a365_leave",
+  "CascadeConfiguration": { "Assign": "NoCascade", "Delete": "Restrict", "Merge": "NoCascade", "Reparent": "NoCascade", "Share": "NoCascade", "Unshare": "NoCascade" },
+  "Lookup": {
+    "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "SchemaName": "a365_CancelledBy",
+    "DisplayName": { "LocalizedLabels": [{ "Label": "Cancelled By", "LanguageCode": 1033 }] },
+    "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }
+  }
+}

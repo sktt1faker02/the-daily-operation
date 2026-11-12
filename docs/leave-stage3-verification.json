@@ -1,0 +1,112 @@
+{
+    "VerifiedAt":  "2026-10-21T16:01:49.9140420Z",
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "Stage":  3,
+    "Tables":  [
+                   {
+                       "LogicalName":  "a365_leave",
+                       "DataSource":  "leaves",
+                       "EntitySet":  "a365_leaves",
+                       "PrimaryId":  "a365_leaveid",
+                       "Schema":  ".power/schemas/dataverse/leaves.Schema.json",
+                       "Model":  "src/generated/models/A365_leavesModel.ts",
+                       "Service":  "src/generated/services/A365_leavesService.ts",
+                       "SpecifiedColumns":  16,
+                       "Bindings":  [
+                                        {
+                                            "Column":  "a365_employee",
+                                            "Binding":  "a365_Employee@odata.bind",
+                                            "Target":  "a365_employee",
+                                            "TargetPrimaryId":  "a365_employeeid"
+                                        },
+                                        {
+                                            "Column":  "a365_issuedby",
+                                            "Binding":  "a365_IssuedBy@odata.bind",
+                                            "Target":  "systemuser",
+                                            "TargetPrimaryId":  "systemuserid"
+                                        },
+                                        {
+                                            "Column":  "a365_cancelledby",
+                                            "Binding":  "a365_CancelledBy@odata.bind",
+                                            "Target":  "systemuser",
+                                            "TargetPrimaryId":  "systemuserid"
+                                        }
+                                    ],
+                       "NativeMetadataMatches":  true
+                   },
+                   {
+                       "LogicalName":  "a365_leavecashconversion",
+                       "DataSource":  "leavecashconversions",
+                       "EntitySet":  "a365_leavecashconversions",
+                       "PrimaryId":  "a365_leavecashconversionid",
+                       "Schema":  ".power/schemas/dataverse/leavecashconversions.Schema.json",
+                       "Model":  "src/generated/models/A365_leavecashconversionsModel.ts",
+                       "Service":  "src/generated/services/A365_leavecashconversionsService.ts",
+                       "SpecifiedColumns":  12,
+                       "Bindings":  [
+                                        {
+                                            "Column":  "a365_employee",
+                                            "Binding":  "a365_Employee@odata.bind",
+                                            "Target":  "a365_employee",
+                                            "TargetPrimaryId":  "a365_employeeid"
+                                        },
+                                        {
+                                            "Column":  "a365_convertedby",
+                                            "Binding":  "a365_ConvertedBy@odata.bind",
+                                            "Target":  "systemuser",
+                                            "TargetPrimaryId":  "systemuserid"
+                                        },
+                                        {
+                                            "Column":  "a365_cancelledby",
+                                            "Binding":  "a365_CancelledBy@odata.bind",
+                                            "Target":  "systemuser",
+                                            "TargetPrimaryId":  "systemuserid"
+                                        }
+                                    ],
+                       "NativeMetadataMatches":  true
+                   },
+                   {
+                       "LogicalName":  "a365_leavecredittransaction",
+                       "DataSource":  "leavecredittransactions",
+                       "EntitySet":  "a365_leavecredittransactions",
+                       "PrimaryId":  "a365_leavecredittransactionid",
+                       "Schema":  ".power/schemas/dataverse/leavecredittransactions.Schema.json",
+                       "Model":  "src/generated/models/A365_leavecredittransactionsModel.ts",
+                       "Service":  "src/generated/services/A365_leavecredittransactionsService.ts",
+                       "SpecifiedColumns":  11,
+                       "Bindings":  [
+                                        {
+                                            "Column":  "a365_employee",
+                                            "Binding":  "a365_Employee@odata.bind",
+                                            "Target":  "a365_employee",
+                                            "TargetPrimaryId":  "a365_employeeid"
+                                        },
+                                        {
+                                            "Column":  "a365_leave",
+                                            "Binding":  "a365_Leave@odata.bind",
+                                            "Target":  "a365_leave",
+                                            "TargetPrimaryId":  "a365_leaveid"
+                                        },
+                                        {
+                                            "Column":  "a365_cashconversion",
+                                            "Binding":  "a365_CashConversion@odata.bind",
+                                            "Target":  "a365_leavecashconversion",
+                                            "TargetPrimaryId":  "a365_leavecashconversionid"
+                                        }
+                                    ],
+                       "NativeMetadataMatches":  true
+                   }
+               ],
+    "SpecifiedColumns":  39,
+    "LocalChoices":  7,
+    "BusinessLookups":  9,
+    "ExistingGeneratedArtifactsPreserved":  43,
+    "PermissionConfigurationMatches":  true,
+    "Method":  "Supported installed Microsoft CLI generated every source; native export and prior live metadata used for independent read-back comparison.",
+    "Limitations":  [
+                        "Generated binding values are strings; later services must validate target entity-set paths and business rules.",
+                        "Date Only behavior, precision and numeric bounds are server metadata; generated TypeScript does not enforce them.",
+                        "Effective access through other user/team roles and sharing has not been tested as ordinary accounts.",
+                        "No Leave screens or business operations, sample records, deployment, import or commit."
+                    ]
+}

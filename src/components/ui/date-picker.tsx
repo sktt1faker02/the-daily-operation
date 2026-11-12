@@ -6,7 +6,7 @@
 import * as React from "react"
 import { format, parseISO } from "date-fns"
 import { CalendarIcon } from "lucide-react"
-import type { DateRange } from "react-day-picker"
+import type { DateRange, Matcher } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -36,7 +36,10 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled,
   invalid,
+  required,
   className,
+  defaultMonth,
+  disabledDates,
 }: {
   id?: string
   value: string
@@ -44,7 +47,10 @@ export function DatePicker({
   placeholder?: string
   disabled?: boolean
   invalid?: boolean
+  required?: boolean
   className?: string
+  defaultMonth?: string
+  disabledDates?: Matcher
 }) {
   const [open, setOpen] = React.useState(false)
   const selected = toDate(value)
@@ -58,6 +64,7 @@ export function DatePicker({
           variant="outline"
           disabled={disabled}
           aria-invalid={invalid || undefined}
+          aria-required={required || undefined}
           className={triggerClass(!selected, className)}
         >
           <CalendarIcon className="size-4" aria-hidden />
@@ -68,10 +75,11 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected}
-          defaultMonth={selected}
+          defaultMonth={toDate(defaultMonth) ?? selected}
           captionLayout="dropdown"
           startMonth={START_MONTH}
           endMonth={END_MONTH}
+          disabled={disabledDates}
           autoFocus
           onSelect={(d) => {
             onChange(d ? format(d, ISO) : "")

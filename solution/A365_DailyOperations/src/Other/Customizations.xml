@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26083.157" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26083.00157">
   <Entities />
   <Roles />
@@ -10,6 +10,8 @@
   <OrganizationSettings />
   <optionsets />
   <CustomControls />
+  <SolutionPluginAssemblies />
+  <SdkMessageProcessingSteps />
   <EntityDataProviders />
   <Languages>
     <Language>1033</Language>

@@ -1,0 +1,15 @@
+$ErrorActionPreference = 'Stop'
+$splitRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+$splitSdk = 'C:/Users/Jomari/AppData/Local/Microsoft/PowerAppsCLI/Microsoft.PowerApps.CLI.2.13.1/tools/Microsoft.Xrm.Sdk.dll'
+$splitAssembly = Join-Path $splitRoot 'plugins/A365.Leave.Plugins/bin/A365.Leave.Plugins.dll'
+[Reflection.Assembly]::LoadFrom($splitSdk) | Out-Null
+[Reflection.Assembly]::LoadFrom($splitAssembly) | Out-Null
+Add-Type -Path (Join-Path $splitRoot 'plugins/A365.Leave.Plugins/PartialPaidLeave.Tests.cs') -ReferencedAssemblies @($splitSdk, $splitAssembly, 'System.Runtime.Serialization', 'System.Web.Extensions')
+$splitChecks = [PartialPaidLeaveTests]::Run()
+$calendarChecks = [PartialPaidLeaveTests]::RunCalendarCorrection()
+Write-Host "Passed $calendarChecks calendar correction checks: read-only preview, stale review, rollback, canonical keys, audit, retries and authorization."
+Write-Host "Passed $splitChecks partial-paid issuance checks using synthetic services. No live records, Dataverse calls or email."
+$annualChecks = [PartialPaidLeaveTests]::RunAnnualAllocation()
+$syncChecks = [PartialPaidLeaveTests]::RunEmployeeSync()
+Write-Host "Passed $syncChecks employee leave setup checks: accrual, conversion, authorization, rollback and retries."
+Write-Host "Passed $annualChecks annual allocation checks: 0 VL / 5 SL opening, monthly VL accrual from 2027, and unchanged 2026 accrual."

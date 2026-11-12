@@ -1,6 +1,6 @@
 /**
  * Employee portal — "My Payroll". Shows the signed-in employee's own finalized
- * payslips (Paid / Locked only): the latest cutoff's totals up top, then the
+ * payslips (Ready / Locked only): the latest cutoff's totals up top, then the
  * full history linking to each payslip. Employees only ever see their own
  * records (Dataverse-enforced; the query is scoped to their employee id).
  */
@@ -22,7 +22,7 @@ import { PayrollStatusBadge } from "@/features/payroll/payroll-status-badge"
 import { useMyPayslips } from "@/features/payroll/hooks/use-my-payroll"
 
 export default function MyPayrollPage() {
-  const { data, isPending, isError, error, noEmployeeRecord, refetch } = useMyPayslips()
+  const { data, isPending, isError, error, noEmployeeRecord, employeeLookupFailed, retryEmployeeLookup, refetch } = useMyPayslips()
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
@@ -43,11 +43,13 @@ export default function MyPayrollPage() {
       ) : isError ? (
         <div className="flex flex-col items-center gap-3 rounded-md border border-dashed p-12 text-center">
           <AlertCircle className="size-6 text-destructive" aria-hidden />
-          <p className="font-medium">Unable to load your payroll</p>
+          <p className="font-medium">
+            {employeeLookupFailed ? "We couldn't load your employee profile" : "Unable to load your payroll"}
+          </p>
           <p className="text-sm text-muted-foreground">
             {error instanceof Error ? error.message : "Please try again."}
           </p>
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button variant="outline" onClick={() => employeeLookupFailed ? retryEmployeeLookup() : refetch()}>
             Try again
           </Button>
         </div>
@@ -64,7 +66,7 @@ export default function MyPayrollPage() {
           <FileText className="size-6 text-muted-foreground" aria-hidden />
           <p className="font-medium">No payslips yet</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Your payslips appear here once a payroll cutoff has been paid.
+            Your payslips appear here once your payroll administrator marks the cutoff Ready.
           </p>
         </div>
       ) : (

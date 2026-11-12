@@ -1,0 +1,6 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.EntityKeyMetadata",
+  "SchemaName": "a365_EmployeeTransactionKey",
+  "DisplayName": { "LocalizedLabels": [{ "Label": "Employee + Transaction Key", "LanguageCode": 1033 }] },
+  "KeyAttributes": ["a365_employee", "a365_transactionkey"]
+}

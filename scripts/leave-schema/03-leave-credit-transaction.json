@@ -1,0 +1,66 @@
+{
+  "@odata.type": "Microsoft.Dynamics.CRM.EntityMetadata",
+  "SchemaName": "a365_LeaveCreditTransaction",
+  "DisplayName": { "LocalizedLabels": [{ "Label": "Leave Credit Transaction", "LanguageCode": 1033 }] },
+  "DisplayCollectionName": { "LocalizedLabels": [{ "Label": "Leave Credit Transactions", "LanguageCode": 1033 }] },
+  "Description": { "LocalizedLabels": [{ "Label": "Signed VL and SL credit transactions by employee and calendar year. Corrections use compensating transactions.", "LanguageCode": 1033 }] },
+  "OwnershipType": "UserOwned", "IsActivity": false, "HasActivities": false, "HasNotes": false,
+  "IsAuditEnabled": { "Value": true },
+  "Attributes": [
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.StringAttributeMetadata",
+      "SchemaName": "a365_Name", "DisplayName": { "LocalizedLabels": [{ "Label": "Name", "LanguageCode": 1033 }] },
+      "IsPrimaryName": true, "RequiredLevel": { "Value": "ApplicationRequired" }, "MaxLength": 200,
+      "FormatName": { "Value": "Text" }, "IsAuditEnabled": { "Value": true }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
+      "SchemaName": "a365_Year", "DisplayName": { "LocalizedLabels": [{ "Label": "Year", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true }, "Format": "None"
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "a365_CreditPool", "DisplayName": { "LocalizedLabels": [{ "Label": "Credit Pool", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "OptionSet": { "IsGlobal": false, "OptionSetType": "Picklist", "Options": [
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "VL", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "SL", "LanguageCode": 1033 }] } }
+      ] }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.PicklistAttributeMetadata",
+      "SchemaName": "a365_TransactionType", "DisplayName": { "LocalizedLabels": [{ "Label": "Transaction Type", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true },
+      "OptionSet": { "IsGlobal": false, "OptionSetType": "Picklist", "Options": [
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Accrual", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Grant", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Deduction", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Restoration", "LanguageCode": 1033 }] } },
+        { "Value": null, "Label": { "LocalizedLabels": [{ "Label": "Cash conversion", "LanguageCode": 1033 }] } }
+      ] }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.DecimalAttributeMetadata",
+      "SchemaName": "a365_Days", "DisplayName": { "LocalizedLabels": [{ "Label": "Days", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true }, "Precision": 2,
+      "MinValue": -100000000000, "MaxValue": 100000000000
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.StringAttributeMetadata",
+      "SchemaName": "a365_TransactionKey", "DisplayName": { "LocalizedLabels": [{ "Label": "Transaction Key", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "ApplicationRequired" }, "IsAuditEnabled": { "Value": true }, "MaxLength": 150,
+      "FormatName": { "Value": "Text" }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.StringAttributeMetadata",
+      "SchemaName": "a365_PeriodKey", "DisplayName": { "LocalizedLabels": [{ "Label": "Period Key", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }, "MaxLength": 100,
+      "FormatName": { "Value": "Text" }
+    },
+    {
+      "@odata.type": "Microsoft.Dynamics.CRM.MemoAttributeMetadata",
+      "SchemaName": "a365_Note", "DisplayName": { "LocalizedLabels": [{ "Label": "Note", "LanguageCode": 1033 }] },
+      "RequiredLevel": { "Value": "None" }, "IsAuditEnabled": { "Value": true }, "MaxLength": 2000, "Format": "TextArea"
+    }
+  ]
+}

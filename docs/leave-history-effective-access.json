@@ -1,0 +1,15 @@
+{
+    "Environment":  "https://org9a7651f0.crm5.dynamics.com",
+    "VerifiedAt":  "2026-10-27T07:41:44.2576323Z",
+    "Checks":  [
+                   "Authenticated Dev connection",
+                   "Read employee account mappings for access verification",
+                   "Ordinary employee directory identity resolved",
+                   "Authenticated linked admin can read own personal history"
+               ],
+    "OrdinaryEmployeeAccountsVerified":  0,
+    "EligibleOrdinaryAccounts":  2,
+    "Method":  "Read-only requests; ordinary-account checks count only after impersonated WhoAmI identity is verified",
+    "Limits":  "The CLI did not return the requested impersonated user identity. Direct employee A/B checks remain unverified.",
+    "BusinessWrites":  "None"
+}

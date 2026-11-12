@@ -2,9 +2,23 @@ import { describe, it, expect } from "vitest"
 import {
   round2,
   calculatePayroll,
+  calculatePayrollTotals,
   type StatutoryConfig,
   type PayrollInput,
 } from "./payroll-calculation"
+
+describe("confirmed payroll totals", () => {
+  it.each([
+    { basicPay: 20000, allowances: 0, otherEarnings: 0, unpaidLeave: 3636.36,
+      otherDeductions: 0, sss: 875, philhealth: 500, hdmf: 100, withholdingTax: 0,
+      expected: { grossPay: 20000, totalDeductions: 5111.36, netPay: 14888.64 } },
+    { basicPay: 30000, allowances: 1000, otherEarnings: 500, unpaidLeave: 1000,
+      otherDeductions: 5000, sss: 875, philhealth: 500, hdmf: 100, withholdingTax: 200,
+      expected: { grossPay: 31500, totalDeductions: 7675, netPay: 23825 } },
+  ])("rolls up gross $expected.grossPay and deductions $expected.totalDeductions", ({ expected, ...input }) => {
+    expect(calculatePayrollTotals(input)).toEqual(expected)
+  })
+})
 
 describe("round2", () => {
   it("rounds half up to 2 decimals", () => {
@@ -49,7 +63,7 @@ describe("calculatePayroll — client payslip golden fixture", () => {
   it("HDMF = 100.00 (half of 2% of 10,000 cap)", () => expect(r.hdmf).toBe(100))
   it("Gross Pay = 22,500.00", () => expect(r.grossPay).toBe(22500))
   it("WHT passes through the manual input, not computed", () => expect(r.withholdingTax).toBe(1325))
-  it("Total Deductions = SSS+PhilHealth+HDMF+WHT+other = 2,837.50", () =>
+  it("Total Deductions includes leave, SSS, PhilHealth, HDMF, tax and other deductions = 2,837.50", () =>
     expect(r.totalDeductions).toBe(2837.5))
   it("Net = 19,662.50 (Gross - Total Deductions)", () => expect(r.netPay).toBe(19662.5))
 })
@@ -68,10 +82,48 @@ describe("manual withholding tax", () => {
 })
 
 describe("edge cases", () => {
-  it("unpaid leave reduces gross via daily rate (monthly/22)", () => {
+  it.each([
+    [0, 0, 0, 1325, 19662.5],
+    [0.5, 750.25, 250.75, 1325, 19184.72],
+    [2, 750, 250, 0, 17578.4],
+    [2.25, 0, 0, 123.45, 16466.31],
+  ])("preserves the historical net to the centavo for %s leave days", (unpaidLeaveDays, otherEarnings, otherDeductions, withholdingTax, expectedNet) => {
+    const result = calculatePayroll({ ...payslip, unpaidLeaveDays, otherEarnings, otherDeductions, withholdingTax }, config)
+    expect(result.netPay).toBe(expectedNet)
+    expect(result.sss).toBe(875)
+    expect(result.philhealth).toBe(537.5)
+    expect(result.hdmf).toBe(100)
+    expect(result.withholdingTax).toBe(withholdingTax)
+  })
+  it.each([5000, 40000, 43000, 120000])("keeps contributions independent of earnings/leave for salary %s", (monthlyBasicSalary) => {
+    const baseline = calculatePayroll({ ...payslip, monthlyBasicSalary }, config)
+    const adjusted = calculatePayroll({ ...payslip, monthlyBasicSalary, basicPay: 30000.12,
+      allowances: 123.45, otherEarnings: 987.65, unpaidLeaveDays: 2.25, otherDeductions: 321.09 }, config)
+    expect([adjusted.sss, adjusted.philhealth, adjusted.hdmf])
+      .toEqual([baseline.sss, baseline.philhealth, baseline.hdmf])
+  })
+  it("unpaid leave belongs in deductions and leaves gross earnings intact", () => {
     const r2 = calculatePayroll({ ...payslip, unpaidLeaveDays: 1 }, config)
     expect(r2.dailyRate).toBe(round2(43000 / 22)) // 1954.55
-    expect(r2.grossPay).toBe(round2(22500 - round2(43000 / 22)))
+    expect(r2.unpaidLeave).toBe(1954.55)
+    expect(r2.grossPay).toBe(22500)
+    expect(r2.totalDeductions).toBe(4792.05)
+    expect(r2.netPay).toBe(17707.95)
+  })
+  it("matches the reported payslip without deducting leave twice", () => {
+    const result = calculatePayroll({ ...payslip, monthlyBasicSalary: 40000,
+      basicPay: 20000, allowances: 0, unpaidLeaveDays: 2, withholdingTax: 0 }, config)
+    expect(result.unpaidLeave).toBe(3636.36)
+    expect(result.grossPay).toBe(20000)
+    expect(result.totalDeductions).toBe(5111.36)
+    expect(result.netPay).toBe(14888.64)
+  })
+  it.each([0, 0.5, 2])("includes earnings and all deductions with %s unpaid days", (unpaidLeaveDays) => {
+    const result = calculatePayroll({ ...payslip, otherEarnings: 750,
+      otherDeductions: 250, unpaidLeaveDays }, config)
+    expect(result.grossPay).toBe(23250)
+    expect(result.totalDeductions).toBe(round2(3087.5 + round2(unpaidLeaveDays * 1954.55)))
+    expect(result.netPay).toBe(round2(result.grossPay - result.totalDeductions))
   })
   it("missing SSS config throws, not silent 0", () => {
     expect(() => calculatePayroll(payslip, { ...config, sss: [] })).toThrow()
