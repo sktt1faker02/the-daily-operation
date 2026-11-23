@@ -4,13 +4,11 @@
  * from editable values (DESIGN.md "Editable vs Automatic"). Presentation only —
  * actions arrive via props.
  */
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import {
   type ColumnDef,
-  type SortingState,
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { FileText, Loader2, Pencil, Trash2 } from "lucide-react"
@@ -25,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { formatCurrency } from "@/lib/format"
 import type { PayrollEntry } from "./types"
+import { sortEntriesByEmployeeNumber } from "./period-utils"
 
 function money(value: number | null) {
   return <span className="tabular-nums">{formatCurrency(value)}</span>
@@ -47,7 +46,7 @@ export function PayrollEntryTable({
   /** Id of the entry whose payslip is currently being prepared. */
   viewingId?: string | null
 }) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const sortedEntries = useMemo(() => sortEntriesByEmployeeNumber(entries), [entries])
 
   const columns = useMemo<ColumnDef<PayrollEntry>[]>(
     () => [
@@ -141,12 +140,9 @@ export function PayrollEntryTable({
   )
 
   const table = useReactTable({
-    data: entries,
+    data: sortedEntries,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   })
 
   return (

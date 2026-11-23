@@ -9,6 +9,20 @@ import { EmploymentStatus, type Employee } from "@/features/employees/types"
 import { isFinalized, type PayrollStatusValue } from "./period-status"
 import type { PayrollEntry, PayrollPeriod } from "./types"
 
+const employeeNumberOrder = new Intl.Collator("en-PH", { numeric: true })
+
+/** Sort a copy so the table never mutates the cached entries. Missing numbers go last. */
+export function sortEntriesByEmployeeNumber(entries: PayrollEntry[]): PayrollEntry[] {
+  return [...entries].sort((a, b) => {
+    const left = a.a365_employeenumber?.trim() || ""
+    const right = b.a365_employeenumber?.trim() || ""
+    if (!left && right) return 1
+    if (left && !right) return -1
+    return employeeNumberOrder.compare(left, right) ||
+      a.a365_payrollentryid.localeCompare(b.a365_payrollentryid)
+  })
+}
+
 /** Validate/correct totals using the entry's saved deductions, preserving its
  * salary/configuration snapshot and manual tax instead of loading current rules. */
 export function calculateStoredEntryTotals(entry: PayrollEntry) {

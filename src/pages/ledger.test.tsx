@@ -100,4 +100,22 @@ describe("Ledger", () => {
     mount()
     expect(await screen.findByRole("button", { name: "Post previous paid payroll" })).toBeEnabled()
   })
+  it("shows skipped-period details only inside the historical-posting dialog", async () => {
+    const error = "Missing valid Paid On; skipped."
+    vi.mocked(ledgerService.preview).mockResolvedValue({ periods: [
+      { id: "skipped", name: "Jan 1–15, 2026", employees: 0, missing: 0, total: 0, error },
+      { id: "eligible", name: "Eligible period", employees: 1, missing: 1, total: 100, error: null },
+    ], manual: [], missing: 1, revision: "1" })
+    const user = userEvent.setup(); mount()
+    await screen.findByRole("table", { name: "Ledger records" })
+    await waitFor(() => expect(ledgerService.preview).toHaveBeenCalled())
+    expect(screen.queryByText(/Missing valid Paid On/)).not.toBeInTheDocument()
+    expect(screen.getByText(/9,000\.00/)).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "Post previous paid payroll" }))
+    const dialog = screen.getByRole("dialog")
+    expect(await within(dialog).findByText(error)).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Confirm and post missing payroll" })).toBeEnabled()
+    await user.keyboard("{Escape}")
+    expect(screen.queryByText(/Missing valid Paid On/)).not.toBeInTheDocument()
+  })
 })

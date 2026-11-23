@@ -23,6 +23,26 @@ on-page filtered-total cards and direction-filter requirements in PLANS.md.
 This request changes presentation only. Earlier release evidence remains historical;
 filtered aggregates are still calculated server-side and included in Excel export.
 
+## 2026-11-23 - Remove skipped-period messages from the main page
+
+Latest owner decision removes the historical-preview exception messages above
+Company balance. The posting dialog retains per-period exceptions for review.
+No backend, financial data, eligibility, schema or security behavior changes.
+
+Verification checklist:
+
+- [x] No skipped-period messages appear above Company balance or after closing the dialog.
+- [x] Posting dialog retains exception details and eligible posting controls.
+- [x] Company balance, records, filters, export, loading/errors and posting progress remain available.
+- [x] Ledger tests, full suite, lint/build, desktop/mobile browser checks and diff check pass.
+
+Changes: `src/pages/ledger.tsx`, its existing test and `scripts/ledger-ui-check.mjs`.
+19 targeted Ledger tests, production build and desktop/mobile Playwright passed.
+The browser checks use synthetic data; the first attempt timed out while the
+local server was compiling and the retry passed. All 567 tests (54 files), lint
+and `git diff --check` passed. Build retains existing large-chunk notices.
+This follow-up has not been deployed; live permissions remain unverified.
+
 ## Verification and Dev release
 
 - Targeted Ledger UI/service/export checks: 25 passed.

@@ -6,6 +6,25 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-23 - Sort payroll employees by hidden employee number
+
+Phase 6/12: the payroll period entry table now sorts ascending by the existing
+employee number while displaying only the employee name. Numeric segments sort
+naturally (2 before 10); missing numbers sort last, with entry ID breaking ties.
+The pure helper sorts a copy to preserve TanStack Query's cached data. Changed
+`period-utils.ts` and `payroll-entry-table.tsx`; added colocated table regression
+tests and `scripts/payroll-entry-order-ui-check.mjs`.
+
+Verification checklist: employee-number order rather than name order; no number
+column or visible number values; search/reset and refreshed data preserve order;
+editable/read-only row actions target the correct entry; missing/duplicate numbers
+are deterministic; source entries are not reordered. No calculation, schema,
+security, stored record or export changes. All checklist items passed: 4 targeted
+regression tests, 566 full-suite tests (54 files), production build and Playwright
+checks at 1280px/390px with synthetic entries. Build retains existing large-chunk
+notices. `npm run lint` and `git diff --check` passed.
+No deployment or live Dataverse/security checks performed.
+
 ### 2026-11-13 - Use the runtime app identity in payslip email links
 
 Fixed the Dev link retained after pipeline promotion. The payslip email service

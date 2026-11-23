@@ -49,7 +49,6 @@ export default function LedgerPage() {
       <div className="flex flex-wrap gap-2">{!historyComplete && <Button variant="outline" onClick={() => setHistory(true)}><BookOpen className="size-4" aria-hidden />Post previous paid payroll</Button>}<Button variant="outline" disabled={!ledger.data || exporting || ledger.isError} onClick={() => void runExport()}><Download className="size-4" aria-hidden />{exporting ? "Exporting…" : "Export to Excel"}</Button><Button disabled={!ledger.data || ledger.isError} onClick={() => setForm("new")}><Plus className="size-4" aria-hidden />Add record</Button></div>
     </header>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    {preview.data?.periods.filter(period => period.error).map(period => <p key={period.id} role="status" className="text-sm text-muted-foreground">{period.name}: {period.error}</p>)}
     {ledger.isPending && <p role="status">Loading ledger records and balances…</p>}
     {ledger.isError && <div role="alert" className="space-y-2 rounded-md border p-4"><p>{ledger.error.message}</p><Button variant="outline" onClick={refresh}>Retry ledger</Button></div>}
     {ledger.data && !ledger.isError && <Card className="w-full sm:max-w-sm"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Company balance</CardTitle></CardHeader><CardContent><p className="text-xl font-semibold tabular-nums">{formatCurrency(ledger.data.balance)}</p></CardContent></Card>}

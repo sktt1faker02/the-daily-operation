@@ -59,7 +59,7 @@ try {
             const offset=request.cursor?Number(request.cursor):0;
             response={rows:selected.slice(offset,offset+10),totals:{debit,credit,net:credit-debit,count:selected.length},balance:state.empty?0:10049,revision:'one',next:selected.length>offset+10?String(offset+10):null,categories};
           }else if(request.command==='historyJobs')response={jobs:[]};
-          else if(request.command==='historyPreview')response={periods:[],manual:[],missing:0,revision:'one'};
+          else if(request.command==='historyPreview')response={periods:[{id:'skipped',name:'Jan 1–15, 2026',employees:0,missing:0,total:0,error:'Missing valid Paid On; skipped.'},{id:'eligible',name:'Eligible period',employees:1,missing:1,total:100,error:null}],manual:[],missing:1,revision:'one'};
           else if(request.command==='save')response={id:request.id??request.operationId};
           else throw new Error('Unexpected synthetic command '+request.command);
           return {success:true,data:{Response:JSON.stringify(response)}};
@@ -75,6 +75,15 @@ try {
     assert.equal(await page.getByText(/Filtered Money|Filtered net movement|Company balance covers/).count(), 0)
     assert.equal(await page.getByRole("combobox", { name: "Direction", exact: true }).count(), 0)
     assert.equal(await page.getByRole("button", { name: "All previous paid payroll has been posted", exact: true }).count(), 0)
+    await page.waitForFunction(() => window.__ledgerState.calls.some(call => call.command === 'historyPreview'))
+    assert.equal(await page.getByText(/Missing valid Paid On/).count(), 0)
+    await page.getByRole("button", { name: "Post previous paid payroll", exact: true }).click()
+    const historyDialog = page.getByRole("dialog")
+    await historyDialog.getByText("Missing valid Paid On; skipped.", { exact: true }).waitFor()
+    assert.equal(await historyDialog.getByRole("button", { name: "Confirm and post missing payroll" }).isEnabled(), true)
+    await page.keyboard.press("Escape")
+    await historyDialog.waitFor({ state: "hidden" })
+    assert.equal(await page.getByText(/Missing valid Paid On/).count(), 0)
     const reference = table.getByRole("link", { name: "https://example.com/receipt?or=0001 (opens in a new tab)" })
     assert.equal(await reference.getAttribute("href"), "https://example.com/receipt?or=0001")
     assert.equal(await reference.getAttribute("target"), "_blank")
