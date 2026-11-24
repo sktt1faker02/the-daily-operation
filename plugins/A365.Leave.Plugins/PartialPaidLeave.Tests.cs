@@ -80,21 +80,65 @@ public static class PartialPaidLeaveTests
             var expectedVL = new[] { 0m, 0m, 0.83m, 1.67m, 5m, 9.17m, 10m };
             for (int index = 0; index < dates.Length; index++)
             {
-                ensure.Invoke(null, new object[] { null, rows, employee, new DateTime(2020, 1, 1), period, dates[index], false });
+                ensure.Invoke(null, new object[] { null, rows, employee, new DateTime(2020, 1, 1), period, dates[index], false, 749910100 });
                 Check(rows.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == expectedVL[index], "VL accrues only after completed months with exact annual rounding");
                 Check(rows.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910001).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 5m, "Annual SL remains five days");
                 Check(rows.All(row => row.GetAttributeValue<string>("a365_creditperiod") == year + "-01-01"), "Credits stay in their earned cycle without carryover");
                 int count = rows.Count;
-                ensure.Invoke(null, new object[] { null, rows, employee, new DateTime(2020, 1, 1), period, dates[index], false });
+                ensure.Invoke(null, new object[] { null, rows, employee, new DateTime(2020, 1, 1), period, dates[index], false, 749910100 });
                 Check(rows.Count == count, "Repeated previews cannot duplicate credits");
             }
             var newHire = new List<Entity>();
-            ensure.Invoke(null, new object[] { null, newHire, employee, period.AddDays(14), period, period.AddMonths(2), false });
+            ensure.Invoke(null, new object[] { null, newHire, employee, period.AddDays(14), period, period.AddMonths(2), false, 749910100 });
             Check(newHire.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 0.83m, "Mid-January hire earns February credit on March 1 only");
         }
         var legacy = new List<Entity>();
-        ensure.Invoke(null, new object[] { null, legacy, Guid.NewGuid(), new DateTime(2020, 1, 1), new DateTime(2026, 4, 1), new DateTime(2026, 12, 31), false });
+        ensure.Invoke(null, new object[] { null, legacy, Guid.NewGuid(), new DateTime(2020, 1, 1), new DateTime(2026, 4, 1), new DateTime(2026, 12, 31), false, 749910100 });
         Check(legacy.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 6.67m, "2026 monthly VL accrual is preserved");
+        return checks;
+    }
+    public static int RunSickEligibility()
+    {
+        checks = 0;
+        var ensure = typeof(LeaveCommand).GetMethod("EnsureCredits", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        foreach (int year in new[] { 2026, 2027, 2028 })
+        {
+            var period = new DateTime(year, 1, 1); var rows = new List<Entity>(); var id = Guid.NewGuid();
+            ensure.Invoke(null, new object[] { null, rows, id, period.AddYears(-1), period, period, false, 749910101 });
+            Check(rows.Count == 0, "January 1 never grants probationary SL");
+            ensure.Invoke(null, new object[] { null, rows, id, period.AddYears(-1), period, period.AddMonths(6), false, 749910101 });
+            Check(!rows.Any(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910001), "Probationary monthly accrual excludes SL");
+            ensure.Invoke(null, new object[] { null, rows, id, period.AddYears(-1), period, period.AddMonths(6), false, 749910100 });
+            Check(rows.Where(row => row.GetAttributeValue<OptionSetValue>("a365_creditpool").Value == 749910001).Sum(row => row.GetAttributeValue<decimal>("a365_days")) == 5m, "Midyear regularization grants full five SL");
+            int count = rows.Count;
+            ensure.Invoke(null, new object[] { null, rows, id, period.AddYears(-1), period, period.AddMonths(6), false, 749910100 });
+            Check(rows.Count == count, "Regularization retry never duplicates grant");
+        }
+        var fake = new Fake(); var person = fake.Rows.Single(row => row.LogicalName == "a365_employee" && row.Id == fake.Employee);
+        person["a365_employmenttype"] = new OptionSetValue(749910101);
+        var request = new Request { command = "syncEmployee", employeeId = fake.Employee.ToString("D"), year = DateTime.UtcNow.AddHours(8).Year };
+        Check(Convert.ToDecimal(fake.Send(request)["SL"]) == 0m, "Probationary sync saves no SL");
+        Check(Convert.ToDecimal(RefreshRow(fake.Send(new Request { command = "refreshPreview" }))["SL"]) == 0m, "Refresh preview uses probationary entitlement");
+        fake.Send(ResetRequest(fake));
+        Check(RefreshBalance(fake, 749910001) == 0m, "Refresh cannot grant probationary SL");
+        var stale = ResetRequest(fake);
+        person["a365_employmenttype"] = new OptionSetValue(749910100);
+        bool rejected = false;
+        try { fake.Send(stale); } catch { rejected = true; }
+        Check(rejected, "Employment type change invalidates refresh preview");
+        person = fake.Rows.Single(row => row.LogicalName == "a365_employee" && row.Id == fake.Employee);
+        Check(Convert.ToDecimal(fake.Send(request)["SL"]) == 5m, "Regularization persists five SL");
+        int saved = fake.Rows.Count;
+        fake.Send(request);
+        Check(fake.Rows.Count == saved, "Persisted regularization is idempotent");
+        person["a365_employmenttype"] = new OptionSetValue(749910101);
+        Check(Convert.ToDecimal(fake.Send(request)["SL"]) == 0m, "Existing automatic grant is offset for probationary employee");
+        saved = fake.Rows.Count; fake.Send(request);
+        Check(fake.Rows.Count == saved, "Eligibility adjustment is idempotent");
+        person["a365_employmenttype"] = new OptionSetValue(749910100);
+        Check(Convert.ToDecimal(fake.Send(request)["SL"]) == 5m, "Regularization restores entitlement once without rewriting grant");
+        ResetCredit(fake, fake.Employee, 749910001, -1m, Rules.Period(DateTime.UtcNow.AddHours(8).Date), request.year);
+        Check(Convert.ToDecimal(fake.Send(request)["SL"]) == 4m, "Sync preserves used SL");
         return checks;
     }
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();

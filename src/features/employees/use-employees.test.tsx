@@ -53,3 +53,26 @@ it("refreshes leave visibility after changing employee status", async () => {
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "list"] })
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ["leave", "conversion", "rows"] })
 })
+it.each([false, true])("syncs regularization and reports a retry when leave setup fails: %s", async failed => {
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  vi.mocked(employeeService.update).mockResolvedValue(undefined)
+  if (failed) vi.mocked(employeeLeaveService.sync).mockRejectedValueOnce(new Error("Retry Sync leave credits."))
+  const { result } = renderHook(() => useUpdateEmployee(), { wrapper })
+  await act(async () => {
+    await expect(result.current.mutateAsync({ id: employee.a365_employeeid, values: { a365_employmenttype: 749910100 } as EmployeeFormValues })).resolves.toBeUndefined()
+  })
+  expect(employeeLeaveService.sync).toHaveBeenCalledExactlyOnceWith(employee.a365_employeeid)
+  if (failed) expect(toast.error).toHaveBeenCalledWith("Employee updated; leave setup needs retry.", { description: "Retry Sync leave credits." })
+  else expect(toast.error).not.toHaveBeenCalled()
+})
+it("does not sync leave after an employee update fails", async () => {
+  vi.mocked(employeeService.update).mockRejectedValueOnce(new Error("Update failed"))
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  const { result } = renderHook(() => useUpdateEmployee(), { wrapper })
+  await act(async () => {
+    await expect(result.current.mutateAsync({ id: employee.a365_employeeid, values: {} as EmployeeFormValues })).rejects.toThrow("Update failed")
+  })
+  expect(employeeLeaveService.sync).not.toHaveBeenCalled()
+})

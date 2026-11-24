@@ -176,11 +176,11 @@ namespace A365.Leave.Plugins
         {
             Guid employeeId;
             if (!Guid.TryParse(request.employeeId, out employeeId)) { Rules.Fail("Select an employee."); return null; }
-            // Reads under caller privileges, not elevated business access.
-            var employee = caller.Retrieve("a365_employee", employeeId, new ColumnSet("a365_name", "a365_employmentstatus", "a365_datehired", "a365_enddate", "a365_workemail"));
             // Preview must not post credits or change records when the admin
             // later cancels the form. Only Issue takes the posting lock.
             if (request.command == "issue") Lock(system, employeeId);
+            // Read current eligibility after taking the posting lock.
+            var employee = caller.Retrieve("a365_employee", employeeId, new ColumnSet("a365_name", "a365_employmentstatus", "a365_employmenttype", "a365_datehired", "a365_enddate", "a365_workemail"));
             Guid operationId;
             if (request.command == "issue")
             {
@@ -215,7 +215,7 @@ namespace A365.Leave.Plugins
             var recorded = rows.Where(r => r.GetAttributeValue<string>("a365_creditperiod") == Rules.Iso(period));
             decimal postedVL = recorded.Where(r => Choice(r, "a365_creditpool") == 749910000).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
             decimal postedSL = recorded.Where(r => Choice(r, "a365_creditpool") == 749910001).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
-            EnsureCredits(caller, rows, employeeId, hired, period, today, request.command == "issue");
+            EnsureCredits(caller, rows, employeeId, hired, period, today, request.command == "issue", Choice(employee, "a365_employmenttype"));
             var current = rows.Where(r => r.GetAttributeValue<string>("a365_creditperiod") == Rules.Iso(period));
             decimal vl = current.Where(r => Choice(r, "a365_creditpool") == 749910000).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
             decimal sl = current.Where(r => Choice(r, "a365_creditpool") == 749910001).Sum(r => r.GetAttributeValue<decimal>("a365_days"));
@@ -268,10 +268,31 @@ namespace A365.Leave.Plugins
             return Result(leave);
         }
 
-        private static void EnsureCredits(IOrganizationService caller, List<Entity> rows, Guid employee, DateTime hired, DateTime period, DateTime today, bool persist)
+        private static decimal SickEntitlement(int employmentType)
         {
-            // Start each period with 0 VL / 5 SL, then earn VL monthly in arrears.
-            Grant(caller, rows, employee, period, period.Year, 749910001, 749910001, 5m, "SL-" + Rules.Iso(period), persist);
+            // Preserve other employment types' existing policy.
+            return employmentType == 749910101 ? 0m : 5m;
+        }
+        private static void EnsureCredits(IOrganizationService caller, List<Entity> rows, Guid employee, DateTime hired, DateTime period, DateTime today, bool persist, int employmentType)
+        {
+            // Do not create a zero grant: regularization must still grant five once.
+            decimal entitlement = SickEntitlement(employmentType);
+            if (entitlement > 0)
+                Grant(caller, rows, employee, period, period.Year, 749910001, 749910001, 5m, "SL-" + Rules.Iso(period), persist);
+            string grantKey = "AUTO-" + Rules.Iso(period) + "-SL-" + Rules.Iso(period);
+            string adjustmentPrefix = grantKey + "-ELIGIBILITY-";
+            var grants = rows.Where(row => row.GetAttributeValue<string>("a365_creditperiod") == Rules.Iso(period) &&
+                (row.GetAttributeValue<string>("a365_transactionkey") == grantKey || (row.GetAttributeValue<string>("a365_transactionkey") ?? "").StartsWith(adjustmentPrefix, StringComparison.Ordinal))).ToList();
+            decimal adjustment = entitlement - grants.Sum(row => row.GetAttributeValue<decimal>("a365_days"));
+            if (adjustment != 0)
+            {
+                // Append audit movements; never rewrite grants, usage or past years.
+                string key = adjustmentPrefix + grants.Count.ToString(CultureInfo.InvariantCulture);
+                var row = Movement(employee, period, period.Year, 749910001, adjustment < 0 ? 749910002 : 749910001, adjustment, key, key);
+                row["a365_note"] = "SL employment eligibility: probationary 0 days; regular 5 days. Existing leave usage retained.";
+                if (persist) row.Id = caller.Create(row);
+                rows.Add(row);
+            }
             int earned = 0;
             for (int month = 0; month < 12; month++)
             {
@@ -292,7 +313,7 @@ namespace A365.Leave.Plugins
             }
             var row = Movement(employee, period, year, pool, type, days, key, key);
             row["a365_note"] = period >= Rules.JanuaryResetEffective
-                ? "January cycle effective 2027: starts at 0 VL and 5 SL; monthly VL earned in arrears toward 10 days; no carryover."
+                ? "January cycle effective 2027: starts at 0 VL; SL follows employment eligibility; monthly VL earned in arrears toward 10 days; no carryover."
                 : "Automatic credit under policy 2026-10-22.1. Monthly VL is earned in arrears; SL is granted for the balance period.";
             if (persist) row.Id = service.Create(row);
             rows.Add(row);

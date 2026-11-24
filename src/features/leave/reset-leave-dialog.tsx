@@ -32,7 +32,7 @@ export function RefreshLeaveDialog({ onClose }: { onClose: () => void }) {
     <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl" showCloseButton={canClose} onEscapeKeyDown={event => { if (!canClose) event.preventDefault() }} onInteractOutside={event => { if (!canClose) event.preventDefault() }}>
       <DialogHeader>
         <DialogTitle>Refresh active employees' leave balances?</DialogTitle>
-        <DialogDescription>Recalculate this period from earned VL and 5 SL, minus recorded paid leave and paid VL conversions. Maximum entitlement is 10 VL and 5 SL. Existing records and credit history are retained.</DialogDescription>
+        <DialogDescription>Recalculate this period from earned VL and eligible SL, minus recorded paid leave and paid VL conversions. Probationary employees have 0 SL and receive 5 SL when changed to Regular. Maximum entitlement is 10 VL and 5 SL. Existing records and credit history are retained.</DialogDescription>
       </DialogHeader>
       <p className="text-sm">Cancelled, deleted and unpaid leave do not use credits. Saved conversion limits, rates and paid amounts stay unchanged.</p>
       {!uncertain && preview.isFetching && <p role="status" className="text-sm text-muted-foreground">Checking active employees and credit history...</p>}

@@ -14,7 +14,7 @@ namespace A365.Leave.Plugins
             var today = DateTime.UtcNow.AddHours(8).Date;
             if (request.year != today.Year) Rules.Fail("Leave credits can only be synchronized for the current year.");
             Lock(system, employeeId);
-            var employee = caller.Retrieve("a365_employee", employeeId, new ColumnSet("a365_employmentstatus", "a365_datehired", "a365_enddate"));
+            var employee = caller.Retrieve("a365_employee", employeeId, new ColumnSet("a365_employmentstatus", "a365_employmenttype", "a365_datehired", "a365_enddate"));
             if (!employee.Contains("a365_datehired")) Rules.Fail("The employee hire date is required for credit accrual.");
             var hired = employee.GetAttributeValue<DateTime>("a365_datehired").Date;
             bool eligible = (Choice(employee, "a365_employmentstatus") == 749910000 || Choice(employee, "a365_employmentstatus") == 749910002)
@@ -28,7 +28,7 @@ namespace A365.Leave.Plugins
             if (rows.Any(row => String.IsNullOrEmpty(row.GetAttributeValue<string>("a365_creditperiod")) ||
                 (row.GetAttributeValue<int>("a365_year") == today.Year && row.GetAttributeValue<string>("a365_creditperiod") != Rules.Iso(period))))
                 Rules.Fail("Existing credit history needs period reconciliation before syncing. No credits were changed.");
-            EnsureCredits(caller, rows, employeeId, hired, period, today, true);
+            EnsureCredits(caller, rows, employeeId, hired, period, today, true, Choice(employee, "a365_employmenttype"));
             bool added = Choice(employee, "a365_employmentstatus") == 749910000 && ConversionCommands.AddMissingEmployee(caller, today.Year, employeeId, actor);
             var current = rows.Where(row => row.GetAttributeValue<string>("a365_creditperiod") == Rules.Iso(period));
             return new { employeeId = employeeId.ToString("D"), year = today.Year, eligible = true,

@@ -6,6 +6,27 @@ planning; keep dated implementation history here.
 
 ## Change Log
 
+### 2026-11-24 - Probationary sick-leave eligibility
+
+Phase 3/12, Leave integration: probationary employees receive 0 SL, including
+January 1; changing Employment Type to Regular grants the full 5 SL once for the
+current year. Updated Leave server accrual, employee sync and balance refresh,
+the employee update hook and refresh-dialog explanation. Existing usage and
+prior-year history remain intact; automatic grant corrections append audit
+movements. Other employment types and VL rules are unchanged.
+
+Verification: signed server build, 307 synthetic server assertions (22 new
+sick-eligibility assertions and 29 refresh checks), 15 targeted Vitest tests,
+13 Playwright scenarios and production build pass. Lint passes with generated
+`artifacts/**` and `scripts/**/.work/**` excluded; unscoped lint was stopped after
+stalling. The full Vitest run (`--maxWorkers=2`) recorded 550 passes and 20
+failures across five unchanged UI files under resource contention. All five
+files pass isolated reruns with one worker and a 15-second timeout (81 tests);
+no unrelated application/test changes were made. See
+[policy and rollout checklist](docs/leave-sick-eligibility.md). No live data,
+schema, role or deployment changes. Live account/security UAT and plugin/app
+deployment remain required.
+
 ### 2026-11-23 - Sort payroll employees by hidden employee number
 
 Phase 6/12: the payroll period entry table now sorts ascending by the existing

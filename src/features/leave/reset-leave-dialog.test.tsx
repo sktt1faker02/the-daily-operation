@@ -26,7 +26,7 @@ function setup() {
 it("previews all active employees and cancelling makes no financial writes", async () => {
   const { user, close } = setup()
   expect(await screen.findByText("3 active employees")).toBeVisible()
-  expect(screen.getByText(/earned VL and 5 SL/)).toBeVisible()
+  expect(screen.getByText(/Probationary employees have 0 SL and receive 5 SL when changed to Regular/)).toBeVisible()
   expect(screen.getByText(/Saved conversion limits, rates and paid amounts stay unchanged/)).toBeVisible()
   expect(screen.getByText(/Employee and list filters do not restrict/)).toBeVisible()
   expect(screen.getByRole("table", { name: "Balance refresh preview" })).toBeVisible()

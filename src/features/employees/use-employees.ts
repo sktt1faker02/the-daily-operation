@@ -63,7 +63,12 @@ export function useUpdateEmployee() {
   return useMutation({
     mutationFn: ({ id, values }: { id: string; values: EmployeeFormValues }) =>
       employeeService.update(id, values),
-    onSuccess: (_data, variables) => {
+    onSuccess: async (_data, variables) => {
+      try {
+        await employeeLeaveService.sync(variables.id)
+      } catch (error) {
+        toast.error("Employee updated; leave setup needs retry.", { description: error instanceof Error ? error.message : "Select the employee in Leave Management and use Sync leave credits." })
+      }
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
       queryClient.invalidateQueries({ queryKey: employeeKeys.detail(variables.id) })
       queryClient.invalidateQueries({ queryKey: ["leave", "employee-picker"] })

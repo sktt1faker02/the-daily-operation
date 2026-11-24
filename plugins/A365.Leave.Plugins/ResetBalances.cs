@@ -22,7 +22,7 @@ namespace A365.Leave.Plugins
             public List<Entity> Headers = new List<Entity>();
             public decimal EarnedVL, UsedVL, UsedSL, ConvertedVL, BeforeVL, BeforeSL;
             public decimal VL { get { return EarnedVL - UsedVL - ConvertedVL; } }
-            public decimal SL { get { return 5m - UsedSL; } }
+            public decimal SL { get { return SickEntitlement(Choice(Employee, "a365_employmenttype")) - UsedSL; } }
             public object Preview()
             {
                 return new { employeeId = Employee.Id.ToString("D"), employeeName = Employee.GetAttributeValue<string>("a365_name") ?? Employee.Id.ToString("D"),
@@ -49,7 +49,7 @@ namespace A365.Leave.Plugins
             }
             DateTime today = DateTime.UtcNow.AddHours(8).Date;
             DateTime period = Rules.Period(today);
-            var query = new QueryExpression("a365_employee") { ColumnSet = new ColumnSet("a365_name", "a365_employmentstatus", "a365_datehired"), PageInfo = new PagingInfo { Count = 5000, PageNumber = 1 } };
+            var query = new QueryExpression("a365_employee") { ColumnSet = new ColumnSet("a365_name", "a365_employmentstatus", "a365_employmenttype", "a365_datehired"), PageInfo = new PagingInfo { Count = 5000, PageNumber = 1 } };
             query.Criteria.AddCondition("a365_employmentstatus", ConditionOperator.Equal, 749910000);
             query.AddOrder("a365_employeeid", OrderType.Ascending);
             var employees = new List<Entity>(); var cookies = new HashSet<string>();
@@ -80,7 +80,7 @@ namespace A365.Leave.Plugins
                 var hired = current.GetAttributeValue<DateTime>("a365_datehired").Date;
                 if (hired > today) Rules.Fail("An active employee's hire date is in the future. Review it before refreshing.");
                 // Entitlement excludes previous resets, restorations and duplicate grants.
-                EnsureCredits(caller, entitlement, employee.Id, hired, period, today, false);
+                EnsureCredits(caller, entitlement, employee.Id, hired, period, today, false, Choice(current, "a365_employmenttype"));
                 item.EarnedVL = Math.Min(10m, entitlement.Where(row => Choice(row, "a365_creditpool") == 749910000).Sum(row => row.GetAttributeValue<decimal>("a365_days")));
                 foreach (var source in item.Sources)
                 {
@@ -137,7 +137,7 @@ namespace A365.Leave.Plugins
             foreach (var item in snapshot)
             {
                 // Catch up already-due grants, so the next Issue cannot add them twice.
-                EnsureCredits(caller, item.Rows, item.Employee.Id, item.Employee.GetAttributeValue<DateTime>("a365_datehired").Date, period, today, true);
+                EnsureCredits(caller, item.Rows, item.Employee.Id, item.Employee.GetAttributeValue<DateTime>("a365_datehired").Date, period, today, true, Choice(item.Employee, "a365_employmenttype"));
                 var groups = item.Rows.Where(row => row.GetAttributeValue<int>("a365_year") == today.Year || row.GetAttributeValue<string>("a365_creditperiod") == Rules.Iso(period))
                     .GroupBy(row => new { Year = row.GetAttributeValue<int>("a365_year"), Period = row.GetAttributeValue<string>("a365_creditperiod"), Pool = Choice(row, "a365_creditpool") }).ToList();
                 foreach (var group in groups)
@@ -160,7 +160,7 @@ namespace A365.Leave.Plugins
             if (days == 0) return;
             var key = "REFRESH-" + operation.ToString("D") + "-" + year.ToString(CultureInfo.InvariantCulture) + "-" + Rules.Iso(period) + "-" + pool.ToString(CultureInfo.InvariantCulture);
             var row = Movement(employee, period, year, pool, days < 0 ? 749910002 : 749910001, days, key, null);
-            row["a365_note"] = "Refresh: earned VL / 5 SL minus saved paid leave and paid VL conversions; operation " + operation.ToString("D") + "; actor " + context.InitiatingUserId.ToString("D") + "; date " + Rules.Iso(today) + ". Existing history retained.";
+            row["a365_note"] = "Refresh: earned VL / employment-eligible SL minus saved paid leave and paid VL conversions; operation " + operation.ToString("D") + "; actor " + context.InitiatingUserId.ToString("D") + "; date " + Rules.Iso(today) + ". Existing history retained.";
             caller.Create(row);
         }
 
